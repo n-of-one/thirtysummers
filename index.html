@@ -1,0 +1,54 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>2D World Prototype</title>
+  </head>
+  <body>
+    <div id="stage"></div>
+
+    <div id="hud">
+      <div class="hud-corner hud-tl">
+        <div class="bar" id="bar-stamina">
+          <div class="bar-fill"></div>
+          <span class="bar-label">Stamina</span>
+          <span class="bar-value">100%</span>
+        </div>
+        <div class="bar" id="bar-hydration">
+          <div class="bar-fill"></div>
+          <span class="bar-label">Hydration</span>
+          <span class="bar-value">100%</span>
+        </div>
+        <div class="cooldown" id="cooldown-stomach" hidden>Full stomach <b>60s</b></div>
+      </div>
+
+      <div class="hud-corner hud-tr">
+        <div class="clock"><span id="clock-time">15:00</span><small>left in day</small></div>
+      </div>
+
+      <div class="hud-corner hud-bl">
+        <div class="pill">Backpack <b id="backpack-count">0</b>/<span id="backpack-cap">10</span></div>
+        <div class="pill">Gold <b id="gold-count">0</b></div>
+      </div>
+
+      <div class="hud-corner hud-br">
+        <div class="prompt" id="action-prompt" hidden></div>
+      </div>
+
+      <div id="toasts"></div>
+    </div>
+
+    <div id="summary" hidden>
+      <div class="summary-card">
+        <h1>Day over</h1>
+        <dl id="summary-stats"></dl>
+        <button id="summary-restart">New day</button>
+      </div>
+    </div>
+
+    <div id="debug" hidden></div>
+
+    <script type="module" src="/src/main.ts"></script>
+  </body>
+</html>
