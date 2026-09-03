@@ -260,16 +260,18 @@ export class PropLayer {
 
     this.playerSprite.visible = true;
     this.playerSprite.texture = playerTexture;
-    const playerW = playerTexture.width * this.scale;
-    const playerH = playerTexture.height * this.scale;
-    this.playerSprite.x = this.snap(
-      (player.x - originX) * TILE,
-      this.pack.playerAnchor.x * playerW,
-    );
-    this.playerSprite.y = this.snap(
-      (player.y - originY) * TILE,
-      this.pack.playerAnchor.y * playerH,
-    );
+    // Deliberately NOT snapped to the art grid, unlike the props.
+    //
+    // Props sit at fixed world positions, so snapping them is free. The player
+    // moves continuously while the camera pans smoothly behind it, and
+    // quantising only the player makes the two fight: the sprite holds still
+    // for a frame or two while the camera keeps drifting, so it visibly slides
+    // backwards before catching up. The slower the terrain, the longer it holds
+    // and the worse it looks -- it was plain in underbrush and nearly invisible
+    // on grass. Rounding to whole screen pixels keeps it in step with the
+    // scrolling world.
+    this.playerSprite.x = Math.round((player.x - originX) * TILE);
+    this.playerSprite.y = Math.round((player.y - originY) * TILE);
     const playerDepth = depthOf(player.x, player.y) + PLAYER_TIEBREAK;
     this.playerSprite.zIndex = playerDepth;
 
