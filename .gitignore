@@ -6,3 +6,4 @@ dist/
 # Minifantasy art is a paid license that forbids redistribution.
 # Buy the packs on itch.io and unzip them here; they must never be committed.
 public/assets/minifantasy/
+.idea

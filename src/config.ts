@@ -139,10 +139,10 @@ export const WALK_FRAME_TILES = 0.62;
  * Only trees get this: every other prop is short enough that simply walking
  * behind it reads fine.
  */
-export const SILHOUETTE_COLOR = 0xf4efe2;
+export const SILHOUETTE_COLOR = 0x000000;
 /**
- * Opacity when the player is *completely* hidden. Partial cover scales down
- * from here in proportion to how much of the player the canopy actually covers,
- * so clipping a trunk's edge gives a faint hint rather than flattening you.
+ * Opacity of the silhouette. It is masked to exactly the covered pixels, so
+ * partial cover needs no fading -- the uncovered half of the character stays in
+ * full colour on its own.
  */
 export const SILHOUETTE_ALPHA = 0.9;

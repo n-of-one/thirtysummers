@@ -1,4 +1,11 @@
-import { ColorMatrixFilter, Container, Sprite, type Texture } from "pixi.js";
+import {
+  ColorMatrixFilter,
+  Container,
+  RenderTexture,
+  Sprite,
+  type Renderer,
+  type Texture,
+} from "pixi.js";
 import { SILHOUETTE_ALPHA, SILHOUETTE_COLOR, TILE } from "../config.ts";
 import type { TileMap } from "../sim/tilemap.ts";
 import type { ResourceNode, Vec2 } from "../sim/types.ts";
@@ -39,6 +46,15 @@ export function depthOf(x: number, y: number): number {
  */
 const PLAYER_TIEBREAK = 0.5;
 
+/**
+ * How far a prop may be nudged off its tile centre, in ASSET pixels.
+ *
+ * The nudge has to be a whole number of source pixels. Offsetting by screen
+ * pixels instead shifts a sprite by a fraction of an art pixel, so two trees
+ * end up on grids a pixel or two apart and the pixel-art illusion collapses.
+ */
+const PROP_JITTER_PX = 1;
+
 /** World-space box a sprite covers, used for the occlusion test. */
 interface Box {
   x0: number;
@@ -66,10 +82,32 @@ export class PropLayer {
   private readonly boxes: Box[] = [];
   /** Which pooled sprites are tall enough to hide the player behind them. */
   private readonly occludes: boolean[] = [];
+  /** Reused each frame so the occlusion test allocates nothing. */
+  private readonly occluderScratch: Sprite[] = [];
   private used = 0;
   private readonly playerSprite = new Sprite();
-  /** The player redrawn flat, above everything, when a tree covers them. */
+  /** The player redrawn flat, above everything, where a tree covers them. */
   private readonly silhouette = new Sprite();
+
+  /**
+   * The silhouette is masked so it only appears on the covered part of the
+   * player. Pixi's alpha mask must be a single Sprite, so the covering canopies
+   * are first drawn into a small render texture -- just the size of one player
+   * frame, not the viewport -- and that texture becomes the mask.
+   */
+  /**
+   * The filter and the mask sit on different objects on purpose. Putting both
+   * on one sprite makes Pixi run the colour matrix over an already-masked,
+   * already-premultiplied intermediate texture, and the flat colour comes out
+   * muddied. Filtering the sprite and masking its parent keeps the two passes
+   * independent.
+   */
+  private readonly silhouetteHolder = new Container();
+  private readonly maskScene = new Container();
+  private readonly maskPool: Sprite[] = [];
+  private readonly maskSprite = new Sprite();
+  private maskTexture: RenderTexture | null = null;
+
   private readonly scale: number;
 
   private originX = Number.NaN;
@@ -81,6 +119,7 @@ export class PropLayer {
   constructor(
     private readonly map: TileMap,
     private readonly pack: AssetPack,
+    private readonly renderer: Renderer,
     private readonly z = 0,
   ) {
     this.scale = TILE / pack.tileSize;
@@ -102,9 +141,57 @@ export class PropLayer {
     this.silhouette.scale.set(this.scale);
     this.silhouette.anchor.set(pack.playerAnchor.x, pack.playerAnchor.y);
     this.silhouette.visible = false;
-    this.silhouette.zIndex = Number.MAX_SAFE_INTEGER;
 
-    this.container.addChild(this.playerSprite, this.silhouette);
+    // Pixi's alpha mask samples the RED channel by default, not alpha. Canopies
+    // are green, so masking with them directly produced a faint, patchy stencil
+    // that only showed through the yellower leaves. Flattening the mask scene to
+    // white makes red follow alpha, so the mask is the canopy's exact shape.
+    const toWhite = new ColorMatrixFilter();
+    toWhite.matrix = [0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0];
+    this.maskScene.filters = [toWhite];
+
+    this.silhouetteHolder.addChild(this.silhouette);
+    this.silhouetteHolder.mask = this.maskSprite;
+    this.silhouetteHolder.zIndex = Number.MAX_SAFE_INTEGER;
+    // The mask sprite is never drawn itself; Pixi clears `renderable` on it.
+    this.container.addChild(this.playerSprite, this.maskSprite, this.silhouetteHolder);
+  }
+
+  /** Draw the covering canopies into the mask texture, aligned to the player. */
+  private renderMask(playerTexture: Texture, occluders: Sprite[]): void {
+    const w = Math.ceil(playerTexture.width * this.scale);
+    const h = Math.ceil(playerTexture.height * this.scale);
+    if (!this.maskTexture || this.maskTexture.width !== w || this.maskTexture.height !== h) {
+      this.maskTexture?.destroy(true);
+      this.maskTexture = RenderTexture.create({ width: w, height: h, antialias: false });
+      this.maskSprite.texture = this.maskTexture;
+    }
+
+    // Top-left of the player's frame, in this container's coordinates.
+    const frameX = this.playerSprite.x - this.pack.playerAnchor.x * w;
+    const frameY = this.playerSprite.y - this.pack.playerAnchor.y * h;
+    this.maskSprite.position.set(frameX, frameY);
+
+    // Shift the copies so that frame corner maps to the texture's origin.
+    this.maskScene.position.set(-frameX, -frameY);
+
+    for (let i = 0; i < occluders.length; i++) {
+      let copy = this.maskPool[i];
+      if (!copy) {
+        copy = new Sprite();
+        this.maskPool.push(copy);
+        this.maskScene.addChild(copy);
+      }
+      const from = occluders[i]!;
+      copy.visible = true;
+      copy.texture = from.texture;
+      copy.anchor.copyFrom(from.anchor);
+      copy.scale.copyFrom(from.scale);
+      copy.position.copyFrom(from.position);
+    }
+    for (let i = occluders.length; i < this.maskPool.length; i++) this.maskPool[i]!.visible = false;
+
+    this.renderer.render({ container: this.maskScene, target: this.maskTexture, clear: true });
   }
 
   resize(widthPx: number, heightPx: number): void {
@@ -113,6 +200,16 @@ export class PropLayer {
     this.cols = Math.ceil(widthPx / TILE) + 4;
     this.rows = Math.ceil(heightPx / TILE) + 6;
     this.dirty = true;
+  }
+
+  /**
+   * Snap a screen coordinate so the sprite's drawn pixels land on whole asset
+   * pixels. `anchorPx` is the distance from the sprite's top-left to its anchor;
+   * it is folded in because that is the corner the art is actually laid out
+   * from, and it is rarely a whole number of scaled pixels.
+   */
+  private snap(value: number, anchorPx: number): number {
+    return Math.round((value - anchorPx) / this.scale) * this.scale + anchorPx;
   }
 
   /** Force a rebuild, e.g. after a resource node is harvested. */
@@ -157,14 +254,22 @@ export class PropLayer {
 
     if (!player || !playerTexture) {
       this.playerSprite.visible = false;
-      this.silhouette.visible = false;
+      this.silhouetteHolder.visible = false;
       return;
     }
 
     this.playerSprite.visible = true;
     this.playerSprite.texture = playerTexture;
-    this.playerSprite.x = Math.round((player.x - originX) * TILE);
-    this.playerSprite.y = Math.round((player.y - originY) * TILE);
+    const playerW = playerTexture.width * this.scale;
+    const playerH = playerTexture.height * this.scale;
+    this.playerSprite.x = this.snap(
+      (player.x - originX) * TILE,
+      this.pack.playerAnchor.x * playerW,
+    );
+    this.playerSprite.y = this.snap(
+      (player.y - originY) * TILE,
+      this.pack.playerAnchor.y * playerH,
+    );
     const playerDepth = depthOf(player.x, player.y) + PLAYER_TIEBREAK;
     this.playerSprite.zIndex = playerDepth;
 
@@ -176,28 +281,28 @@ export class PropLayer {
     const py0 = player.y + pb.top;
     const py1 = player.y + pb.bottom;
 
-    // How much of the player the nearest covering canopy hides. Going fully flat
-    // the instant a trunk clips your elbow reads as a glitch; fading in with the
-    // amount actually covered makes it feel like the tree is doing the hiding.
-    const playerArea = Math.max((px1 - px0) * (py1 - py0), 1e-6);
-    let covered = 0;
+    // Canopies drawn in front of the player and overlapping it. These become
+    // the mask, so the silhouette shows exactly where the leaves cover you.
+    const occluders: Sprite[] = this.occluderScratch;
+    occluders.length = 0;
     for (let i = 0; i < this.used; i++) {
       if (!this.occludes[i]) continue;
-      if (this.pool[i]!.zIndex <= playerDepth) continue;
+      const sprite = this.pool[i]!;
+      if (sprite.zIndex <= playerDepth) continue;
       const box = this.boxes[i]!;
-      const w = Math.min(box.x1, px1) - Math.max(box.x0, px0);
-      const h = Math.min(box.y1, py1) - Math.max(box.y0, py0);
-      if (w <= 0 || h <= 0) continue;
-      const fraction = (w * h) / playerArea;
-      if (fraction > covered) covered = fraction;
+      if (box.x0 < px1 && box.x1 > px0 && box.y0 < py1 && box.y1 > py0) occluders.push(sprite);
     }
 
-    this.silhouette.visible = covered > 0;
-    if (covered > 0) {
+    this.silhouetteHolder.visible = occluders.length > 0;
+    this.silhouette.visible = true;
+    if (occluders.length > 0) {
       this.silhouette.texture = playerTexture;
       this.silhouette.x = this.playerSprite.x;
       this.silhouette.y = this.playerSprite.y;
-      this.silhouette.alpha = SILHOUETTE_ALPHA * Math.min(1, covered);
+      // The mask already limits the silhouette to the covered pixels, so it is
+      // drawn at full strength -- no need to fade it by how much is covered.
+      this.silhouette.alpha = SILHOUETTE_ALPHA;
+      this.renderMask(playerTexture, occluders);
     }
   }
 
@@ -222,13 +327,16 @@ export class PropLayer {
       let dx = 0;
       let dy = 0;
       if (jitter > 0) {
-        // Break the grid so a forest reads as trees rather than a hedge row.
+        // Break the grid so a forest reads as trees rather than a hedge row --
+        // but only ever by whole art pixels.
         const h = tileHash(Math.floor(worldX), Math.floor(worldY));
-        dx = ((h % (jitter * 2 + 1)) - jitter) | 0;
-        dy = (((h >>> 8) % (jitter + 1)) - (jitter >> 1)) | 0;
+        dx = (((h % (jitter * 2 + 1)) - jitter) | 0) * this.scale;
+        dy = (((h >>> 8) % (jitter * 2 + 1)) - jitter) * this.scale;
       }
-      sprite.x = Math.round((worldX - originX) * TILE + dx);
-      sprite.y = Math.round((worldY - originY) * TILE + dy);
+      const spriteW = texture.width * this.scale;
+      const spriteH = texture.height * this.scale;
+      sprite.x = this.snap((worldX - originX) * TILE + dx, anchorX * spriteW);
+      sprite.y = this.snap((worldY - originY) * TILE + dy, anchorY * spriteH);
       sprite.zIndex = depthOf(worldX, worldY);
 
       this.occludes[this.used - 1] = occludes;
@@ -249,7 +357,8 @@ export class PropLayer {
         if (!prop) continue;
         // A prop stands on the bottom edge of its tile, so it sorts in front of
         // anything whose feet are further north.
-        place(tileX + 0.5, tileY + 1, prop.texture, prop.anchorX, prop.anchorY, prop.bounds, 5, kind === "tree");
+        place(tileX + 0.5, tileY + 1, prop.texture, prop.anchorX, prop.anchorY, prop.bounds,
+              PROP_JITTER_PX, kind === "tree");
       }
     }
 
@@ -271,6 +380,8 @@ export class PropLayer {
   }
 
   destroy(): void {
+    this.maskTexture?.destroy(true);
+    this.maskScene.destroy({ children: true });
     this.container.destroy({ children: true });
   }
 }

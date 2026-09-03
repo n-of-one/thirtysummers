@@ -33,7 +33,7 @@ const pack = await loadAssetPack(app.renderer, params.get("pack") ?? undefined);
 
 const camera = new Camera();
 const tiles = new TileLayer(world.map, pack);
-const props = new PropLayer(world.map, pack);
+const props = new PropLayer(world.map, pack, app.renderer);
 app.stage.addChild(tiles.container, props.container);
 
 camera.centreOn(world.player);
@@ -99,6 +99,8 @@ app.ticker.add(({ deltaMS }) => {
 const debug = document.querySelector<HTMLDivElement>("#debug")!;
 if (params.has("debug")) {
   debug.hidden = false;
+  // Handle for measuring from the console or a devtools driver.
+  (window as unknown as { __game?: unknown }).__game = { app, world, camera, props, tiles };
   app.ticker.add(() => {
     const p = world.player;
     debug.textContent =
