@@ -6,7 +6,7 @@ import {
   type Renderer,
   type Texture,
 } from "pixi.js";
-import { SILHOUETTE_ALPHA, SILHOUETTE_COLOR, TILE } from "../config.ts";
+import { PIXEL_SETTLE_SEC, SILHOUETTE_ALPHA, SILHOUETTE_COLOR, TILE } from "../config.ts";
 import type { TileMap } from "../sim/tilemap.ts";
 import type { ResourceNode, Vec2 } from "../sim/types.ts";
 import type { AssetPack, Bounds } from "./packs/pack.ts";
@@ -54,6 +54,38 @@ const PLAYER_TIEBREAK = 0.5;
  * end up on grids a pixel or two apart and the pixel-art illusion collapses.
  */
 const PROP_JITTER_PX = 1;
+
+/**
+ * Tolerance, in asset pixels, for "already on the grid" in {@link snapToward}.
+ * Without it a coordinate sitting on a grid line only through accumulated float
+ * error reads as a hair past it, and `ceil` throws away a whole pixel.
+ */
+const SNAP_EPS = 1e-6;
+
+/**
+ * Snap `value` onto the asset-pixel grid, but never backwards along `dir`.
+ *
+ * Rounding to the *nearest* asset pixel can undo a step: creep one screen pixel
+ * into a new pixel and the nearest grid point is the one just left, so the
+ * sprite settles where it started and the step reads as lost. Rounding with the
+ * direction of travel instead always finishes the crossing -- one screen pixel
+ * in means seven more forward. `dir === 0` (nothing has moved yet) falls back to
+ * nearest, the one case with no travel to agree with.
+ *
+ * `anchorPx` is the distance from the sprite's top-left to its anchor, folded in
+ * because that is the corner the art is laid out from and it is rarely a whole
+ * number of scaled pixels. `scale` is screen pixels per asset pixel.
+ */
+export function snapToward(value: number, anchorPx: number, scale: number, dir: number): number {
+  const units = (value - anchorPx) / scale;
+  const whole =
+    dir > 0
+      ? Math.ceil(units - SNAP_EPS)
+      : dir < 0
+        ? Math.floor(units + SNAP_EPS)
+        : Math.round(units);
+  return whole * scale + anchorPx;
+}
 
 /** World-space box a sprite covers, used for the occlusion test. */
 interface Box {
@@ -109,6 +141,15 @@ export class PropLayer {
   private maskTexture: RenderTexture | null = null;
 
   private readonly scale: number;
+
+  /** Sub-pixel nudge easing the resting player onto the art grid, in screen px. */
+  private settleX = 0;
+  private settleY = 0;
+  private lastPlayerX = Number.NaN;
+  private lastPlayerY = Number.NaN;
+  /** Sign of the last movement on each axis; the settle only ever snaps this way. */
+  private dirX = 0;
+  private dirY = 0;
 
   private originX = Number.NaN;
   private originY = Number.NaN;
@@ -238,6 +279,7 @@ export class PropLayer {
     nodes: readonly ResourceNode[],
     player: Vec2 | null = null,
     playerTexture: Texture | null = null,
+    dt = 0,
   ): void {
     const originX = Math.floor(camera.leftPx / TILE) - 2;
     const originY = Math.floor(camera.topPx / TILE) - 2;
@@ -260,7 +302,8 @@ export class PropLayer {
 
     this.playerSprite.visible = true;
     this.playerSprite.texture = playerTexture;
-    // Deliberately NOT snapped to the art grid, unlike the props.
+    // While it moves the player is deliberately NOT snapped to the art grid,
+    // unlike the props.
     //
     // Props sit at fixed world positions, so snapping them is free. The player
     // moves continuously while the camera pans smoothly behind it, and
@@ -268,10 +311,34 @@ export class PropLayer {
     // for a frame or two while the camera keeps drifting, so it visibly slides
     // backwards before catching up. The slower the terrain, the longer it holds
     // and the worse it looks -- it was plain in underbrush and nearly invisible
-    // on grass. Rounding to whole screen pixels keeps it in step with the
-    // scrolling world.
-    this.playerSprite.x = Math.round((player.x - originX) * TILE);
-    this.playerSprite.y = Math.round((player.y - originY) * TILE);
+    // on grass.
+    //
+    // Standing still there is nothing to fight, so each axis eases onto the grid
+    // as soon as it stops, always in the direction it was last travelling. The
+    // axes settle independently, so sliding along a wall still lines up the
+    // blocked one.
+    const rawX = (player.x - originX) * TILE;
+    const rawY = (player.y - originY) * TILE;
+    const anchorPxX = this.pack.playerAnchor.x * playerTexture.width * this.scale;
+    const anchorPxY = this.pack.playerAnchor.y * playerTexture.height * this.scale;
+
+    const deltaX = player.x - this.lastPlayerX;
+    const deltaY = player.y - this.lastPlayerY;
+    if (deltaX !== 0) this.dirX = Math.sign(deltaX);
+    if (deltaY !== 0) this.dirY = Math.sign(deltaY);
+    const movingX = Math.abs(deltaX) > 1e-6;
+    const movingY = Math.abs(deltaY) > 1e-6;
+    this.lastPlayerX = player.x;
+    this.lastPlayerY = player.y;
+
+    const wantX = movingX ? 0 : snapToward(rawX, anchorPxX, this.scale, this.dirX) - rawX;
+    const wantY = movingY ? 0 : snapToward(rawY, anchorPxY, this.scale, this.dirY) - rawY;
+    const ease = dt > 0 ? 1 - Math.exp(-dt / PIXEL_SETTLE_SEC) : 1;
+    this.settleX += (wantX - this.settleX) * ease;
+    this.settleY += (wantY - this.settleY) * ease;
+
+    this.playerSprite.x = Math.round(rawX + this.settleX);
+    this.playerSprite.y = Math.round(rawY + this.settleY);
     const playerDepth = depthOf(player.x, player.y) + PLAYER_TIEBREAK;
     this.playerSprite.zIndex = playerDepth;
 

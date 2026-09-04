@@ -91,7 +91,7 @@ app.ticker.add(({ deltaMS }) => {
   elapsed += frameSec;
   tiles.setAnimationFrame(Math.floor(elapsed / WATER_FRAME_SEC));
   tiles.update(camera);
-  props.update(camera, world.camp, world.nodes, world.player, playerTexture());
+  props.update(camera, world.camp, world.nodes, world.player, playerTexture(), frameSec);
 });
 
 // Readout of the exact numbers this frame was drawn with, so a screenshot is

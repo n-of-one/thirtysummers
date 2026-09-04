@@ -146,3 +146,14 @@ export const SILHOUETTE_COLOR = 0x000000;
  * full colour on its own.
  */
 export const SILHOUETTE_ALPHA = 0.9;
+
+/**
+ * [GUESS] Time constant, in seconds, for the player sprite easing onto the art
+ * pixel grid once it stops.
+ *
+ * Snapping the player while it moves fights the smoothly panning camera and
+ * makes the sprite stutter, so it is left unsnapped in motion. At rest there is
+ * nothing to fight, so it glides the last part of an art pixel onto the grid.
+ * Short enough to feel immediate, long enough not to read as a pop.
+ */
+export const PIXEL_SETTLE_SEC = 0.05;
