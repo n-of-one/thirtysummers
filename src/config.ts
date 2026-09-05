@@ -22,6 +22,20 @@ export const TILE = 64;
 /** [DOC] A day is 15 minutes. */
 export const DAY_LENGTH_SEC = 900;
 
+// ------------------------------------------------------------ simulation ----
+
+/**
+ * Length of one simulation step. The whole simulation runs at this rate,
+ * regardless of frame rate, so per-second values do not drift with it.
+ */
+export const TICK_SEC = 1 / 60;
+/**
+ * Longest frame the loop will account for. A backgrounded tab returns with a
+ * frame worth minutes; anything past this is dropped rather than caught up on,
+ * so the loop cannot fall into a spiral it never climbs out of.
+ */
+export const MAX_FRAME_SEC = 0.25;
+
 // ------------------------------------------------------------- movement ----
 
 /** [GUESS] Base walking speed, in tiles per second. */

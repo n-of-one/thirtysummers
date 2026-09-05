@@ -1,5 +1,6 @@
 import "./ui/hud.css";
 import * as C from "./config.ts";
+import { FrameClock } from "./frameClock.ts";
 import { Keyboard } from "./input/keyboard.ts";
 import { createApp } from "./render/app.ts";
 import { loadAssetPack } from "./render/atlas.ts";
@@ -66,26 +67,15 @@ function playerTexture() {
   return frames[Math.floor(distanceWalked / C.WALK_FRAME_TILES) % frames.length]!;
 }
 
-/**
- * The simulation advances in fixed steps so that per-second rates -- stamina,
- * hydration, movement -- come out identical regardless of frame rate. Rendering
- * runs once per frame and only ever reads simulation state.
- */
-const FIXED_DT = 1 / 60;
-/** Cap on catch-up after a stall (a backgrounded tab), to avoid a spiral. */
-const MAX_FRAME_SEC = 0.25;
-let accumulator = 0;
+/** Rendering runs once per frame and only ever reads simulation state. */
+const clock = new FrameClock();
 let elapsed = 0;
 
 app.ticker.add(({ deltaMS }) => {
-  const frameSec = Math.min(deltaMS / 1000, MAX_FRAME_SEC);
+  const { frameSec, steps } = clock.tick(deltaMS / 1000);
   const input = keyboard.state();
 
-  accumulator += frameSec;
-  while (accumulator >= FIXED_DT) {
-    world.step(FIXED_DT, input);
-    accumulator -= FIXED_DT;
-  }
+  for (let i = 0; i < steps; i++) world.step(C.TICK_SEC, input);
 
   camera.follow(world.player, frameSec);
   camera.clampTo(world.map.width, world.map.height);
