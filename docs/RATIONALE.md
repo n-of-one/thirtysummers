@@ -259,10 +259,64 @@ every tick inside a frame sees the same input object.
 two nodes would otherwise pick a different one each tick, reset the progress
 every time, and make the hold impossible to finish.
 
-**"New day" reloads the page.** Regenerating in place means rebuilding both
-render layers around a new map, and the tile layer holds the map it was built
-with. A reload is honest about what it does and keeps the seed. M6 turns it into
-a real reseed, which is when that work is worth doing.
+**"New day" reseeds in place.** It reloaded the page until M6. Rebuilding means
+new render layers, because each one holds the map it was built with, and that is
+what the debug overlay needed anyway; the layers are cheap to build and
+destroying them releases their sprite pools. What made the reload tempting was
+the bookkeeping around it rather than the layers: the HUD and the renderer both
+hold cursors into `world.events`, and a fresh log with a stale cursor swallows
+the new day silently.
+
+## The debug overlay
+
+**Time scale multiplies the frame after the clamp, not before.** Scaling first
+would let a tab that came back from the background ask for ten times the frame
+it was already refusing, which is the spiral `MAX_FRAME_SEC` exists to prevent.
+Scaling after leaves the clamp meaning exactly what it says: at most a quarter
+of a real second is ever accounted for, however fast the world is being run.
+
+The same scaled seconds go to the camera and the animations, not just to the
+simulation. A 10x world drawn with 1x frame times reads as the player sliding
+around inside a view that cannot keep up.
+
+**Freeze is a flag on `Stats`, pushed every frame.** It could as easily have been
+a rate the overlay zeroed, but then "the numbers stopped" would live in the
+renderer, and `sim/` would no longer be the whole account of what the day does.
+Pushing it every frame rather than on change is what makes it survive a
+regenerate: a new `World` gets the checkbox applied on its first tick, where a
+one-shot callback would have left it thawed.
+
+**The readout is padded to a fixed width.** Unpadded, the line was 131 to 133
+characters depending on where the player was standing, and the columns walked
+sideways every frame — measured at 1041, 1025 and 1033 painted pixels within one
+second of walking. Each field is now padded to the longest value it can hold, so
+the line is 143 characters whatever is happening. The padding is non-breaking
+spaces and the fields are separated by ordinary ones: under `white-space:
+pre-wrap` that makes the gaps between fields the only places the line can wrap,
+so `full` can never end up on one line with its number on the next.
+
+**Teleport refuses what collision would.** `moveWithCollision` only ever moves
+from a legal position to a legal position, so a player set down inside a rock is
+stuck there for good. Refusing the click and saying so costs one call to
+`canStand` and removes the only way the overlay could break a day.
+
+## Where the HUD says things
+
+**What is in reach is said under the player, not in a corner.** The prompt and
+the toasts started in the bottom right and at the bottom middle, which meant
+that reading either one took your eyes off the thing you were about to pick.
+They now share one stack that follows the player, and everything transient goes
+in it: the prompt, then the toasts under it, newest first.
+
+It is positioned with a transform rather than `left`/`top`, and its size is
+measured only when its contents change — a prompt that changed text, or a toast
+arriving or fading out. Writing a style and reading a box back in the same frame
+forces layout, and this runs every frame.
+
+The corners keep what is true all day and is read by glancing: the bars, the
+clock, the pack, the gold. The bottom right, freed up by the move, now carries
+the two lines the player needs exactly once — which key eats fruit, which key
+drinks water — shown only while carrying some.
 
 ## Method
 

@@ -3,6 +3,7 @@ import type { InputState } from "../input/keyboard.ts";
 import { nearestNodeWithin, withinReach } from "./interaction.ts";
 import { Inventory } from "./inventory.ts";
 import {
+  canStand,
   createPlayer,
   facingFor,
   moveWithCollision,
@@ -106,6 +107,25 @@ export class World {
 
     if (atCamp) return { type: "deposit", ore: 0, blocked: true };
     return null;
+  }
+
+  /**
+   * Put the player down somewhere else, if they can stand there.
+   *
+   * Refuses an impassable spot and reports false, because a player dropped
+   * inside a rock cannot walk out of one: collision only lets a move happen
+   * from a legal position to a legal position.
+   *
+   * The distance is not walked, so it does not count towards the day's total,
+   * and any harvest in progress is dropped. Only the debug overlay calls this.
+   */
+  teleport(x: number, y: number): boolean {
+    if (!canStand(this.map, x, y, this.player.z)) return false;
+    this.player.x = x;
+    this.player.y = y;
+    this.player.moving = false;
+    this.stopHarvesting();
+    return true;
   }
 
   /** Terrain the player is currently standing on. */

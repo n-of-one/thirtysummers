@@ -67,6 +67,20 @@ describe("Camera", () => {
     expect(half.x).toBeLessThan(10);
   });
 
+  it("reads a click back to the tile it landed on", () => {
+    const camera = view();
+    camera.centreOn({ x: 30.25, y: 12.5 });
+    const middle = camera.toWorld({ x: camera.viewWidthPx / 2, y: camera.viewHeightPx / 2 });
+    expect(middle.x).toBeCloseTo(30.25, 9);
+    expect(middle.y).toBeCloseTo(12.5, 9);
+
+    // Round trip, which is the property the teleport actually depends on.
+    const world = { x: 33.75, y: 9.125 };
+    const back = camera.toWorld(camera.toScreen(world));
+    expect(back.x).toBeCloseTo(world.x, 9);
+    expect(back.y).toBeCloseTo(world.y, 9);
+  });
+
   it("keeps toScreen consistent with the view origin", () => {
     const camera = view();
     camera.centreOn({ x: 30.25, y: 12.5 });

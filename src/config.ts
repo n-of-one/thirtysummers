@@ -122,6 +122,19 @@ export const STAMINA_WARN_THRESHOLD = 25;
 /** [GUESS] Seconds left in the day below which the clock turns urgent. */
 export const CLOCK_URGENT_SEC = 60;
 
+/**
+ * [GUESS] Screen pixels below the player's feet where the action prompt and the
+ * toasts hang. Far enough down to clear the sprite, close enough that reading
+ * one does not mean looking away from the other.
+ */
+export const PROMPT_OFFSET_PX = 44;
+/**
+ * [GUESS] Closest that floating stack comes to the edge of the window. The
+ * camera stops at the map border while the player keeps walking, so at the
+ * edges of the world the prompt would otherwise hang off the screen.
+ */
+export const PROMPT_EDGE_MARGIN_PX = 16;
+
 // ---------------------------------------------------------- interaction ----
 
 /** [GUESS] Seconds of holding the interact key to harvest a node. */
@@ -214,3 +227,17 @@ export const PIXEL_SETTLE_SEC = 0.05;
 
 /** [GUESS] Seconds each frame of the water ripple is held. */
 export const WATER_FRAME_SEC = 0.45;
+
+// ------------------------------------------------------------------ debug ----
+// Only reachable with ?debug=1. Nothing here changes how the game plays.
+
+/** Slowest the debug overlay will run the simulation: real time. */
+export const TIME_SCALE_MIN = 1;
+/**
+ * [GUESS] Fastest time scale. Ten turns the 15-minute day into 90 seconds,
+ * which is what the whole slider is for: seeing a full day out without
+ * spending a full day on it.
+ */
+export const TIME_SCALE_MAX = 10;
+/** Granularity of the slider. */
+export const TIME_SCALE_STEP = 0.5;

@@ -3,7 +3,7 @@
 How the game in [DESIGN.md](DESIGN.md) gets built. Why the choices below were
 made is in [RATIONALE.md](RATIONALE.md); this document is only what to do.
 
-**Status: M0–M5 complete. M6 is next.**
+**Status: M0–M6 complete. The prototype's day phase is done.**
 
 Scope of the prototype: the day phase only. One flat map, one 15-minute day,
 walk around collecting fruit / water / ore while stamina and hydration drain,
@@ -76,13 +76,12 @@ src/
   input/keyboard.ts    keydown/keyup → InputState; NO_INPUT for tests
   ui/hud.ts            world state → the markup in index.html; toasts, day summary
   ui/hud.css           HUD styling (markup lives in index.html)
+  debug/overlay.ts     seed, time scale, grid, freeze, teleport; only with ?debug=1
   main.ts              wires it together
-tests/                 16 files, 205 tests
+tests/                 17 files, 225 tests
   stubPack.ts          an AssetPack that draws nothing and records everything
 public/assets/minifantasy/   real art — GITIGNORED
 ```
-
-**Still to be written:** `debug/overlay.ts` (M6).
 
 ## Rules to build to
 
@@ -197,9 +196,51 @@ Also decided while building it:
   the end-of-day count, and to the prop layer, which uses it to know a node has
   to stop being drawn.
 
-**M6 — Debug overlay.** ⬜ **Next.** Seed input + regenerate, time-scale slider (a
-15-minute day in 90 seconds), tile-grid toggle, click-to-teleport, stat freeze.
-Worth doing before hours go into tuning feel.
+Moved after playtesting:
+
+- **The prompt and the toasts hang off the player**, not off a corner. Both live
+  in one absolutely positioned stack the HUD repositions each frame from
+  `camera.toScreen(player)`: the prompt `PROMPT_OFFSET_PX` below the feet, the
+  toasts under it, newest nearest. It is clamped to the window, so a player in
+  the corner of the map still gets the whole line.
+- **The keys for fruit and water are spelled out in the bottom right**, and only
+  once there is something to use them on. Picking your first fruit is where the
+  question comes up.
+
+**M6 — Debug overlay.** ✅ A backtick brings up a panel across the top: seed box
+and a regenerate button, `[` and `]` to step to the neighbouring seed, a
+time-scale slider from 1x to 10x (a 15-minute day in 90 seconds), a tile-grid
+toggle, a stat freeze, click-anywhere-to-teleport, and a readout of the numbers
+the frame was drawn with. `?debug=1` starts it open; Escape closes it.
+
+Also decided while building it:
+
+- **Regenerating is a real reseed now**, not a page reload, so "New day" replays
+  the same seed and the seed box builds a different one without losing the
+  session. New map, new layers: they are cheap to build and destroying them
+  releases the sprite pool.
+- **The time scale multiplies the frame after the clamp**, so `MAX_FRAME_SEC`
+  keeps meaning what it says and a backgrounded tab cannot spiral at 10x either.
+  The scaled seconds drive the camera and the animations too, so the whole
+  picture speeds up together rather than the world running ahead of the view.
+- **Freeze lives on `Stats`**, and the frame loop pushes the checkbox into it
+  every frame rather than once on change. A state read fresh survives a
+  regenerate; a callback would quietly thaw the new world.
+- **Teleport refuses an impassable tile.** Collision only moves a player from a
+  legal position to a legal position, so a player dropped inside a rock could
+  never walk out of one. The camera cuts rather than glides, since easing across
+  half the map hides what the teleport was for.
+- Keys typed into the panel are not controls: the keyboard ignores events aimed
+  at an input or a button, which otherwise reach `window` and walk the player
+  north-east while you type a seed.
+- **The panel is always built and starts hidden**, rather than existing only
+  under `?debug=1`. A key is quicker than a reload, and a hidden div and one
+  keydown listener is the whole cost. Everything except the toggle is inert
+  while it is down, so a stray bracket cannot rebuild the world you are in.
+- **The readout is fixed-width**: every field is padded to the longest value it
+  can take, so a coordinate going from 80.0 to 80.01 cannot resize the panel or
+  shift the column next to it. The padding is non-breaking spaces, so a wrapped
+  line only ever breaks between fields.
 
 ## Beyond the prototype
 
@@ -215,9 +256,12 @@ spending resources on stats at night, influencing the next generation), and
   distribution, autotile table, collision, camera, depth sorting, pixel snapping,
   the fixed-timestep clock under a stall, the scroll window, both layers driven
   headlessly against a stub pack, every stamina and hydration rate over simulated
-  time, the backpack, the HUD model, and the harvest / eat / drink / bank loop
-  including every way it can refuse.
+  time, the backpack, the HUD model, the harvest / eat / drink / bank loop
+  including every way it can refuse, and the debug overlay's arithmetic: time
+  scaling, grid alignment, teleport refusals, and a freeze that holds.
 - `npm run dev` — play a day: walk, sprint until stamina empties, eat fruit and
   hit the 60s cooldown, drink water, fill the backpack, bank ore at camp, watch
   the timer run out and the summary appear.
+- `npm run dev -- ?debug=1` — drag the speed slider to 10x and watch a day out
+  in 90 seconds, toggle the grid, click across the map, freeze the bars.
 - 60fps with headroom at 128×128.

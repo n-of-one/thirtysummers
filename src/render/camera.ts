@@ -49,6 +49,11 @@ export class Camera {
   toScreen(world: Vec2): Vec2 {
     return { x: world.x * TILE - this.leftPx, y: world.y * TILE - this.topPx };
   }
+
+  /** The inverse: where on the map a point on the canvas is. */
+  toWorld(screen: Vec2): Vec2 {
+    return { x: (screen.x + this.leftPx) / TILE, y: (screen.y + this.topPx) / TILE };
+  }
 }
 
 function clamp(v: number, lo: number, hi: number): number {

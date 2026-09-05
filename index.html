@@ -7,6 +7,7 @@
   </head>
   <body>
     <div id="stage"></div>
+    <div id="grid" hidden></div>
 
     <div id="hud">
       <div class="hud-corner hud-tl">
@@ -34,10 +35,15 @@
       </div>
 
       <div class="hud-corner hud-br">
-        <div class="prompt" id="action-prompt" hidden></div>
+        <div class="hint" id="hint-fruit" hidden>Press <b>F</b> to eat fruit</div>
+        <div class="hint" id="hint-water" hidden>Press <b>R</b> to drink water</div>
       </div>
 
-      <div id="toasts"></div>
+      <!-- Follows the player: what is in reach, and what just happened. -->
+      <div id="player-anchor">
+        <div class="prompt" id="action-prompt" hidden></div>
+        <div id="toasts"></div>
+      </div>
     </div>
 
     <div id="summary" hidden>
@@ -48,7 +54,17 @@
       </div>
     </div>
 
-    <div id="debug" hidden></div>
+    <div id="debug" hidden>
+      <div id="debug-controls">
+        <label>Seed <input type="number" id="debug-seed" step="1" /></label>
+        <button id="debug-regen">Regenerate</button>
+        <label>Speed <input type="range" id="debug-speed" /><b id="debug-speed-value"></b></label>
+        <label><input type="checkbox" id="debug-grid" /> Grid</label>
+        <label><input type="checkbox" id="debug-freeze" /> Freeze stats</label>
+        <span class="debug-hint">click the map to teleport &middot; [ ] steps the seed &middot; ` or Esc closes</span>
+      </div>
+      <div id="debug-readout"></div>
+    </div>
 
     <script type="module" src="/src/main.ts"></script>
   </body>

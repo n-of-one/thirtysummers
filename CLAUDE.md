@@ -21,8 +21,13 @@ npm run build
 npm run map         # ASCII dump of a generated map, for eyeballing worldgen
 ```
 
-Useful URL params: `?seed=<n>`, `?debug=1` (readout plus a `window.__game`
-hook), `?pack=placeholder` (run without the paid art).
+Press `` ` `` in the running game for the debug overlay: seed and regenerate
+(`[` and `]` step it), a 1x–10x time scale, a tile grid, a stat freeze,
+click-to-teleport, and a fixed-width readout. `window.__game` is always there to
+measure from.
+
+Useful URL params: `?seed=<n>`, `?pack=placeholder` (run without the paid art),
+`?debug=1` (start with the overlay already open).
 
 ## Architecture rules
 

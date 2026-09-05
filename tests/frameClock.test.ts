@@ -67,6 +67,32 @@ describe("FrameClock", () => {
     expect(clock.tick(C.TICK_SEC).steps).toBe(1);
   });
 
+  it("runs the day faster at a higher time scale, and still in whole ticks", () => {
+    const clock = new FrameClock();
+    clock.timeScale = 10;
+    const frame = clock.tick(1 / 60);
+    expect(frame.steps).toBe(10);
+    // The frame time is scaled too, so the camera and the animations keep up
+    // with the simulation instead of gliding a tenth as fast.
+    expect(frame.frameSec).toBeCloseTo(10 / 60, 9);
+  });
+
+  it("carries the remainder at a fractional scale as carefully as at 1x", () => {
+    const clock = new FrameClock();
+    clock.timeScale = 1.5;
+    let steps = 0;
+    for (let i = 0; i < 600; i++) steps += clock.tick(C.TICK_SEC).steps;
+    expect(steps).toBe(900);
+  });
+
+  it("clamps before it scales, so speeding up cannot spiral either", () => {
+    const clock = new FrameClock();
+    clock.timeScale = 10;
+    const frame = clock.tick(600); // ten minutes in the background
+    expect(frame.frameSec).toBe(C.MAX_FRAME_SEC * 10);
+    expect(frame.steps).toBe(Math.floor((C.MAX_FRAME_SEC * 10) / C.TICK_SEC));
+  });
+
   it("moves the player the same distance however the frames are chopped up", () => {
     // The reason the whole thing exists: one second of walking is one second of
     // walking, at 60fps or at 13fps.

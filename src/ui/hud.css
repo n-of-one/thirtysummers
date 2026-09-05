@@ -76,6 +76,7 @@ html, body {
 
 .cooldown,
 .pill,
+.hint,
 .prompt {
   background: var(--panel);
   border: 1px solid var(--edge);
@@ -84,9 +85,26 @@ html, body {
   white-space: nowrap;
 }
 .pill + .pill { margin-left: 8px; }
+.hint[hidden] { display: none; }
+.hint { color: var(--ink-dim); }
+.hint b { color: var(--ink); }
 .pill-note { color: var(--ink-dim); margin-left: 4px; }
 .pill b, .cooldown b { color: var(--gold); font-variant-numeric: tabular-nums; }
 .cooldown { color: var(--stamina-low); }
+
+/* Prompt and toasts both hang off the player rather than off a corner, so what
+   the game is telling you is where you are already looking. The anchor is
+   positioned from the player's screen position each frame; everything in it
+   stacks downwards from there, centred. */
+#player-anchor {
+  position: absolute;
+  left: 0;
+  top: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 5px;
+}
 
 /* The prompt doubles as the harvest progress bar: --progress is how far a hold
    has got, and the fill is painted over the panel behind the text. */
@@ -118,11 +136,9 @@ html, body {
 
 /* --- toasts -------------------------------------------------------------- */
 
+/* Column-reverse keeps the newest line closest to the player, with older ones
+   pushed further down as they fade. */
 #toasts {
-  position: absolute;
-  left: 50%;
-  bottom: 72px;
-  transform: translateX(-50%);
   display: flex;
   flex-direction: column-reverse;
   align-items: center;
@@ -185,16 +201,37 @@ button {
 }
 button:hover { background: #363d27; }
 
-/* --- debug panel --------------------------------------------------------- */
+/* --- debug overlay ------------------------------------------------------- */
 
+/* Tile grid, between the canvas and the HUD. The background is one tile in size
+   and shifted by the camera's sub-tile fraction, so the lines sit on real tile
+   boundaries at any scroll position. */
+#grid {
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  background-image:
+    linear-gradient(to right, rgba(242, 237, 228, 0.22) 0 1px, transparent 1px),
+    linear-gradient(to bottom, rgba(242, 237, 228, 0.22) 0 1px, transparent 1px);
+}
+#grid[hidden] { display: none; }
+
+/* Centred by auto margins rather than by a 50% offset and a transform, which
+   would cap a shrink-to-fit box at half the window by accident. The cap is
+   deliberate instead: wide enough for the controls, narrow enough to leave the
+   bars and the clock in the corners uncovered. The readout wraps inside it, at
+   the same place every frame, because every field in it is a fixed width. */
 #debug {
   position: fixed;
   top: 14px;
-  left: 50%;
-  transform: translateX(-50%);
+  left: 0;
+  right: 0;
+  width: fit-content;
+  margin-inline: auto;
+  max-width: min(calc(100vw - 28px), 760px);
   display: flex;
-  align-items: center;
-  gap: 12px;
+  flex-direction: column;
+  gap: 6px;
   background: var(--panel);
   border: 1px solid var(--edge);
   border-radius: var(--radius);
@@ -202,8 +239,26 @@ button:hover { background: #363d27; }
   color: var(--ink-dim);
 }
 #debug[hidden] { display: none; }
+#debug-controls {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 4px 12px;
+}
+/* `pre-wrap` is what makes the padding in the readout do anything: collapsed
+   whitespace would leave every column jumping around as the numbers change
+   width. Wrapping still happens on a narrow window, at the same place every
+   frame, because the line is always the same length. */
+#debug-readout {
+  white-space: pre-wrap;
+  font-variant-numeric: tabular-nums;
+}
+#debug-readout:empty { display: none; }
 #debug label { display: flex; align-items: center; gap: 5px; }
+#debug b { color: var(--gold); font-variant-numeric: tabular-nums; min-width: 30px; }
+.debug-hint { color: rgba(242, 237, 228, 0.4); }
 #debug input[type="number"] { width: 84px; }
+#debug input[type="range"] { width: 110px; accent-color: var(--stamina); }
 #debug input, #debug button { font: inherit; }
 #debug input[type="number"], #debug input[type="text"] {
   color: var(--ink);

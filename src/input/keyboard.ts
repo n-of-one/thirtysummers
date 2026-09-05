@@ -29,6 +29,23 @@ const EAT = ["f"];
 const DRINK = ["r"];
 
 /**
+ * Is this event headed for something the user is typing or clicking in?
+ *
+ * Exported because the debug overlay's own shortcuts need the same exemption:
+ * a backtick typed into the seed box is a character, not a command.
+ */
+export function isTypingTarget(target: EventTarget | null): boolean {
+  if (!(target instanceof HTMLElement)) return false;
+  return (
+    target.isContentEditable ||
+    target.tagName === "INPUT" ||
+    target.tagName === "BUTTON" ||
+    target.tagName === "SELECT" ||
+    target.tagName === "TEXTAREA"
+  );
+}
+
+/**
  * Tracks which keys are down and reports a direction.
  *
  * Reading state rather than reacting to events keeps input in step with the
@@ -47,6 +64,9 @@ export class Keyboard {
 
   private readonly onKeyDown = (event: Event): void => {
     const e = event as KeyboardEvent;
+    // Typing a seed into the debug panel is not walking north-east. Key events
+    // bubble to the window, so the controls have to be excused explicitly.
+    if (isTypingTarget(e.target)) return;
     this.held.add(e.key.toLowerCase());
     if (e.key.startsWith("Arrow") || e.key === " ") e.preventDefault();
   };
