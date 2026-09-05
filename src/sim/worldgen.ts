@@ -206,10 +206,13 @@ const MAX_THICKEN_PASSES = 8;
  * all -- and they are not barriers, since a stream one tile across still reads
  * as a stream the player cannot cross, but a corner touch has a hole in it.
  *
- * The condition enforced is that every stream tile sits inside some 2x2 square
- * of stream, which is what "two tiles across everywhere" means on a grid. A
- * corner touch is repaired by filling both of the tiles between, which turns the
- * pair into such a square rather than into a one-wide elbow.
+ * The condition enforced is that every stream tile, and every neighbouring pair
+ * of them, sits inside some 2x2 square of stream. The pairs are what make it
+ * mean "two tiles across": a channel can satisfy the tile condition on both
+ * sides of a sideways step and still put the entire flow through a single tile's
+ * width at the step, which no real water would do -- it would cut itself a wider
+ * bed. A corner touch is repaired by filling both of the tiles between, which
+ * turns the pair into such a square rather than into a one-wide elbow.
  *
  * Only pinches are widened. A stretch already two or more across is left exactly
  * as the noise drew it, so the river keeps its shape and only its narrowest
@@ -260,23 +263,44 @@ export function thickenStream(map: TileMap, z = 0, keep?: ReadonlySet<number>): 
       }
     }
 
-    // A pinch: a tile in no 2x2 square of stream. Complete whichever square
-    // needs the least filling, so the widening hugs the water already there.
+    // A pinch: something that no 2x2 square of stream contains. Widening it
+    // completes whichever square needs the least filling, so the water hugs
+    // what is already there. Ties break on position, so a long pinch does not
+    // widen the same way down its whole length.
+    const widen = (parts: readonly (readonly [number, number])[]) => {
+      const [ax, ay] = parts[0]!;
+      const options = SQUARES.map(([dx, dy]) => cells(ax + dx, ay + dy))
+        .filter((square) => parts.every(([px, py]) => square.some(([cx, cy]) => cx === px && cy === py)))
+        .filter((square) => square.every(([cx, cy]) => takeable(cx, cy)));
+      const costs = options.map((square) => square.filter(([cx, cy]) => !isStream(cx, cy)).length);
+      if (options.length === 0 || Math.min(...costs) === 0) return; // hemmed in, or already wide
+      const tied = options.filter((_, i) => costs[i] === Math.min(...costs));
+      const square = tied[Math.floor(hash2d(1, ax, ay) * tied.length) % tied.length]!;
+      for (const [cx, cy] of square) {
+        if (!isStream(cx, cy)) fill.add(cy * map.width + cx);
+      }
+    };
+
     for (let y = 0; y < map.height; y++) {
       for (let x = 0; x < map.width; x++) {
         if (!isStream(x, y)) continue;
-        const options = SQUARES.map(([dx, dy]) => cells(x + dx, y + dy)).filter((square) =>
-          square.every(([cx, cy]) => takeable(cx, cy)),
-        );
-        const costs = options.map((square) => square.filter(([cx, cy]) => !isStream(cx, cy)).length);
-        const cheapest = Math.min(...costs);
-        if (options.length === 0 || cheapest === 0) continue; // hemmed in, or already wide
-        // Ties are broken by position, so a long pinch does not widen the same
-        // way down its whole length.
-        const tied = options.filter((_, i) => costs[i] === cheapest);
-        const square = tied[Math.floor(hash2d(1, x, y) * tied.length) % tied.length]!;
-        for (const [cx, cy] of square) {
-          if (!isStream(cx, cy)) fill.add(cy * map.width + cx);
+        widen([[x, y]]);
+        // Neighbouring pairs have to fit in a square too, not just single
+        // tiles. A channel can be two tiles across on both sides of a sideways
+        // step and still leave the water only one tile wide across the step
+        // itself -- the whole flow through a slit. Water that narrow would
+        // simply cut itself a wider bed, so it is widened here instead.
+        if (isStream(x + 1, y)) {
+          widen([
+            [x, y],
+            [x + 1, y],
+          ]);
+        }
+        if (isStream(x, y + 1)) {
+          widen([
+            [x, y],
+            [x, y + 1],
+          ]);
         }
       }
     }

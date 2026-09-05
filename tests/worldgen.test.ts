@@ -193,6 +193,13 @@ describe("forest shape", () => {
   });
 });
 
+const SQUARE_OFFSETS = [
+  [-1, -1],
+  [0, -1],
+  [-1, 0],
+  [0, 0],
+] as const;
+
 describe("stream shape", () => {
   /**
    * A stream that only touches itself at a corner is both undrawable -- no edge
@@ -221,31 +228,66 @@ describe("stream shape", () => {
   });
 
   it("is never one tile across", () => {
-    // Two tiles across, on a grid, means every tile sits inside some 2x2 square
-    // of water. Anything thinner has no tile in a blob set that can draw it.
+    // Two tiles across, on a grid, means every tile AND every neighbouring pair
+    // of tiles sits inside some 2x2 square of water. The pairs are the part that
+    // matters: a channel can pass the tile test on both sides of a sideways step
+    // and still funnel the whole flow through one tile's width at the step.
     for (const seed of SEEDS) {
       const { map } = generateWorld(seed);
       const isStream = (x: number, y: number) => map.get(x, y) === "stream";
+      const inSquare = (parts: readonly (readonly [number, number])[]) => {
+        const [ax, ay] = parts[0]!;
+        return SQUARE_OFFSETS.some(([dx, dy]) => {
+          const square = [
+            [ax + dx, ay + dy],
+            [ax + dx + 1, ay + dy],
+            [ax + dx, ay + dy + 1],
+            [ax + dx + 1, ay + dy + 1],
+          ] as const;
+          if (!parts.every(([px, py]) => square.some(([cx, cy]) => cx === px && cy === py))) {
+            return false;
+          }
+          return square.every(([cx, cy]) => isStream(cx, cy));
+        });
+      };
+
       let pinched = 0;
       for (let y = 0; y < map.height; y++) {
         for (let x = 0; x < map.width; x++) {
           if (!isStream(x, y)) continue;
-          const wide = [
-            [-1, -1],
-            [0, -1],
-            [-1, 0],
-            [0, 0],
-          ].some(
-            ([dx, dy]) =>
-              isStream(x + dx!, y + dy!) &&
-              isStream(x + dx! + 1, y + dy!) &&
-              isStream(x + dx!, y + dy! + 1) &&
-              isStream(x + dx! + 1, y + dy! + 1),
-          );
-          if (!wide) pinched++;
+          if (!inSquare([[x, y]])) pinched++;
+          if (isStream(x + 1, y) && !inSquare([[x, y], [x + 1, y]])) pinched++;
+          if (isStream(x, y + 1) && !inSquare([[x, y], [x, y + 1]])) pinched++;
         }
       }
       expect(pinched, `seed ${seed}`).toBe(0);
+    }
+  });
+
+  it("never funnels the flow through a single tile", () => {
+    // Stated the other way round, as a reader would picture it: wherever water
+    // passes from one tile to the next, the same step happens alongside it.
+    for (const seed of SEEDS) {
+      const { map } = generateWorld(seed);
+      const isStream = (x: number, y: number) => map.get(x, y) === "stream";
+      let slits = 0;
+      for (let y = 0; y < map.height; y++) {
+        for (let x = 0; x < map.width; x++) {
+          if (isStream(x, y) && isStream(x, y + 1)) {
+            const beside =
+              (isStream(x - 1, y) && isStream(x - 1, y + 1)) ||
+              (isStream(x + 1, y) && isStream(x + 1, y + 1));
+            if (!beside) slits++;
+          }
+          if (isStream(x, y) && isStream(x + 1, y)) {
+            const beside =
+              (isStream(x, y - 1) && isStream(x + 1, y - 1)) ||
+              (isStream(x, y + 1) && isStream(x + 1, y + 1));
+            if (!beside) slits++;
+          }
+        }
+      }
+      expect(slits, `seed ${seed}`).toBe(0);
     }
   });
 
