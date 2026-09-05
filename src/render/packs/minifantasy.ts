@@ -2,201 +2,28 @@ import { ImageSource, Rectangle, Texture } from "pixi.js";
 import type { Facing, ResourceKind, TerrainKind } from "../../sim/types.ts";
 import { autotileIndex, FILL, TILE_COUNT } from "./autotile.ts";
 import type { AssetPack, AssetPackSource, Bounds, PropSprite } from "./pack.ts";
+import {
+  BLOCK,
+  BLOCK_TILES,
+  BRUSH_STENCIL,
+  DIRT_NARROW,
+  REGIONS,
+  SHEETS,
+  SYNTH_NARROW,
+  T,
+  WALK_ROWS,
+  type NarrowTile,
+  type SheetName,
+} from "./minifantasy.sheets.ts";
 
 /**
- * Minifantasy art by Krishna Palacio, loaded from public/assets/minifantasy/.
+ * Loads the Minifantasy art into an AssetPack: cutting tiles out of the sheets,
+ * and building the ones the sheets do not draw.
  *
- * The art is a paid licence and is NOT in the repository -- see
- * public/assets/README.md. When the files are absent this pack reports itself
- * unavailable and the code-drawn placeholder is used instead.
- *
- * Everything here is source coordinates read off the actual sheets: the grid is
- * 8px, terrain comes as 3x5 autotile blocks (see autotile.ts), and grass is the
- * base layer that every other terrain is cut into.
+ * When the files are absent this pack reports itself unavailable and the
+ * code-drawn placeholder is used instead, so a fresh clone still runs. Where
+ * everything sits on the sheets is in ./minifantasy.sheets.ts.
  */
-
-const ROOT = "/assets/minifantasy";
-const FP = `${ROOT}/Minifantasy_ForgottenPlains_v3.6_Commercial_Version/Minifantasy_ForgottenPlains_Assets`;
-const FARM = `${ROOT}/Minifantasy_Farm_v3.0/Minifantasy_Farm_Assets`;
-const CRAFT = `${ROOT}/Minifantasy_CraftingAndProfessions_v1.0/Minifantasy_CraftingAndProfessions_Assets`;
-const NPC = `${ROOT}/Minifantasy_AMyriadOfNPCs_v.1.0/Minifantasy_NPCs_Assets/Premade_NPCs`;
-const SWAMP = `${ROOT}/Minifantasy_SilentSwamp_v1.0/Minifantasy_SilentSwamp_Assets`;
-
-/** Which premade NPC the player is. Any folder under Premade_NPCs works. */
-const CHARACTER = "Alchemist";
-
-/**
- * Which sheet row holds each facing, four frames across.
- *
- * The art is a three-quarter view with four diagonal poses, not the N/S/E/W
- * layout a 4x4 sheet suggests. Rows 0 and 1 show the face (moving toward the
- * camera) and rows 2 and 3 show the back of the head; within each pair the
- * character's mass leans opposite ways. Confirmed on the Alchemist, whose
- * features are the clearest in the pack.
- */
-const WALK_ROWS: Record<Facing, number> = {
-  southEast: 0,
-  southWest: 1,
-  northEast: 2,
-  northWest: 3,
-};
-
-const SHEETS = {
-  tiles: `${FP}/Tileset/Minifantasy_ForgottenPlainsTiles.png`,
-  props: `${FP}/props/Minifantasy_ForgottenPlainsProps.png`,
-  farmCrops: `${FARM}/Crops/Minifantasy_FarmSeedsAndCrops.png`,
-  farmProps: `${FARM}/Props/Minifantasy_FarmProps.png`,
-  mining: `${CRAFT}/Gathering_Professions/Mining/Minifantasy_CraftingAndProfessionsMining.png`,
-  walk: `${NPC}/${CHARACTER}/Minifantasy_NPCs${CHARACTER}Walk.png`,
-  /**
-   * Undergrowth. The swamp pack ships this expressly to meet Forgotten Plains
-   * grass -- the whole 24x40 file is one 3x5 block, and its light half is our
-   * two grass colours exactly, (111,164,48) and (68,137,26), so the two sheets
-   * butt together with no seam.
-   */
-  brushStencil: `${SWAMP}/Tileset/GrassLinkToForgottenPlains/Minifantasy_MurkySwampGrassToGrass.png`,
-} as const;
-
-const T = 8; // source tile size
-
-/**
- * Tiles in a drawn 3x5 block, before the narrow shapes are appended.
- *
- * Worth naming, because the two counts are easy to confuse: a block ends up
- * TILE_COUNT long, but only the first BLOCK_TILES of it are art the sheet
- * actually draws. Anything walking a block as source tiles -- picking a grass
- * variant, painting undergrowth through a stencil -- must stop here, or it reads
- * past the block and off into blank sheet.
- */
-const BLOCK_TILES = 15;
-
-/** Top-left tile coordinate of each 3x5 autotile block on the tileset sheet. */
-const BLOCK = {
-  grass: [2, 3],
-  dirt: [7, 3],
-  stone: [12, 3],
-  // The two ripple frames sit side by side. The blocks directly below these
-  // ((25,9) and (29,9)) are the same water with dirt banks instead of grass --
-  // not animation frames. Verified by pixel diff: the horizontal pair differs
-  // by 15% (ripples), the vertical pair by 32% (the whole bank changes colour).
-  waterFrame0: [25, 3],
-  waterFrame1: [29, 3],
-} as const;
-
-/**
- * The narrow dirt shapes a 3x5 block cannot hold, in NARROW_* order: nothing
- * adjacent, then dead ends pointing N / E / S / W, then the two one-wide strips.
- *
- * Six of them sit in a second block at (6,9), laid out by connectivity -- column
- * 6 joins nothing sideways, 7 joins east, 8 joins both, 9 joins west; row 9
- * joins nothing vertically, 10 joins south, 11 joins both, 12 joins north. Its
- * "joins nothing at all" corner is blank on the sheet, so the lone dirt blob at
- * (5,1) stands in. Read off the pixels, not the layout docs: every tile here was
- * classified by which of its four borders are dirt rather than grass.
- */
-const DIRT_NARROW: readonly NarrowTile[] = [
-  [5, 1],
-  [6, 12],
-  [7, 9],
-  [6, 10],
-  [9, 9],
-  [6, 11],
-  [8, 9],
-];
-
-/**
- * How the undergrowth block is painted through the swamp block's outline.
- *
- * The swamp art gives a ragged, organic edge that a 3x5 grass block cannot
- * express, which is the whole reason for using it. Its colours are no good
- * though -- swamp greens, and flat where grass has a speckle -- so it is treated
- * as a stencil: each pixel is looked up by which of its three tones it carries,
- * and the corresponding pixel of the GRASS tile is painted instead, darkened
- * where the stencil says undergrowth.
- *
- * `tint` is the multiply the ground used to be drawn with before undergrowth had
- * tiles of its own, so the interior keeps exactly the colour and the speckle it
- * has always had. `rim` is the ratio the swamp artist uses between their two
- * dark tones, transplanted onto our palette so the boundary keeps its shading --
- * all 70 rim pixels in that block touch open ground, so it reads as the step up
- * into denser growth.
- */
-const BRUSH_STENCIL = {
-  bulk: [47, 90, 50],
-  rim: [39, 73, 52],
-  tint: [0x9f, 0xbc, 0x86],
-} as const;
-
-/** Half or quarter of a tile, named by where in the tile it sits. */
-type Region = "left" | "right" | "top" | "bottom" | "nw" | "ne" | "sw" | "se";
-
-const REGIONS: Record<Region, readonly [x: number, y: number, w: number, h: number]> = {
-  left: [0, 0, T / 2, T],
-  right: [T / 2, 0, T / 2, T],
-  top: [0, 0, T, T / 2],
-  bottom: [0, T / 2, T, T / 2],
-  nw: [0, 0, T / 2, T / 2],
-  ne: [T / 2, 0, T / 2, T / 2],
-  sw: [0, T / 2, T / 2, T / 2],
-  se: [T / 2, T / 2, T / 2, T / 2],
-};
-
-/**
- * How to cut each narrow shape out of a block's own edge pieces, in NARROW_*
- * order. Every entry is a list of [tile index in the block, region to take].
- *
- * The nine pieces of a 3x3 carry a bank on one or two sides each, and the bank
- * occupies only the outer two pixels or so of an 8px tile. A shape needing banks
- * on opposite sides can therefore be assembled from halves: a channel one tile
- * across is the left half of the piece banked on the west beside the right half
- * of the piece banked on the east. The seam falls in open water, where the two
- * halves are the same colour.
- *
- * This works from any 15-tile block, so a terrain with no drawn narrow art still
- * meets the grass with a proper bank instead of a square edge.
- */
-const SYNTH_NARROW: readonly (readonly (readonly [index: number, region: Region])[])[] = [
-  // nothing adjacent: one quadrant from each of the four outer corners
-  [
-    [0, "nw"],
-    [2, "ne"],
-    [6, "sw"],
-    [8, "se"],
-  ],
-  // joins north: banked west, south and east
-  [
-    [6, "left"],
-    [8, "right"],
-  ],
-  // joins east: banked north, west and south
-  [
-    [0, "top"],
-    [6, "bottom"],
-  ],
-  // joins south: banked north, west and east
-  [
-    [0, "left"],
-    [2, "right"],
-  ],
-  // joins west: banked north, east and south
-  [
-    [2, "top"],
-    [8, "bottom"],
-  ],
-  // north and south: a vertical channel, banked on both sides
-  [
-    [3, "left"],
-    [5, "right"],
-  ],
-  // east and west: a horizontal channel, banked above and below
-  [
-    [1, "top"],
-    [7, "bottom"],
-  ],
-];
-
-/** One tile on a sheet. */
-type NarrowTile = readonly [x: number, y: number];
 
 export const minifantasyPackSource: AssetPackSource = {
   id: "minifantasy",
@@ -210,13 +37,11 @@ export const minifantasyPackSource: AssetPackSource = {
     }
   },
   async load() {
-    const urls = Object.values(SHEETS);
-    const sheets: Record<string, Sheet> = {};
-    await Promise.all(
-      urls.map(async (url) => {
-        sheets[url] = await loadSheet(url);
-      }),
-    );
+    const names = Object.keys(SHEETS) as SheetName[];
+    const loaded = await Promise.all(names.map((name) => loadSheet(SHEETS[name])));
+    const sheets = Object.fromEntries(
+      names.map((name, i) => [name, loaded[i]!]),
+    ) as Record<SheetName, Sheet>;
     return new MinifantasyPack(sheets);
   },
 };
@@ -314,46 +139,46 @@ class MinifantasyPack implements AssetPack {
   readonly playerAnchor: { readonly x: number; readonly y: number };
   readonly playerBounds: Bounds;
 
-  constructor(private readonly sheets: Record<string, Sheet>) {
-    this.grass = this.block(SHEETS.tiles, ...BLOCK.grass);
+  constructor(private readonly sheets: Record<SheetName, Sheet>) {
+    this.grass = this.block("tiles", ...BLOCK.grass);
     // One undergrowth block per grass variant, so undergrowth keeps the same
     // variety of speckle the open grass has.
     this.brush = Array.from({ length: BLOCK_TILES }, (_, v) => this.brushBlock(v));
-    this.dirt = this.block(SHEETS.tiles, ...BLOCK.dirt, this.narrow(SHEETS.tiles, DIRT_NARROW));
-    this.stone = this.block(SHEETS.tiles, ...BLOCK.stone, this.synth(SHEETS.tiles, ...BLOCK.stone));
+    this.dirt = this.block("tiles", ...BLOCK.dirt, this.narrow("tiles", DIRT_NARROW));
+    this.stone = this.block("tiles", ...BLOCK.stone, this.synth("tiles", ...BLOCK.stone));
     // The two ripple frames of the tileset's own water, alternated.
     this.water = [
-      this.block(SHEETS.tiles, ...BLOCK.waterFrame0, this.synth(SHEETS.tiles, ...BLOCK.waterFrame0)),
-      this.block(SHEETS.tiles, ...BLOCK.waterFrame1, this.synth(SHEETS.tiles, ...BLOCK.waterFrame1)),
+      this.block("tiles", ...BLOCK.waterFrame0, this.synth("tiles", ...BLOCK.waterFrame0)),
+      this.block("tiles", ...BLOCK.waterFrame1, this.synth("tiles", ...BLOCK.waterFrame1)),
     ];
 
     // Trees are 3x4 tiles; anchor at the foot of the trunk so they sit on the
     // tile they occupy and overlap the tiles behind them.
     this.trees = [
-      this.prop24(SHEETS.props, 19, 0, 3, 4),
-      this.prop24(SHEETS.props, 19, 4, 3, 4),
+      this.prop24("props", 19, 0, 3, 4),
+      this.prop24("props", 19, 4, 3, 4),
     ];
     // Ferns and shrubs, one tile wide and two tall.
     this.bushes = [];
-    for (let x = 12; x <= 18; x++) this.bushes.push(this.prop24(SHEETS.props, x, 5, 1, 2));
+    for (let x = 12; x <= 18; x++) this.bushes.push(this.prop24("props", x, 5, 1, 2));
 
     this.resources = {
-      fruit: this.prop24(SHEETS.farmCrops, 16, 1, 1, 1),
-      water: this.prop24(SHEETS.farmCrops, 16, 7, 1, 1),
-      ore: this.prop24(SHEETS.mining, 13, 1, 1, 1),
+      fruit: this.prop24("farmCrops", 16, 1, 1, 1),
+      water: this.prop24("farmCrops", 16, 7, 1, 1),
+      ore: this.prop24("mining", 13, 1, 1, 1),
     };
-    this.camp = this.prop24(SHEETS.farmProps, 15, 5, 2, 1);
+    this.camp = this.prop24("farmProps", 15, 5, 2, 1);
 
     this.walks = {} as Record<Facing, Texture[]>;
     for (const facing of Object.keys(WALK_ROWS) as Facing[]) {
       const row = WALK_ROWS[facing];
       this.walks[facing] = Array.from({ length: 4 }, (_, col) =>
-        this.sub(SHEETS.walk, col * 32, row * 32, 32, 32),
+        this.sub("walk", col * 32, row * 32, 32, 32),
       );
     }
 
     // Union of the drawn pixels across every walk frame.
-    const walkPixels = this.sheets[SHEETS.walk]!.pixels;
+    const walkPixels = this.sheets.walk.pixels;
     let union: { x0: number; y0: number; x1: number; y1: number } | null = null;
     for (let row = 0; row < 4; row++) {
       for (let col = 0; col < 4; col++) {
@@ -375,9 +200,9 @@ class MinifantasyPack implements AssetPack {
     this.playerBounds = boundsFrom(union, anchorPxX, anchorPxY, 32, 32);
   }
 
-  private sub(sheet: string, x: number, y: number, w: number, h: number): Texture {
+  private sub(sheet: SheetName, x: number, y: number, w: number, h: number): Texture {
     const texture = new Texture({
-      source: this.sheets[sheet]!.source,
+      source: this.sheets[sheet].source,
       frame: new Rectangle(x, y, w, h),
     });
     this.made.push(texture);
@@ -394,7 +219,7 @@ class MinifantasyPack implements AssetPack {
   }
 
   /** The seven narrow shapes, cut from the block at (bx, by). See SYNTH_NARROW. */
-  private synth(sheet: string, bx: number, by: number): Texture[] {
+  private synth(sheet: SheetName, bx: number, by: number): Texture[] {
     return SYNTH_NARROW.map((parts) => {
       const canvas = document.createElement("canvas");
       canvas.width = T;
@@ -404,7 +229,7 @@ class MinifantasyPack implements AssetPack {
         const [rx, ry, rw, rh] = REGIONS[region];
         const tx = (bx + (index % 3)) * T;
         const ty = (by + Math.floor(index / 3)) * T;
-        ctx.drawImage(this.sheets[sheet]!.pixels.canvas, tx + rx, ty + ry, rw, rh, rx, ry, rw, rh);
+        ctx.drawImage(this.sheets[sheet].pixels.canvas, tx + rx, ty + ry, rw, rh, rx, ry, rw, rh);
       }
       return this.fromCanvas(canvas);
     });
@@ -423,8 +248,8 @@ class MinifantasyPack implements AssetPack {
     atlas.height = T;
     const ctx = atlas.getContext("2d")!;
 
-    const stencil = this.sheets[SHEETS.brushStencil]!.pixels;
-    const grass = this.sheets[SHEETS.tiles]!.pixels.getImageData(
+    const stencil = this.sheets.brushStencil.pixels;
+    const grass = this.sheets.tiles.pixels.getImageData(
       (BLOCK.grass[0] + (grassIndex % 3)) * T,
       (BLOCK.grass[1] + Math.floor(grassIndex / 3)) * T,
       T,
@@ -467,7 +292,7 @@ class MinifantasyPack implements AssetPack {
   }
 
   /** Resolve a narrow-shape table to textures. */
-  private narrow(sheet: string, tiles: readonly NarrowTile[]): Texture[] {
+  private narrow(sheet: SheetName, tiles: readonly NarrowTile[]): Texture[] {
     return tiles.map(([x, y]) => this.sub(sheet, x * T, y * T, T, T));
   }
 
@@ -477,7 +302,7 @@ class MinifantasyPack implements AssetPack {
    * `narrow` is optional: a terrain with no art for those shapes gets the solid
    * fill in their place, so every index `autotileIndex` can return is populated.
    */
-  private block(sheet: string, bx: number, by: number, narrow?: readonly Texture[]): Texture[] {
+  private block(sheet: SheetName, bx: number, by: number, narrow?: readonly Texture[]): Texture[] {
     const out: Texture[] = [];
     for (let i = 0; i < BLOCK_TILES; i++) {
       const c = i % 3;
@@ -497,10 +322,10 @@ class MinifantasyPack implements AssetPack {
    * that assumes it does leaves the sprite floating above or sunk below the
    * tile it belongs to -- visibly out of step with collision and terrain.
    */
-  private prop24(sheet: string, tx: number, ty: number, tw: number, th: number): PropSprite {
+  private prop24(sheet: SheetName, tx: number, ty: number, tw: number, th: number): PropSprite {
     const w = tw * T;
     const h = th * T;
-    const box = contentBox(this.sheets[sheet]!.pixels, tx * T, ty * T, w, h);
+    const box = contentBox(this.sheets[sheet].pixels, tx * T, ty * T, w, h);
     const anchorPxX = box ? (box.x0 + box.x1 + 1) / 2 : w / 2;
     const anchorPxY = box ? box.y1 + 1 : h;
     return {
