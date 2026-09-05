@@ -16,6 +16,17 @@ import type { Camera } from "./camera.ts";
  * water animation advances; the sub-tile fraction is handled by shifting the
  * whole container, which is one transform instead of a thousand.
  */
+/**
+ * The ground a terrain is drawn on, for autotiling purposes.
+ *
+ * Trees and underbrush share one: a wood is a floor of undergrowth with trunks
+ * standing on it, so comparing raw terrain would ring every tree with a
+ * transition back to open grass. Everything else is its own surface.
+ */
+function surfaceOf(kind: TerrainKind): TerrainKind {
+  return kind === "tree" ? "underbrush" : kind;
+}
+
 export class TileLayer {
   readonly container = new Container();
 
@@ -85,12 +96,17 @@ export class TileLayer {
   }
 
   /**
-   * Which of the 8 neighbours continue the same terrain. Out-of-bounds reads
-   * come back as rock, so the map border autotiles against the world edge
-   * instead of showing a cut edge.
+   * Which of the 8 neighbours continue the same ground. Out-of-bounds reads come
+   * back as rock, so the map border autotiles against the world edge instead of
+   * showing a cut edge.
+   *
+   * Neighbours are compared by {@link surfaceOf}, not by terrain, so a tree does
+   * not punch a hole in the forest floor it is standing on.
    */
   private mask(x: number, y: number, kind: TerrainKind): number {
-    const same = (dx: number, dy: number) => this.map.get(x + dx, y + dy, this.z) === kind;
+    const surface = surfaceOf(kind);
+    const same = (dx: number, dy: number) =>
+      surfaceOf(this.map.get(x + dx, y + dy, this.z)) === surface;
     let mask = 0;
     if (same(0, -1)) mask |= N;
     if (same(1, 0)) mask |= E;

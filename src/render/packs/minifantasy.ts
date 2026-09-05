@@ -20,6 +20,7 @@ const FP = `${ROOT}/Minifantasy_ForgottenPlains_v3.6_Commercial_Version/Minifant
 const FARM = `${ROOT}/Minifantasy_Farm_v3.0/Minifantasy_Farm_Assets`;
 const CRAFT = `${ROOT}/Minifantasy_CraftingAndProfessions_v1.0/Minifantasy_CraftingAndProfessions_Assets`;
 const NPC = `${ROOT}/Minifantasy_AMyriadOfNPCs_v.1.0/Minifantasy_NPCs_Assets/Premade_NPCs`;
+const SWAMP = `${ROOT}/Minifantasy_SilentSwamp_v1.0/Minifantasy_SilentSwamp_Assets`;
 
 /** Which premade NPC the player is. Any folder under Premade_NPCs works. */
 const CHARACTER = "Alchemist";
@@ -47,9 +48,27 @@ const SHEETS = {
   farmProps: `${FARM}/Props/Minifantasy_FarmProps.png`,
   mining: `${CRAFT}/Gathering_Professions/Mining/Minifantasy_CraftingAndProfessionsMining.png`,
   walk: `${NPC}/${CHARACTER}/Minifantasy_NPCs${CHARACTER}Walk.png`,
+  /**
+   * Undergrowth. The swamp pack ships this expressly to meet Forgotten Plains
+   * grass -- the whole 24x40 file is one 3x5 block, and its light half is our
+   * two grass colours exactly, (111,164,48) and (68,137,26), so the two sheets
+   * butt together with no seam.
+   */
+  brushStencil: `${SWAMP}/Tileset/GrassLinkToForgottenPlains/Minifantasy_MurkySwampGrassToGrass.png`,
 } as const;
 
 const T = 8; // source tile size
+
+/**
+ * Tiles in a drawn 3x5 block, before the narrow shapes are appended.
+ *
+ * Worth naming, because the two counts are easy to confuse: a block ends up
+ * TILE_COUNT long, but only the first BLOCK_TILES of it are art the sheet
+ * actually draws. Anything walking a block as source tiles -- picking a grass
+ * variant, painting undergrowth through a stencil -- must stop here, or it reads
+ * past the block and off into blank sheet.
+ */
+const BLOCK_TILES = 15;
 
 /** Top-left tile coordinate of each 3x5 autotile block on the tileset sheet. */
 const BLOCK = {
@@ -86,6 +105,29 @@ const DIRT_NARROW: readonly NarrowTile[] = [
 ];
 
 /** Half or quarter of a tile, named by where in the tile it sits. */
+/**
+ * How the undergrowth block is painted through the swamp block's outline.
+ *
+ * The swamp art gives a ragged, organic edge that a 3x5 grass block cannot
+ * express, which is the whole reason for using it. Its colours are no good
+ * though -- swamp greens, and flat where grass has a speckle -- so it is treated
+ * as a stencil: each pixel is looked up by which of its three tones it carries,
+ * and the corresponding pixel of the GRASS tile is painted instead, darkened
+ * where the stencil says undergrowth.
+ *
+ * `tint` is the multiply the ground used to be drawn with before undergrowth had
+ * tiles of its own, so the interior keeps exactly the colour and the speckle it
+ * has always had. `rim` is the ratio the swamp artist uses between their two
+ * dark tones, transplanted onto our palette so the boundary keeps its shading --
+ * all 70 rim pixels in that block touch open ground, so it reads as the step up
+ * into denser growth.
+ */
+const BRUSH_STENCIL = {
+  bulk: [47, 90, 50],
+  rim: [39, 73, 52],
+  tint: [0x9f, 0xbc, 0x86],
+} as const;
+
 type Region = "left" | "right" | "top" | "bottom" | "nw" | "ne" | "sw" | "se";
 
 const REGIONS: Record<Region, readonly [x: number, y: number, w: number, h: number]> = {
@@ -254,6 +296,7 @@ class MinifantasyPack implements AssetPack {
 
   private readonly made: Texture[] = [];
   private readonly grass: Texture[];
+  private readonly brush: Texture[][];
   private readonly dirt: Texture[];
   private readonly stone: Texture[];
   private readonly water: Texture[][];
@@ -274,6 +317,10 @@ class MinifantasyPack implements AssetPack {
 
   constructor(private readonly sheets: Record<string, Sheet>) {
     this.grass = this.block(SHEETS.tiles, ...BLOCK.grass);
+    // The brush sheet is nothing but the block, so it starts at its own origin.
+    // One block per grass variant, so undergrowth keeps the same variety of
+    // speckle the open grass has.
+    this.brush = Array.from({ length: BLOCK_TILES }, (_, v) => this.brushBlock(v));
     this.dirt = this.block(SHEETS.tiles, ...BLOCK.dirt, this.narrow(SHEETS.tiles, DIRT_NARROW));
     this.stone = this.block(SHEETS.tiles, ...BLOCK.stone, this.synth(SHEETS.tiles, ...BLOCK.stone));
     // The lake block and the river sheet animate independently, so the two
@@ -385,6 +432,62 @@ class MinifantasyPack implements AssetPack {
     });
   }
 
+  /**
+   * The undergrowth block for one grass variant: the grass tile painted through
+   * the stencil, then the seven narrow shapes cut from its own edges.
+   *
+   * Everything lands in one strip of TILE_COUNT tiles so a block is a single
+   * texture and the tile sprites keep batching.
+   */
+  private brushBlock(grassIndex: number): Texture[] {
+    const atlas = document.createElement("canvas");
+    atlas.width = TILE_COUNT * T;
+    atlas.height = T;
+    const ctx = atlas.getContext("2d")!;
+
+    const stencil = this.sheets[SHEETS.brushStencil]!.pixels;
+    const grass = this.sheets[SHEETS.tiles]!.pixels.getImageData(
+      (BLOCK.grass[0] + (grassIndex % 3)) * T,
+      (BLOCK.grass[1] + Math.floor(grassIndex / 3)) * T,
+      T,
+      T,
+    );
+    const is = (data: Uint8ClampedArray, at: number, colour: readonly number[]) =>
+      data[at] === colour[0] && data[at + 1] === colour[1] && data[at + 2] === colour[2];
+
+    for (let i = 0; i < BLOCK_TILES; i++) {
+      const shape = stencil.getImageData((i % 3) * T, Math.floor(i / 3) * T, T, T);
+      const out = ctx.createImageData(T, T);
+      for (let at = 0; at < T * T * 4; at += 4) {
+        const rim = is(shape.data, at, BRUSH_STENCIL.rim);
+        const inside = rim || is(shape.data, at, BRUSH_STENCIL.bulk);
+        for (let c = 0; c < 3; c++) {
+          let value = grass.data[at + c]!;
+          if (inside) value = (value * BRUSH_STENCIL.tint[c]!) / 255;
+          if (rim) value = (value * BRUSH_STENCIL.rim[c]!) / BRUSH_STENCIL.bulk[c]!;
+          out.data[at + c] = Math.round(value);
+        }
+        out.data[at + 3] = 255;
+      }
+      ctx.putImageData(out, i * T, 0);
+    }
+
+    // The narrow shapes are cut from the strip, so they inherit the painting.
+    SYNTH_NARROW.forEach((parts, k) => {
+      for (const [index, region] of parts) {
+        const [rx, ry, rw, rh] = REGIONS[region];
+        ctx.drawImage(atlas, index * T + rx, ry, rw, rh, (15 + k) * T + rx, ry, rw, rh);
+      }
+    });
+
+    const source = new ImageSource({ resource: atlas, scaleMode: "nearest" });
+    return Array.from({ length: TILE_COUNT }, (_, i) => {
+      const texture = new Texture({ source, frame: new Rectangle(i * T, 0, T, T) });
+      this.made.push(texture);
+      return texture;
+    });
+  }
+
   /** Resolve a narrow-shape table to textures, offset by `dx` tiles. */
   private narrow(sheet: string, tiles: readonly NarrowTile[], dx = 0): Texture[] {
     return tiles.map(([x, y, flipY]) =>
@@ -402,7 +505,7 @@ class MinifantasyPack implements AssetPack {
    */
   private block(sheet: string, bx: number, by: number, narrow?: readonly Texture[]): Texture[] {
     const out: Texture[] = [];
-    for (let i = 0; i < 15; i++) {
+    for (let i = 0; i < BLOCK_TILES; i++) {
       const c = i % 3;
       const r = Math.floor(i / 3);
       out.push(this.sub(sheet, (bx + c) * T, (by + r) * T, T, T));
@@ -440,11 +543,13 @@ class MinifantasyPack implements AssetPack {
 
   ground(kind: TerrainKind, mask: number, variant: number, frame: number): Texture {
     switch (kind) {
-      // Grass is the base layer; underbrush and trees are props standing on it.
       case "grass":
+        return this.grass[variant % BLOCK_TILES]!;
+      // A wood is a floor of undergrowth with trunks standing on it, so both
+      // draw the same ground and autotile as one surface.
       case "underbrush":
       case "tree":
-        return this.grass[variant % this.grass.length]!;
+        return this.brush[variant % BLOCK_TILES]![autotileIndex(mask)]!;
       case "mud":
         return this.dirt[autotileIndex(mask)]!;
       case "rock":
@@ -468,12 +573,9 @@ class MinifantasyPack implements AssetPack {
     return null;
   }
 
-  /**
-   * Underbrush shares the grass tile, so it is darkened to read as denser
-   * growth -- without it, difficult terrain is invisible to the player.
-   */
-  groundTint(kind: TerrainKind): number {
-    return kind === "underbrush" ? 0x9fbc86 : 0xffffff;
+  /** Every terrain is now drawn in its own colours; nothing needs tinting. */
+  groundTint(_kind: TerrainKind): number {
+    return 0xffffff;
   }
 
   resource(kind: ResourceKind): PropSprite {
