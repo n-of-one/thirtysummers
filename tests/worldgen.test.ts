@@ -192,3 +192,93 @@ describe("forest shape", () => {
     expect((around.underbrush ?? 0) / total).toBeGreaterThan(0.7);
   });
 });
+
+describe("stream shape", () => {
+  /**
+   * A stream that only touches itself at a corner is both undrawable -- no edge
+   * piece fits a tile with no orthogonal neighbour of its own kind -- and not a
+   * barrier, since the player can slip through the gap.
+   */
+  it("never steps diagonally without filling the corner", () => {
+    for (const seed of SEEDS) {
+      const { map } = generateWorld(seed);
+      const isStream = (x: number, y: number) => map.get(x, y) === "stream";
+      let corners = 0;
+      for (let y = 0; y < map.height - 1; y++) {
+        for (let x = 0; x < map.width - 1; x++) {
+          for (const [ax, ay, bx, by] of [
+            [x, y, x + 1, y + 1],
+            [x + 1, y, x, y + 1],
+          ] as const) {
+            if (!isStream(ax, ay) || !isStream(bx, by)) continue;
+            if (isStream(ax, by) || isStream(bx, ay)) continue;
+            corners++;
+          }
+        }
+      }
+      expect(corners, `seed ${seed}`).toBe(0);
+    }
+  });
+
+  it("is never one tile across", () => {
+    // Two tiles across, on a grid, means every tile sits inside some 2x2 square
+    // of water. Anything thinner has no tile in a blob set that can draw it.
+    for (const seed of SEEDS) {
+      const { map } = generateWorld(seed);
+      const isStream = (x: number, y: number) => map.get(x, y) === "stream";
+      let pinched = 0;
+      for (let y = 0; y < map.height; y++) {
+        for (let x = 0; x < map.width; x++) {
+          if (!isStream(x, y)) continue;
+          const wide = [
+            [-1, -1],
+            [0, -1],
+            [-1, 0],
+            [0, 0],
+          ].some(
+            ([dx, dy]) =>
+              isStream(x + dx!, y + dy!) &&
+              isStream(x + dx! + 1, y + dy!) &&
+              isStream(x + dx!, y + dy! + 1) &&
+              isStream(x + dx! + 1, y + dy! + 1),
+          );
+          if (!wide) pinched++;
+        }
+      }
+      expect(pinched, `seed ${seed}`).toBe(0);
+    }
+  });
+
+  it("leaves no stream tile without an orthogonal neighbour", () => {
+    for (const seed of SEEDS) {
+      const { map } = generateWorld(seed);
+      let stranded = 0;
+      for (let y = 0; y < map.height; y++) {
+        for (let x = 0; x < map.width; x++) {
+          if (map.get(x, y) !== "stream") continue;
+          const joined =
+            map.get(x, y - 1) === "stream" ||
+            map.get(x, y + 1) === "stream" ||
+            map.get(x - 1, y) === "stream" ||
+            map.get(x + 1, y) === "stream";
+          if (!joined) stranded++;
+        }
+      }
+      expect(stranded, `seed ${seed}`).toBe(0);
+    }
+  });
+
+  it("still leaves the map border sealed with rock", () => {
+    for (const seed of SEEDS) {
+      const { map } = generateWorld(seed);
+      for (let x = 0; x < map.width; x++) {
+        expect(map.get(x, 0)).toBe("rock");
+        expect(map.get(x, map.height - 1)).toBe("rock");
+      }
+      for (let y = 0; y < map.height; y++) {
+        expect(map.get(0, y)).toBe("rock");
+        expect(map.get(map.width - 1, y)).toBe("rock");
+      }
+    }
+  });
+});

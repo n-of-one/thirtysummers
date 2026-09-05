@@ -171,6 +171,127 @@ export function carveFords(map: TileMap, camp: Vec2, minRegion = 25, maxFords = 
   return carved;
 }
 
+/** Which tiles are stream, as a flat mask over the layer. */
+function streamMask(map: TileMap, z = 0): Uint8Array {
+  const mask = new Uint8Array(map.width * map.height);
+  for (let y = 0; y < map.height; y++) {
+    for (let x = 0; x < map.width; x++) {
+      if (map.get(x, y, z) === "stream") mask[y * map.width + x] = 1;
+    }
+  }
+  return mask;
+}
+
+/**
+ * The four 2x2 squares a tile belongs to, as offsets to the square's top-left.
+ */
+const SQUARES = [
+  [-1, -1],
+  [0, -1],
+  [-1, 0],
+  [0, 0],
+] as const;
+
+/** Give up rather than loop; two passes is already more than any seed needs. */
+const MAX_THICKEN_PASSES = 8;
+
+/**
+ * Thicken the stream until it is nowhere one tile across.
+ *
+ * The stream is the zero band of a noise field, so its width follows the slope
+ * of that field: where the field is steep the band pinches to a single tile, or
+ * to a staircase of tiles touching only at their corners. Both are wrong twice
+ * over. They cannot be drawn -- a tile whose own kind never continues to two
+ * opposite sides has no piece in a blob tileset, and a corner touch has none at
+ * all -- and they are not barriers, since a stream one tile across still reads
+ * as a stream the player cannot cross, but a corner touch has a hole in it.
+ *
+ * The condition enforced is that every stream tile sits inside some 2x2 square
+ * of stream, which is what "two tiles across everywhere" means on a grid. A
+ * corner touch is repaired by filling both of the tiles between, which turns the
+ * pair into such a square rather than into a one-wide elbow.
+ *
+ * Only pinches are widened. A stretch already two or more across is left exactly
+ * as the noise drew it, so the river keeps its shape and only its narrowest
+ * points give. Filling can create new pinches at the edges of what it filled, so
+ * this runs to a fixed point; in practice that is one or two passes.
+ *
+ * Rock is never overwritten, so the map border stays sealed, and neither is
+ * anything in `keep` -- which is how a ford already cut through the water
+ * survives a second pass.
+ */
+export function thickenStream(map: TileMap, z = 0, keep?: ReadonlySet<number>): number {
+  const isStream = (x: number, y: number) => map.get(x, y, z) === "stream";
+  const takeable = (x: number, y: number) =>
+    x >= 0 &&
+    y >= 0 &&
+    x < map.width &&
+    y < map.height &&
+    map.get(x, y, z) !== "rock" &&
+    !keep?.has(y * map.width + x);
+  const cells = (sx: number, sy: number) =>
+    [
+      [sx, sy],
+      [sx + 1, sy],
+      [sx, sy + 1],
+      [sx + 1, sy + 1],
+    ] as const;
+
+  let added = 0;
+  for (let pass = 0; pass < MAX_THICKEN_PASSES; pass++) {
+    // Collect against the state at the start of the pass: writing as we scan
+    // would let each new tile seed more work and run the river wide.
+    const fill = new Set<number>();
+
+    // A corner touch: two stream tiles sharing only a corner, with both tiles
+    // between them dry. Fill both, so the four together make a 2x2 block.
+    for (let y = 0; y < map.height - 1; y++) {
+      for (let x = 0; x < map.width - 1; x++) {
+        for (const [ax, ay, bx, by] of [
+          [x, y, x + 1, y + 1],
+          [x + 1, y, x, y + 1],
+        ] as const) {
+          if (!isStream(ax, ay) || !isStream(bx, by)) continue;
+          if (isStream(ax, by) || isStream(bx, ay)) continue;
+          if (!takeable(ax, by) || !takeable(bx, ay)) continue;
+          fill.add(by * map.width + ax);
+          fill.add(ay * map.width + bx);
+        }
+      }
+    }
+
+    // A pinch: a tile in no 2x2 square of stream. Complete whichever square
+    // needs the least filling, so the widening hugs the water already there.
+    for (let y = 0; y < map.height; y++) {
+      for (let x = 0; x < map.width; x++) {
+        if (!isStream(x, y)) continue;
+        const options = SQUARES.map(([dx, dy]) => cells(x + dx, y + dy)).filter((square) =>
+          square.every(([cx, cy]) => takeable(cx, cy)),
+        );
+        const costs = options.map((square) => square.filter(([cx, cy]) => !isStream(cx, cy)).length);
+        const cheapest = Math.min(...costs);
+        if (options.length === 0 || cheapest === 0) continue; // hemmed in, or already wide
+        // Ties are broken by position, so a long pinch does not widen the same
+        // way down its whole length.
+        const tied = options.filter((_, i) => costs[i] === cheapest);
+        const square = tied[Math.floor(hash2d(1, x, y) * tied.length) % tied.length]!;
+        for (const [cx, cy] of square) {
+          if (!isStream(cx, cy)) fill.add(cy * map.width + cx);
+        }
+      }
+    }
+
+    if (fill.size === 0) break;
+    for (const idx of fill) {
+      const x = idx % map.width;
+      const y = (idx - x) / map.width;
+      map.set(x, y, "stream", z);
+      added++;
+    }
+  }
+  return added;
+}
+
 /** True if any of the 8 neighbours is the given terrain. */
 function touches(map: TileMap, x: number, y: number, kind: TerrainKind): boolean {
   for (let dy = -1; dy <= 1; dy++) {
@@ -262,8 +383,25 @@ export function generateWorld(seed: number = C.DEFAULT_SEED): GeneratedWorld {
     }
   }
 
+  thickenStream(map);
+
   const camp = findCamp(map);
+  // A ford cuts a one-tile line through the water, which leaves the stream on
+  // either side of the cut thinner than the noise drew it -- often back to a
+  // single tile. Repair those pinches afterwards, with the crossings themselves
+  // held back so the repair cannot undo the very thing it is repairing around.
+  const beforeFords = streamMask(map);
   carveFords(map, camp);
+  const fords = new Set<number>();
+  for (let idx = 0; idx < beforeFords.length; idx++) {
+    const x = idx % map.width;
+    const y = (idx - x) / map.width;
+    if (beforeFords[idx] && map.get(x, y) !== "stream") fords.add(idx);
+  }
+  if (thickenStream(map, 0, fords) > 0) {
+    // Widening can seal a gap somewhere else; give the fords another look.
+    carveFords(map, camp);
+  }
   const reachable = reachableFrom(map, camp);
 
   const nodes = placeResources(map, reachable, camp, master);

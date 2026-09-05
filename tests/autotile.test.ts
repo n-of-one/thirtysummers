@@ -1,5 +1,23 @@
 import { describe, expect, it } from "vitest";
-import { autotileIndex, E, FILL, N, NE, NW, S, SE, SW, W } from "../src/render/packs/autotile.ts";
+import {
+  autotileIndex,
+  E,
+  N,
+  NARROW_E,
+  NARROW_EW,
+  NARROW_N,
+  NARROW_NONE,
+  NARROW_NS,
+  NARROW_S,
+  NARROW_W,
+  NE,
+  NW,
+  S,
+  SE,
+  SW,
+  TILE_COUNT,
+  W,
+} from "../src/render/packs/autotile.ts";
 
 const ALL_SIDES = N | E | S | W;
 const ALL_CORNERS = NE | SE | SW | NW;
@@ -39,18 +57,33 @@ describe("autotileIndex", () => {
     expect(autotileIndex(E | S | ALL_CORNERS)).toBe(0);
   });
 
-  it("falls back to fill for shapes a 15-tile set cannot express", () => {
-    expect(autotileIndex(0)).toBe(FILL); // isolated
-    expect(autotileIndex(N)).toBe(FILL); // dead end
-    expect(autotileIndex(N | S)).toBe(FILL); // one-tile-wide vertical strip
-    expect(autotileIndex(E | W)).toBe(FILL); // one-tile-wide horizontal strip
+  it("names the narrow shapes a 15-tile set cannot express", () => {
+    expect(autotileIndex(0)).toBe(NARROW_NONE); // nothing adjacent
+    expect(autotileIndex(N)).toBe(NARROW_N); // dead end, joined northwards
+    expect(autotileIndex(E)).toBe(NARROW_E);
+    expect(autotileIndex(S)).toBe(NARROW_S);
+    expect(autotileIndex(W)).toBe(NARROW_W);
+    expect(autotileIndex(N | S)).toBe(NARROW_NS); // one-tile-wide vertical strip
+    expect(autotileIndex(E | W)).toBe(NARROW_EW); // one-tile-wide horizontal strip
+  });
+
+  it("ignores diagonals on the narrow shapes too", () => {
+    // A dead end is already open on three sides; a diagonal cannot change it.
+    expect(autotileIndex(N | ALL_CORNERS)).toBe(NARROW_N);
+    expect(autotileIndex(E | W | ALL_CORNERS)).toBe(NARROW_EW);
+  });
+
+  it("gives every one of the sixteen side shapes its own tile", () => {
+    const seen = new Set<number>();
+    for (let sides = 0; sides < 16; sides++) seen.add(autotileIndex(sides));
+    expect(seen.size).toBe(16);
   });
 
   it("always returns a valid index", () => {
     for (let mask = 0; mask < 256; mask++) {
       const i = autotileIndex(mask);
       expect(i).toBeGreaterThanOrEqual(0);
-      expect(i).toBeLessThan(15);
+      expect(i).toBeLessThan(TILE_COUNT);
     }
   });
 });

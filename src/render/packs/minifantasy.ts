@@ -1,6 +1,6 @@
 import { ImageSource, Rectangle, Texture } from "pixi.js";
 import type { Facing, ResourceKind, TerrainKind } from "../../sim/types.ts";
-import { autotileIndex } from "./autotile.ts";
+import { autotileIndex, FILL, TILE_COUNT } from "./autotile.ts";
 import type { AssetPack, AssetPackSource, Bounds, PropSprite } from "./pack.ts";
 
 /**
@@ -63,6 +63,99 @@ const BLOCK = {
   waterFrame0: [25, 3],
   waterFrame1: [29, 3],
 } as const;
+
+/**
+ * The narrow dirt shapes a 3x5 block cannot hold, in NARROW_* order: nothing
+ * adjacent, then dead ends pointing N / E / S / W, then the two one-wide strips.
+ *
+ * Six of them sit in a second block at (6,9), laid out by connectivity -- column
+ * 6 joins nothing sideways, 7 joins east, 8 joins both, 9 joins west; row 9
+ * joins nothing vertically, 10 joins south, 11 joins both, 12 joins north. Its
+ * "joins nothing at all" corner is blank on the sheet, so the lone dirt blob at
+ * (5,1) stands in. Read off the pixels, not the layout docs: every tile here was
+ * classified by which of its four borders are dirt rather than grass.
+ */
+const DIRT_NARROW: readonly NarrowTile[] = [
+  [5, 1],
+  [6, 12],
+  [7, 9],
+  [6, 10],
+  [9, 9],
+  [6, 11],
+  [8, 9],
+];
+
+/** Half or quarter of a tile, named by where in the tile it sits. */
+type Region = "left" | "right" | "top" | "bottom" | "nw" | "ne" | "sw" | "se";
+
+const REGIONS: Record<Region, readonly [x: number, y: number, w: number, h: number]> = {
+  left: [0, 0, T / 2, T],
+  right: [T / 2, 0, T / 2, T],
+  top: [0, 0, T, T / 2],
+  bottom: [0, T / 2, T, T / 2],
+  nw: [0, 0, T / 2, T / 2],
+  ne: [T / 2, 0, T / 2, T / 2],
+  sw: [0, T / 2, T / 2, T / 2],
+  se: [T / 2, T / 2, T / 2, T / 2],
+};
+
+/**
+ * How to cut each narrow shape out of a block's own edge pieces, in NARROW_*
+ * order. Every entry is a list of [tile index in the block, region to take].
+ *
+ * The nine pieces of a 3x3 carry a bank on one or two sides each, and the bank
+ * occupies only the outer two pixels or so of an 8px tile. A shape needing banks
+ * on opposite sides can therefore be assembled from halves: a channel one tile
+ * across is the left half of the piece banked on the west beside the right half
+ * of the piece banked on the east. The seam falls in open water, where the two
+ * halves are the same colour.
+ *
+ * This works from any 15-tile block, so a terrain with no drawn narrow art still
+ * meets the grass with a proper bank instead of a square edge.
+ */
+const SYNTH_NARROW: readonly (readonly (readonly [index: number, region: Region])[])[] = [
+  // nothing adjacent: one quadrant from each of the four outer corners
+  [
+    [0, "nw"],
+    [2, "ne"],
+    [6, "sw"],
+    [8, "se"],
+  ],
+  // joins north: banked west, south and east
+  [
+    [6, "left"],
+    [8, "right"],
+  ],
+  // joins east: banked north, west and south
+  [
+    [0, "top"],
+    [6, "bottom"],
+  ],
+  // joins south: banked north, west and east
+  [
+    [0, "left"],
+    [2, "right"],
+  ],
+  // joins west: banked north, east and south
+  [
+    [2, "top"],
+    [8, "bottom"],
+  ],
+  // north and south: a vertical channel, banked on both sides
+  [
+    [3, "left"],
+    [5, "right"],
+  ],
+  // east and west: a horizontal channel, banked above and below
+  [
+    [1, "top"],
+    [7, "bottom"],
+  ],
+];
+
+/** One tile on a sheet, optionally mirrored top to bottom. */
+type NarrowTile = readonly [x: number, y: number, flipY?: boolean];
+
 
 export const minifantasyPackSource: AssetPackSource = {
   id: "minifantasy",
@@ -181,11 +274,14 @@ class MinifantasyPack implements AssetPack {
 
   constructor(private readonly sheets: Record<string, Sheet>) {
     this.grass = this.block(SHEETS.tiles, ...BLOCK.grass);
-    this.dirt = this.block(SHEETS.tiles, ...BLOCK.dirt);
-    this.stone = this.block(SHEETS.tiles, ...BLOCK.stone);
+    this.dirt = this.block(SHEETS.tiles, ...BLOCK.dirt, this.narrow(SHEETS.tiles, DIRT_NARROW));
+    this.stone = this.block(SHEETS.tiles, ...BLOCK.stone, this.synth(SHEETS.tiles, ...BLOCK.stone));
+    // The lake block and the river sheet animate independently, so the two
+    // ripple frames are paired with river frames 0 and 2 -- half a cycle apart,
+    // matching the lake's own two-frame cadence.
     this.water = [
-      this.block(SHEETS.tiles, ...BLOCK.waterFrame0),
-      this.block(SHEETS.tiles, ...BLOCK.waterFrame1),
+      this.block(SHEETS.tiles, ...BLOCK.waterFrame0, this.synth(SHEETS.tiles, ...BLOCK.waterFrame0)),
+      this.block(SHEETS.tiles, ...BLOCK.waterFrame1, this.synth(SHEETS.tiles, ...BLOCK.waterFrame1)),
     ];
 
     // Trees are 3x4 tiles; anchor at the foot of the trunk so they sit on the
@@ -245,13 +341,74 @@ class MinifantasyPack implements AssetPack {
     return texture;
   }
 
-  /** The 15 tiles of a 3x5 autotile block, in reading order. */
-  private block(sheet: string, bx: number, by: number): Texture[] {
+  /**
+   * One tile copied into its own source, mirrored top to bottom.
+   *
+   * A `Texture` cannot flip a region of a shared sheet on its own, and the sheet
+   * only draws a river running one way, so the opposite cap is drawn here. One
+   * 8x8 canvas per flipped tile costs nothing.
+   */
+  private flippedY(sheet: string, x: number, y: number, w: number, h: number): Texture {
+    const canvas = document.createElement("canvas");
+    canvas.width = w;
+    canvas.height = h;
+    const ctx = canvas.getContext("2d")!;
+    ctx.translate(0, h);
+    ctx.scale(1, -1);
+    ctx.drawImage(this.sheets[sheet]!.pixels.canvas, x, y, w, h, 0, 0, w, h);
+    return this.fromCanvas(canvas);
+  }
+
+  /** A texture backed by its own small canvas, for tiles built rather than cut. */
+  private fromCanvas(canvas: HTMLCanvasElement): Texture {
+    const texture = new Texture({
+      source: new ImageSource({ resource: canvas, scaleMode: "nearest" }),
+    });
+    this.made.push(texture);
+    return texture;
+  }
+
+  /** The seven narrow shapes, cut from the block at (bx, by). See SYNTH_NARROW. */
+  private synth(sheet: string, bx: number, by: number): Texture[] {
+    return SYNTH_NARROW.map((parts) => {
+      const canvas = document.createElement("canvas");
+      canvas.width = T;
+      canvas.height = T;
+      const ctx = canvas.getContext("2d")!;
+      for (const [index, region] of parts) {
+        const [rx, ry, rw, rh] = REGIONS[region];
+        const tx = (bx + (index % 3)) * T;
+        const ty = (by + Math.floor(index / 3)) * T;
+        ctx.drawImage(this.sheets[sheet]!.pixels.canvas, tx + rx, ty + ry, rw, rh, rx, ry, rw, rh);
+      }
+      return this.fromCanvas(canvas);
+    });
+  }
+
+  /** Resolve a narrow-shape table to textures, offset by `dx` tiles. */
+  private narrow(sheet: string, tiles: readonly NarrowTile[], dx = 0): Texture[] {
+    return tiles.map(([x, y, flipY]) =>
+      flipY
+        ? this.flippedY(sheet, (x + dx) * T, y * T, T, T)
+        : this.sub(sheet, (x + dx) * T, y * T, T, T),
+    );
+  }
+
+  /**
+   * The 15 tiles of a 3x5 block, followed by the seven narrow shapes.
+   *
+   * `narrow` is optional: a terrain with no art for those shapes gets the solid
+   * fill in their place, so every index `autotileIndex` can return is populated.
+   */
+  private block(sheet: string, bx: number, by: number, narrow?: readonly Texture[]): Texture[] {
     const out: Texture[] = [];
     for (let i = 0; i < 15; i++) {
       const c = i % 3;
       const r = Math.floor(i / 3);
       out.push(this.sub(sheet, (bx + c) * T, (by + r) * T, T, T));
+    }
+    for (let i = 15; i < TILE_COUNT; i++) {
+      out.push(narrow?.[i - 15] ?? out[FILL]!);
     }
     return out;
   }

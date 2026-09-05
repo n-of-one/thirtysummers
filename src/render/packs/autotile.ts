@@ -20,16 +20,47 @@ export const SE = 32;
 export const SW = 64;
 export const NW = 128;
 
-/** Tile index used when a shape has no representation in a 15-tile set. */
+/** Tile index used when a shape has no representation at all. */
 export const FILL = 4;
 
 /**
- * Map an 8-neighbour connectivity mask to a tile index in the block.
+ * Indices past the 15-tile block, one per shape that block cannot express.
  *
- * A 15-tile set cannot express narrow shapes -- an isolated tile, a dead end,
- * or a one-tile-wide strip -- because those need edges on opposite sides at
- * once. Those fall back to the solid fill, which reads better than an
- * arbitrary edge piece pointing the wrong way.
+ * The 3x3 covers only the nine side combinations that read as a corner, an edge
+ * or the interior of a wide blob. The other seven are narrow: nothing adjacent,
+ * a dead end pointing one of four ways, or a one-tile-wide strip. All seven need
+ * grass on two opposite sides at once, which no piece of a 3x3 has.
+ *
+ * A pack that owns art for them maps these indices to it; one that does not
+ * points them all at {@link FILL}, which is what the whole set used to do.
+ */
+export const NARROW_NONE = 15;
+export const NARROW_N = 16;
+export const NARROW_E = 17;
+export const NARROW_S = 18;
+export const NARROW_W = 19;
+export const NARROW_NS = 20;
+export const NARROW_EW = 21;
+
+/** Total indices `autotileIndex` can return, narrow shapes included. */
+export const TILE_COUNT = 22;
+
+/** The seven narrow shapes, keyed by side bits, in NARROW_* order. */
+const NARROW: ReadonlyMap<number, number> = new Map([
+  [0, NARROW_NONE],
+  [N, NARROW_N],
+  [E, NARROW_E],
+  [S, NARROW_S],
+  [W, NARROW_W],
+  [N | S, NARROW_NS],
+  [E | W, NARROW_EW],
+]);
+
+/**
+ * Map an 8-neighbour connectivity mask to a tile index.
+ *
+ * Returns 0-14 for the shapes the 15-tile block covers and a NARROW_* index for
+ * the seven it does not; see {@link NARROW_NONE}.
  */
 export function autotileIndex(mask: number): number {
   const n = (mask & N) !== 0;
@@ -61,5 +92,5 @@ export function autotileIndex(mask: number): number {
   if (n && e && !s && w) return 7;
   if (n && !e && !s && w) return 8;
 
-  return FILL;
+  return NARROW.get(mask & (N | E | S | W))!;
 }
