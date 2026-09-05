@@ -41,27 +41,39 @@ The hard rule: **nothing under `src/sim/` imports Pixi or touches the DOM.**
 ```
 src/
   config.ts          ALL tunable numbers, one file
+  frameClock.ts      real elapsed time → whole fixed steps; clamps a stalled tab
   sim/                        ← pure TypeScript, no renderer, no DOM
     types.ts           TerrainKind, ResourceKind, Facing, Vec2
     rng.ts             mulberry32, hash2d, shuffle
     terrain.ts         terrain table: passable, speedMul, staminaPerSec
     tilemap.ts         TileMap: get(x,y,z), isPassable, terrainAt; z-indexed from day one
-    worldgen.ts        seed → TileMap + resource nodes + camp; fords, stream thickening
     player.ts          position, facing, collision, per-axis moving flags
     world.ts           owns everything; world.step(dt, input)
+    worldgen.ts        seed → GeneratedWorld; what order the steps run in, and why
+    worldgen/
+      grid.ts            y*width+x arithmetic, 4-neighbour offsets
+      terrain.ts         noise → tiles; camp placement
+      water.ts           stream thickening, ford carving
+      reachability.ts    flood fill from camp
+      resources.ts       scattering fruit / water / ore by terrain
   render/                     ← Pixi only
     app.ts             Pixi Application bootstrap, nearest-neighbour scaling
     camera.ts          follows player with lag, clamps to map bounds
+    scrollWindow.ts    the tile window both layers scroll; no Pixi, so testable
+    placements.ts      what stands where in the world, as data, before any sprite
     packs/pack.ts      AssetPack interface
     packs/autotile.ts  8-neighbour mask → tile index, narrow shapes included
     packs/placeholder.ts  code-drawn textures, used when the art is absent
-    packs/minifantasy.ts  the real art
+    packs/minifantasy.ts  loads the real art
+    packs/minifantasy.sheets.ts  where that art sits on disk, and nothing else
     tileLayer.ts       culled sprite-pool ground renderer, autotiled
-    propLayer.ts       y-sorted props + player, tree silhouette, pixel snapping
+    propLayer.ts       y-sorted props + player, pixel snapping
+    silhouette.ts      the player redrawn flat where a canopy covers them
   input/keyboard.ts    keydown/keyup → InputState
   ui/hud.css           HUD styling (markup lives in index.html)
-  main.ts              wires it together; fixed-timestep loop
-tests/                 8 files, 95 tests
+  main.ts              wires it together
+tests/                 12 files, 135 tests
+  stubPack.ts          an AssetPack that draws nothing and records everything
 public/assets/minifantasy/   real art — GITIGNORED
 ```
 
@@ -72,10 +84,10 @@ public/assets/minifantasy/   real art — GITIGNORED
 ## Rules to build to
 
 - **Rendering only ever reads simulation state.** It never writes to it.
-- **The simulation advances in fixed 1/60s steps.** Accumulator in `main.ts`:
-  render on `requestAnimationFrame`, step for each whole tick accrued, clamp the
-  accumulator so a backgrounded tab cannot spiral. Anything asking "is this
-  moving" reads a flag the tick wrote, never a diff between draws.
+- **The simulation advances in fixed `TICK_SEC` steps.** Accumulator in
+  `frameClock.ts`: render on `requestAnimationFrame`, step for each whole tick
+  accrued, clamp the frame so a backgrounded tab cannot spiral. Anything asking
+  "is this moving" reads a flag the tick wrote, never a diff between draws.
 - **Relative imports carry an explicit `.ts` extension**, so the same source runs
   under Vite, Vitest and bare `node --experimental-strip-types`.
 - **`src/config.ts` holds every tunable**, marked `[DOC]` or `[GUESS]`.
@@ -165,7 +177,9 @@ spending resources on stats at night, influencing the next generation), and
 
 - `npm run typecheck` — clean, no `any` in `sim/`.
 - `npm run test` — worldgen determinism and shape invariants, terrain
-  distribution, autotile table, collision, camera, depth sorting, pixel snapping.
+  distribution, autotile table, collision, camera, depth sorting, pixel snapping,
+  the fixed-timestep clock under a stall, the scroll window, and both layers
+  driven headlessly against a stub pack.
 - `npm run dev` — play a day: walk, sprint until stamina empties, eat fruit and
   hit the 60s cooldown, drink water, fill the backpack, deposit at camp, watch
   the timer run out and the summary appear.
