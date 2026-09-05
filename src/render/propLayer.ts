@@ -1,17 +1,11 @@
-import {
-  ColorMatrixFilter,
-  Container,
-  RenderTexture,
-  Sprite,
-  type Renderer,
-  type Texture,
-} from "pixi.js";
-import { PIXEL_SETTLE_SEC, SILHOUETTE_ALPHA, SILHOUETTE_COLOR, TILE } from "../config.ts";
+import { Container, Sprite, type Renderer, type Texture } from "pixi.js";
+import { PIXEL_SETTLE_SEC, TILE } from "../config.ts";
 import type { TileMap } from "../sim/tilemap.ts";
 import type { ResourceNode, Vec2 } from "../sim/types.ts";
 import type { AssetPack, Bounds } from "./packs/pack.ts";
 import { tileHash } from "./packs/pack.ts";
 import type { Camera } from "./camera.ts";
+import { Silhouette } from "./silhouette.ts";
 
 /**
  * Depth key for a thing standing at a world position.
@@ -100,8 +94,9 @@ interface Box {
  *
  * Trees are taller than the tile they occupy, so they cannot live in the tile
  * grid -- they have to overlap the tiles behind them. Everything here shares one
- * sorted container so the player interleaves with the props properly; a prop
- * that ends up in front of the player is faded so the player stays visible.
+ * sorted container so the player interleaves with the props properly. A tree
+ * that ends up in front of the player hands its sprite to {@link Silhouette},
+ * which redraws the covered pixels on top so the player stays findable.
  *
  * Static props are only repositioned when the camera crosses a tile boundary;
  * between rebuilds the whole container is shifted. The player moves every frame.
@@ -117,25 +112,8 @@ export class PropLayer {
   private readonly occluderScratch: Sprite[] = [];
   private used = 0;
   private readonly playerSprite = new Sprite();
-  /** The player redrawn flat, above everything, where a tree covers them. */
-  private readonly silhouette = new Sprite();
-
-  /**
-   * The silhouette is masked so it only appears on the covered part of the
-   * player. Pixi's alpha mask must be a single Sprite, so the covering canopies
-   * are first drawn into a small render texture -- just the size of one player
-   * frame, not the viewport -- and that texture becomes the mask.
-   *
-   * The filter and the mask must sit on different objects: both on one sprite
-   * makes Pixi run the colour matrix over an already-masked, already-
-   * premultiplied intermediate texture and the flat colour comes out muddied.
-   * Filtering the sprite and masking its parent keeps the two passes independent.
-   */
-  private readonly silhouetteHolder = new Container();
-  private readonly maskScene = new Container();
-  private readonly maskPool: Sprite[] = [];
-  private readonly maskSprite = new Sprite();
-  private maskTexture: RenderTexture | null = null;
+  /** The player redrawn flat where a tree covers them. */
+  private readonly silhouette: Silhouette;
 
   private readonly scale: number;
 
@@ -157,7 +135,7 @@ export class PropLayer {
   constructor(
     private readonly map: TileMap,
     private readonly pack: AssetPack,
-    private readonly renderer: Renderer,
+    renderer: Renderer,
     private readonly z = 0,
   ) {
     this.scale = TILE / pack.tileSize;
@@ -165,70 +143,10 @@ export class PropLayer {
     this.playerSprite.scale.set(this.scale);
     this.playerSprite.anchor.set(pack.playerAnchor.x, pack.playerAnchor.y);
     this.playerSprite.visible = false;
+    this.container.addChild(this.playerSprite);
 
-    // A tint would only multiply the sprite's own shading; this matrix discards
-    // the incoming colour entirely and emits one flat colour, keeping alpha, so
-    // the result is a true silhouette. The colour is written pre-multiplied by
-    // alpha because that is how Pixi composites.
-    const flatten = new ColorMatrixFilter();
-    const r = ((SILHOUETTE_COLOR >> 16) & 0xff) / 255;
-    const g = ((SILHOUETTE_COLOR >> 8) & 0xff) / 255;
-    const b = (SILHOUETTE_COLOR & 0xff) / 255;
-    flatten.matrix = [0, 0, 0, r, 0, 0, 0, 0, g, 0, 0, 0, 0, b, 0, 0, 0, 0, 1, 0];
-    this.silhouette.filters = [flatten];
-    this.silhouette.scale.set(this.scale);
-    this.silhouette.anchor.set(pack.playerAnchor.x, pack.playerAnchor.y);
-
-    // Pixi's alpha mask samples the RED channel by default, not alpha, so a
-    // green canopy would mask only as strongly as it is red. Flattening the mask
-    // scene to white makes red follow alpha, giving the canopy's exact shape.
-    const toWhite = new ColorMatrixFilter();
-    toWhite.matrix = [0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0];
-    this.maskScene.filters = [toWhite];
-
-    this.silhouetteHolder.addChild(this.silhouette);
-    this.silhouetteHolder.visible = false;
-    this.silhouetteHolder.mask = this.maskSprite;
-    this.silhouetteHolder.zIndex = Number.MAX_SAFE_INTEGER;
-    // The mask sprite is never drawn itself; Pixi clears `renderable` on it.
-    this.container.addChild(this.playerSprite, this.maskSprite, this.silhouetteHolder);
-  }
-
-  /** Draw the covering canopies into the mask texture, aligned to the player. */
-  private renderMask(playerTexture: Texture, occluders: Sprite[]): void {
-    const w = Math.ceil(playerTexture.width * this.scale);
-    const h = Math.ceil(playerTexture.height * this.scale);
-    if (!this.maskTexture || this.maskTexture.width !== w || this.maskTexture.height !== h) {
-      this.maskTexture?.destroy(true);
-      this.maskTexture = RenderTexture.create({ width: w, height: h, antialias: false });
-      this.maskSprite.texture = this.maskTexture;
-    }
-
-    // Top-left of the player's frame, in this container's coordinates.
-    const frameX = this.playerSprite.x - this.pack.playerAnchor.x * w;
-    const frameY = this.playerSprite.y - this.pack.playerAnchor.y * h;
-    this.maskSprite.position.set(frameX, frameY);
-
-    // Shift the copies so that frame corner maps to the texture's origin.
-    this.maskScene.position.set(-frameX, -frameY);
-
-    for (let i = 0; i < occluders.length; i++) {
-      let copy = this.maskPool[i];
-      if (!copy) {
-        copy = new Sprite();
-        this.maskPool.push(copy);
-        this.maskScene.addChild(copy);
-      }
-      const from = occluders[i]!;
-      copy.visible = true;
-      copy.texture = from.texture;
-      copy.anchor.copyFrom(from.anchor);
-      copy.scale.copyFrom(from.scale);
-      copy.position.copyFrom(from.position);
-    }
-    for (let i = occluders.length; i < this.maskPool.length; i++) this.maskPool[i]!.visible = false;
-
-    this.renderer.render({ container: this.maskScene, target: this.maskTexture, clear: true });
+    this.silhouette = new Silhouette(pack, renderer, this.scale);
+    this.silhouette.addTo(this.container);
   }
 
   resize(widthPx: number, heightPx: number): void {
@@ -282,7 +200,7 @@ export class PropLayer {
 
     if (!player || !playerTexture) {
       this.playerSprite.visible = false;
-      this.silhouetteHolder.visible = false;
+      this.silhouette.hide();
       return;
     }
 
@@ -341,15 +259,10 @@ export class PropLayer {
       if (box.x0 < px1 && box.x1 > px0 && box.y0 < py1 && box.y1 > py0) occluders.push(sprite);
     }
 
-    this.silhouetteHolder.visible = occluders.length > 0;
     if (occluders.length > 0) {
-      this.silhouette.texture = playerTexture;
-      this.silhouette.x = this.playerSprite.x;
-      this.silhouette.y = this.playerSprite.y;
-      // The mask already limits the silhouette to the covered pixels, so it is
-      // drawn at full strength rather than faded by how much is covered.
-      this.silhouette.alpha = SILHOUETTE_ALPHA;
-      this.renderMask(playerTexture, occluders);
+      this.silhouette.show(playerTexture, this.playerSprite.x, this.playerSprite.y, occluders);
+    } else {
+      this.silhouette.hide();
     }
   }
 
@@ -427,8 +340,7 @@ export class PropLayer {
   }
 
   destroy(): void {
-    this.maskTexture?.destroy(true);
-    this.maskScene.destroy({ children: true });
+    this.silhouette.destroy();
     this.container.destroy({ children: true });
   }
 }
