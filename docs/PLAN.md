@@ -3,17 +3,18 @@
 How the game in [DESIGN.md](DESIGN.md) gets built. Why the choices below were
 made is in [RATIONALE.md](RATIONALE.md); this document is only what to do.
 
-**Status: M0–M6 complete. M7, the discovery test, is planned and not started.**
+**Status: the summer phase plays end to end. The discovery test, the one
+milestone this phase needs, is planned and not started.**
 
 Scope so far: the summer phase only. One flat map, one 15-minute summer,
 walk around collecting fruit / water / ore while stamina and hydration drain,
-deposit ore at camp for gold. M7 adds the first terrain changes and a second
-summer on the same map. What it is testing and why is in
-[BRAINSTORM.md](BRAINSTORM.md); read that before touching M7.
+deposit ore at camp for gold. The discovery test adds the first terrain
+changes and a second summer on the same map. What it is testing and why is in
+[BRAINSTORM.md](BRAINSTORM.md); read that before touching it.
 
 Vocabulary, decided 5 Sep 2026: the phases are summer and winter. "Day" and
-"night" are on their way out. M7 renames only what the player sees; the
-identifiers go when winter is built.
+"night" are on their way out. The discovery test renames only what the player
+sees; the identifiers go when winter is built.
 
 ## Stack
 
@@ -40,6 +41,52 @@ Four dependencies total. Keep it that way.
 | Art | Minifantasy, behind a swappable pack layer |
 | Hosting | Localhost only |
 
+## What is built
+
+Seven milestones, M0 to M6, delivered the summer phase. What they left behind,
+as it stands today:
+
+**Worldgen, seeded and headless.** Simplex noise thresholded into grass /
+underbrush / tree, a second octave for mud, a noise-band stream, a rock border,
+camp on grass near the centre, and resource nodes scattered by terrain. The
+stream is thickened so it is nowhere one tile across, and fords are carved so
+camp can reach everything. `npm run map` dumps the result as ASCII.
+
+**Two rendered layers over that map.** A culled sprite-pool ground renderer and
+a y-sorted prop layer, both driven through an `AssetPack` interface: the real
+Minifantasy art when the gitignored folder is present, a code-drawn placeholder
+pack when it is not. Full 15-tile autotiling for mud, rock, water and
+undergrowth, extended with seven narrow shapes the 3×5 blocks cannot express.
+Trees and underbrush autotile as one surface; the player is drawn behind trees
+and re-drawn on top as a black silhouette masked to the covered pixels.
+
+**Movement on a fixed timestep.** WASD or arrows, AABB collision against
+impassable tiles, terrain speed multipliers, sprint, a camera that follows with
+lag and clamps to the map, a walk animation on four diagonal facings, and props
+snapped to the art-pixel grid.
+
+**Stats, inventory and HUD.** `sim/stats.ts` implements the design doc's stamina
+and hydration rules exactly, with the full-stomach cooldown; `sim/inventory.ts`
+holds the ten-slot backpack and the banked gold; `ui/hud.ts` binds all of it,
+plus the clock, to the markup in `index.html`. `EXHAUSTED_SPEED_MUL` is wired
+and sits at 1.0, so exhaustion currently costs only the sprint.
+
+**The loop itself.** Harvest on proximity by holding E, eat fruit with F, drink
+water with R, bank ore at camp, and an end-of-day summary with the gold total.
+Everything the simulation does is recorded in `world.events`, an append-only log
+the toasts, the summary and the prop layer each walk with their own cursor. The
+prompt and the toasts hang off the player rather than off a corner; the keys for
+fruit and water are spelled out in the bottom right, and only once there is
+something to use them on.
+
+Controls: WASD or arrows to move, Shift to sprint, E or Space to gather and to
+bank ore, F to eat, R to drink.
+
+**A debug overlay**, on backtick or `?debug=1`: seed box and regenerate, `[` and
+`]` to step seeds, a 1x–10x time scale, a tile grid, a stat freeze,
+click-to-teleport, and a fixed-width readout of the numbers the frame was drawn
+with. Regenerating reseeds in place rather than reloading the page.
+
 ## Layout
 
 The hard rule: **nothing under `src/sim/` imports Pixi or touches the DOM.**
@@ -58,7 +105,7 @@ src/
     inventory.ts       the ten-slot backpack, and gold banked at camp
     interaction.ts     what is in reach: nearest node, nearest tile of a kind, distance to camp
     summary.ts         the summer counted up from the event log
-    mapfile.ts         [M7] text map format: parseMap / formatMap, one char per tile
+    mapfile.ts         [new] text map format: parseMap / formatMap, one char per tile
     world.ts           owns everything; world.step(dt, input); nextSummer()
     worldgen.ts        seed → GeneratedWorld; what order the steps run in, and why
     worldgen/
@@ -83,16 +130,16 @@ src/
   input/keyboard.ts    keydown/keyup → InputState; NO_INPUT for tests
   ui/hud.ts            world state → the markup in index.html; toasts, day summary
   ui/hud.css           HUD styling (markup lives in index.html)
-  debug/overlay.ts     seed, time scale, grid, freeze, teleport; only with ?debug=1
+  debug/overlay.ts     seed, time scale, grid, freeze, teleport; hidden until ```
   main.ts              wires it together
 scripts/
   dumpmap.ts           npm run map: map to stdout, stats to stderr
-  checkmap.ts          [M7] npm run map:check <file>: does the chain hold?
+  checkmap.ts          [new] npm run map:check <file>: does the chain hold?
 tests/                 17 files, 225 tests
   stubPack.ts          an AssetPack that draws nothing and records everything
 public/assets/minifantasy/   real art — GITIGNORED
-public/maps/           [M7] edited map dumps for the discovery test; the designer does not open them
-docs/PLAYTEST.md       [M7] one entry per play session
+public/maps/           [new] edited map dumps for the discovery test; the designer does not open them
+docs/PLAYTEST.md       [new] one entry per play session
 ```
 
 ## Rules to build to
@@ -139,137 +186,28 @@ What `HYDRATION_DRAIN 1.0` costs, now that it is a doc value: a full bar lasts
 staying watered all day means drinking 18 of the 45 water nodes on the map, and
 finding them. Hydration now drives routing, which is what it was raised for.
 
-M7 adds, from the design doc: `SUMMER_LENGTH_SEC 300` (replaces
+The discovery test adds, from the design doc: `SUMMER_LENGTH_SEC 300` (replaces
 `DAY_LENGTH_SEC`), `BRIDGE_STICKS 1`, `BRIDGE_VINES 1`. Guesses to tune in
 play: `CUT_TIME` and `BUILD_TIME` in seconds (start around 1.5 and 2),
 `CUT_LEAVES`, the terrain a cut thicket tile becomes (start with `grass`, so a
 cut path is a fast path; `underbrush` is the other candidate).
 
-## Milestones
+## The discovery test
 
-Each ends in something runnable. **Stop at the end of each one for verification
-before starting the next.**
+The one milestone this phase needs, and it is not started. The smallest game
+that can answer "when I broke through, did I feel anything?" One 5-minute
+summer on a map loaded from a text file, a thicket the knife cuts, a stream a
+bridge crosses, vines and sticks as the bridge's materials, gold only across
+the stream, and a button for another summer on the same map with every change
+kept. No winter, no gravel, no cache, no hazards. `DESIGN.md` has the rules
+under "Prototype, phase 2"; `BRAINSTORM.md` has the reasoning.
 
-**M0 — Skeleton.** ✅ Node 22, Vite + Pixi, scripts, gitignored asset folder.
+It ends in something runnable, and it stops there for verification before
+anything beyond it starts.
 
-**M1 — Worldgen, headless.** ✅ `rng`, `terrain`, `tilemap`, `worldgen`. Simplex
-noise thresholded into grass / underbrush / tree, a second octave for mud, a
-noise-band stream, a rock border, camp on grass near centre, resource nodes
-scattered by terrain. `npm run map` dumps ASCII to the terminal.
+### Decisions made in planning
 
-**M2 — Tiles on screen.** ✅ `AssetPack` + `placeholderPack`, `tileLayer`,
-`camera`.
-
-**M2b — Real art.** ✅ Minifantasy loaded from the gitignored folder, frame sizes
-read off the PNGs, auto-selected when present, placeholder fallback when absent.
-
-**M3 — Movement.** ✅ Fixed-timestep loop, WASD/arrows, AABB collision against
-impassable tiles, terrain speed multipliers, sprint, camera follow, walk
-animation on four diagonal facings.
-
-Also delivered under M3, after playtesting:
-
-- Full 15-tile autotiling for mud, rock, water and undergrowth, extended with
-  seven narrow shapes the 3×5 blocks cannot express. Trees and underbrush
-  autotile as one surface.
-- Forest density driven by the noise height and scattered by spatial hash, so
-  woods have gaps rather than solid canopy.
-- Ford carving, so camp can reach everything; stream thickening, so water is
-  nowhere one tile across and never steps through a bare corner.
-- Tree occlusion: the player is drawn behind trees and re-drawn on top as a
-  black silhouette masked to exactly the covered pixels.
-- Props snapped to the art-pixel grid; the player sprite eased onto it at rest,
-  always in the direction of travel.
-
-**M4 — Stats + HUD.** ✅ `sim/stats.ts` implementing the design doc's rules
-exactly, full-stomach cooldown, and `ui/hud.ts` binding stamina / hydration /
-backpack / gold / day timer to the markup already in `index.html`.
-
-Also delivered under M4:
-
-- `sim/inventory.ts`, the ten-slot backpack and the gold count, so the HUD has
-  something real to read. Nothing fills it yet; harvesting is M5.
-- The day clock on `World`, counting `DAY_LENGTH_SEC` down and stopping at zero.
-  The end-of-day summary is M5.
-- Exhaustion stops a sprint, above a floor of `SPRINT_MIN_STAMINA` so the state
-  lasts longer than a tick. `EXHAUSTED_SPEED_MUL` is now wired, still at 1.0.
-
-**M5 — The actual loop.** ✅ Harvest on proximity by holding E, eat fruit with F,
-drink water with R, bank ore at camp, end-of-day summary with the gold total.
-
-Controls: WASD or arrows to move, Shift to sprint, E or Space to gather and to
-bank ore, F to eat, R to drink.
-
-Also decided while building it:
-
-- **One press does one thing.** Holding E at camp banked the load and then
-  started picking the node beside the camp. A press that banks is spent until
-  the key comes up. Harvesting does not spend it, so one hold still clears a
-  whole patch.
-- **Banking wins at camp only while carrying ore**, so an empty-handed player
-  can still pick a node growing next to the camp.
-- **Harvest progress is thrown away** on release or on walking out of reach,
-  which is what makes `HARVEST_TIME` a cost rather than a formality.
-- `world.events`, an append-only log, carries what happened to the toasts, to
-  the end-of-day count, and to the prop layer, which uses it to know a node has
-  to stop being drawn.
-
-Moved after playtesting:
-
-- **The prompt and the toasts hang off the player**, not off a corner. Both live
-  in one absolutely positioned stack the HUD repositions each frame from
-  `camera.toScreen(player)`: the prompt `PROMPT_OFFSET_PX` below the feet, the
-  toasts under it, newest nearest. It is clamped to the window, so a player in
-  the corner of the map still gets the whole line.
-- **The keys for fruit and water are spelled out in the bottom right**, and only
-  once there is something to use them on. Picking your first fruit is where the
-  question comes up.
-
-**M6 — Debug overlay.** ✅ A backtick brings up a panel across the top: seed box
-and a regenerate button, `[` and `]` to step to the neighbouring seed, a
-time-scale slider from 1x to 10x (a 15-minute day in 90 seconds), a tile-grid
-toggle, a stat freeze, click-anywhere-to-teleport, and a readout of the numbers
-the frame was drawn with. `?debug=1` starts it open; Escape closes it.
-
-Also decided while building it:
-
-- **Regenerating is a real reseed now**, not a page reload, so "New day" replays
-  the same seed and the seed box builds a different one without losing the
-  session. New map, new layers: they are cheap to build and destroying them
-  releases the sprite pool.
-- **The time scale multiplies the frame after the clamp**, so `MAX_FRAME_SEC`
-  keeps meaning what it says and a backgrounded tab cannot spiral at 10x either.
-  The scaled seconds drive the camera and the animations too, so the whole
-  picture speeds up together rather than the world running ahead of the view.
-- **Freeze lives on `Stats`**, and the frame loop pushes the checkbox into it
-  every frame rather than once on change. A state read fresh survives a
-  regenerate; a callback would quietly thaw the new world.
-- **Teleport refuses an impassable tile.** Collision only moves a player from a
-  legal position to a legal position, so a player dropped inside a rock could
-  never walk out of one. The camera cuts rather than glides, since easing across
-  half the map hides what the teleport was for.
-- Keys typed into the panel are not controls: the keyboard ignores events aimed
-  at an input or a button, which otherwise reach `window` and walk the player
-  north-east while you type a seed.
-- **The panel is always built and starts hidden**, rather than existing only
-  under `?debug=1`. A key is quicker than a reload, and a hidden div and one
-  keydown listener is the whole cost. Everything except the toggle is inert
-  while it is down, so a stray bracket cannot rebuild the world you are in.
-- **The readout is fixed-width**: every field is padded to the longest value it
-  can take, so a coordinate going from 80.0 to 80.01 cannot resize the panel or
-  shift the column next to it. The padding is non-breaking spaces, so a wrapped
-  line only ever breaks between fields.
-
-**M7 — The discovery test.** ⬜ Not started. The smallest game that can answer
-"when I broke through, did I feel anything?" One 5-minute summer on a map
-loaded from a text file, a thicket the knife cuts, a stream a bridge crosses,
-vines and sticks as the bridge's materials, gold only across the stream, and a
-button for another summer on the same map with every change kept. No winter,
-no gravel, no cache, no hazards. `DESIGN.md` has the rules under "Prototype,
-phase 2"; `BRAINSTORM.md` has the reasoning.
-
-Decisions made in planning. Overrule them in the doc before building, not in
-the code:
+Overrule them in the doc before building, not in the code.
 
 - A cut thicket tile becomes `CUT_LEAVES` (grass), so a cut path is a fast
   path.
@@ -285,7 +223,7 @@ the code:
 - Only user-visible strings and the length constant change from day to
   summer. Identifiers such as `dayOver` wait for the winter milestone.
 
-The work, in the order to do it:
+### The work, in the order to do it
 
 1. **Terrain.** Add `thicket` (impassable, glyph `%`) and `bridge` (passable,
    easy, glyph `-`) to `TerrainKind`, `TERRAIN` and the *end* of
@@ -350,7 +288,7 @@ The work, in the order to do it:
    barrier felt best; did I see the field before I reached it; did the first
    bridge feel earned.
 
-Verification for M7:
+### Verification
 
 - `npm run typecheck`, `npm run test`. New tests: the terrain order ends with
   the new kinds; map file round trip on two seeds; the loader infers ground
@@ -367,9 +305,10 @@ Verification for M7:
   press Next summer, confirm the bridge is still there and the nodes are back,
   reading positions and inventory from `window.__game`.
 - Then the designer plays blind and writes the first `PLAYTEST.md` entry.
-  That entry is the milestone's output; the verdict on it decides what M8 is.
+  That entry is the milestone's output, and the verdict on it decides what the
+  next milestone is.
 
-## Beyond M7
+## Beyond the discovery test
 
 Parked in `BRAINSTORM.md` until the discovery test has a verdict: **winter**
 (selling, buying, the UI), collectibles as an economy, the flask, gravel and
@@ -379,7 +318,9 @@ its fixtures). Further out and unchanged: **the meta loop** (ageing, spending
 on stats in winter, the next generation) and **z-levels**, which is what
 `STAMINA_DIFFICULT`'s "or up a slope" is waiting for.
 
-## Verification
+## Standing verification
+
+What must keep passing, whatever is being built.
 
 - `npm run typecheck` — clean, no `any` in `sim/`.
 - `npm run test` — worldgen determinism and shape invariants, terrain

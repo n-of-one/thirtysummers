@@ -87,6 +87,12 @@ as open grass.
 undergrowth with trunks standing on it. Comparing raw terrain rings every tree
 with a transition back to open grass.
 
+**Forest density is noise-driven and scattered.** How many trees stand on a
+patch of undergrowth follows the noise height that made the patch, and which
+tiles get one is decided by a spatial hash rather than a threshold. A single
+cutoff gives solid canopy with a hard rim; scattering leaves woods with gaps in
+them, which is what makes a forest look like a place rather than an obstacle.
+
 **Beware the two tile counts.** A block is `TILE_COUNT` (22) long but only the
 first `BLOCK_TILES` (15) are art the sheet draws. Anything walking a block as
 source tiles must stop at 15 — reading past it silently produces black tiles, and
@@ -294,6 +300,17 @@ the line is 143 characters whatever is happening. The padding is non-breaking
 spaces and the fields are separated by ordinary ones: under `white-space:
 pre-wrap` that makes the gaps between fields the only places the line can wrap,
 so `full` can never end up on one line with its number on the next.
+
+**The panel is always built, and starts hidden.** Building it only under
+`?debug=1` would mean a reload to get at it, and a hidden div plus one keydown
+listener is the whole cost of having it always there. Everything except the
+toggle is inert while the panel is down, so a stray bracket cannot rebuild the
+world you are standing in.
+
+**Keys typed into the panel are not controls.** The seed box is a text input on
+the same `window` the keyboard listens to, so typing a seed used to walk the
+player north-east. The keyboard now ignores any event whose target is an input
+or a button.
 
 **Teleport refuses what collision would.** `moveWithCollision` only ever moves
 from a legal position to a legal position, so a player set down inside a rock is
