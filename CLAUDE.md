@@ -1,7 +1,7 @@
 # thirtysummers
 
-Browser prototype of a top-down resource game: collect by day, process by night,
-15-minute days, 30-day generations, an ageing character.
+Browser prototype of a top-down resource game: collect in summer, process in
+winter, 30-summer generations, an ageing character.
 
 - **[docs/DESIGN.md](docs/DESIGN.md)** — what the game is. Where it and the plan
   disagree, it wins.
@@ -10,6 +10,9 @@ Browser prototype of a top-down resource game: collect by day, process by night,
 - **[docs/RATIONALE.md](docs/RATIONALE.md)** — why those choices, and what was
   learned making them. Not needed to execute the plan; read it before revisiting
   a decision, or when something in the art or the renderer looks arbitrary.
+- **[docs/BRAINSTORM.md](docs/BRAINSTORM.md)** — what the project is for, the
+  hypothesis being tested, what is decided and what is parked. Read it before
+  proposing a new system.
 
 ## Commands
 

@@ -9,14 +9,14 @@ just a flat map. This is a prototype to get a feel for the result.
 
 ## Concept
 
-Alternate cycles of collecting resources (day) and processing them (night).
+Alternate cycles of collecting resources (summer) and processing them (winter).
 Improve the map to collect more and better resources.
 
 ## Core game loop
 
-- Collect resources from a map during the day while avoiding obstacles and
+- Collect resources from a map during the summer while avoiding obstacles and
   monsters
-- Process/trade resources during the night to craft tools and items
+- Process/trade resources in winter to craft tools and items
 - Improve map with items to make travel quicker and unlock new regions
 
 ## Extended game loop
@@ -29,8 +29,8 @@ Improve the map to collect more and better resources.
 
 ## Meta game loop
 
-- your character ages, you have only a limited number of days.
-- You start young with beginner stats. At night you can use resources to improve
+- your character ages, you have only a limited number of summers.
+- You start young with beginner stats. In winter you can use resources to improve
   your stats. But over time it will be harder to maintain your physical stats
 - You have influence over the starter stats of your next generation
 
@@ -41,12 +41,12 @@ Improve the map to collect more and better resources.
 
 ## Numbers (Stardew Valley equivalent)
 
-- day = 15 minutes
-- night = pause / no time limit (but let's say 5 minutes)
-- each generation is 30 days.
-  - 10 days to get to physical peak
-  - 10 days of physical peak — get the work done
-  - 10 days decline — prepare for next generation
+- summer = 15 minutes
+- winter = no clock, no time pressure; ends when the player starts the next summer
+- each generation is 30 summers.
+  - 10 summers to get to physical peak
+  - 10 summers of physical peak — get the work done
+  - 10 summers  decline — prepare for next generation
 
 ## Mechanics
 
@@ -81,7 +81,7 @@ Improve the map to collect more and better resources.
 ## Prototype
 
 - 1 level
-- just one day
+- just 1 summers
 - resources:
   - fruit -> restores stamina (20%) cooldown full stomach: 60 seconds.
   - water -> restores hydration (50%)
@@ -102,4 +102,32 @@ Improve the map to collect more and better resources.
 Generated using perlin noise to place grass, trees and underbrush. Values higher
 than a certain value are underbrush, and even higher values are forests where
 trees are surrounded by underbrush.
+
+## Prototype, phase 2: the discovery test
+
+Decided 5 Sep 2026. See [BRAINSTORM.md](BRAINSTORM.md) for the reasoning.
+
+The hypothesis under test: the player changes the map, and that opens
+something they could see but not reach. One summer of 5 minutes on a map
+loaded from a text file, a generated map edited by hand to hold the chain
+below, then a button for another summer on the same map with every change
+kept. No winter yet.
+
+- new terrain:
+  - thicket (impassable, cut with the knife)
+- new resources:
+  - vine -> rope material, grows in a field inside mud
+  - stick -> from a stand of trees walled in by thicket
+- tools and improvements, done in place by holding E:
+  - knife (owned from the start) clears a thicket tile
+  - bridge tile laid on the stream from sticks and rope, one tile at a time
+- map structure:
+  - the stream cuts the map in two and has no fords; gold only on the far side
+  - the mud pocket with the vines, the tree stand behind thicket, and the
+    stream form a chain: each barrier's reward is the key to the next
+  - every field is visible from across its barrier
+  - one cut path through thicket near camp is there from the start
+  - no gold near camp
+- summer = 5 minutes for year 1; summer length follows an age curve later,
+  peaking at 15 minutes from year 10 to 20
 
