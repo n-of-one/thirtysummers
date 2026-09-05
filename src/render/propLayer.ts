@@ -2,9 +2,10 @@ import { Container, Sprite, type Renderer, type Texture } from "pixi.js";
 import { PIXEL_SETTLE_SEC, TILE } from "../config.ts";
 import type { TileMap } from "../sim/tilemap.ts";
 import type { ResourceNode, Vec2 } from "../sim/types.ts";
-import type { AssetPack, Bounds } from "./packs/pack.ts";
+import type { AssetPack } from "./packs/pack.ts";
 import { tileHash } from "./packs/pack.ts";
 import type { Camera } from "./camera.ts";
+import { placementsIn, type Placement } from "./placements.ts";
 import { ScrollWindow } from "./scrollWindow.ts";
 import { Silhouette } from "./silhouette.ts";
 
@@ -36,15 +37,6 @@ export function depthOf(x: number, y: number): number {
  * leapfrog a prop that is genuinely in front.
  */
 const PLAYER_TIEBREAK = 0.5;
-
-/**
- * How far a prop may be nudged off its tile centre, in ASSET pixels.
- *
- * The nudge has to be a whole number of source pixels. Offsetting by screen
- * pixels instead shifts a sprite by a fraction of an art pixel, so two trees
- * end up on grids a pixel or two apart and the pixel-art illusion collapses.
- */
-const PROP_JITTER_PX = 1;
 
 /**
  * Tolerance, in asset pixels, for "already on the grid" in {@link snapToward}.
@@ -262,72 +254,47 @@ export class PropLayer {
 
   private rebuild(camp: Vec2, nodes: readonly ResourceNode[]): void {
     this.used = 0;
-    const { originX, originY, cols, rows } = this.window;
-
-    const place = (
-      worldX: number,
-      worldY: number,
-      texture: Texture,
-      anchorX: number,
-      anchorY: number,
-      bounds: Bounds,
-      jitter = 0,
-      occludes = false,
-    ): void => {
-      const sprite = this.take();
-      sprite.texture = texture;
-      sprite.anchor.set(anchorX, anchorY);
-
-      let dx = 0;
-      let dy = 0;
-      if (jitter > 0) {
-        // Break the grid so a forest reads as trees rather than a hedge row --
-        // but only ever by whole art pixels.
-        const h = tileHash(Math.floor(worldX), Math.floor(worldY));
-        dx = (((h % (jitter * 2 + 1)) - jitter) | 0) * this.scale;
-        dy = (((h >>> 8) % (jitter * 2 + 1)) - jitter) * this.scale;
-      }
-      const spriteW = texture.width * this.scale;
-      const spriteH = texture.height * this.scale;
-      sprite.x = snapToward((worldX - originX) * TILE + dx, anchorX * spriteW, this.scale);
-      sprite.y = snapToward((worldY - originY) * TILE + dy, anchorY * spriteH, this.scale);
-      sprite.zIndex = depthOf(worldX, worldY);
-
-      this.occludes[this.used - 1] = occludes;
-      const box = this.boxes[this.used - 1]!;
-      box.x0 = worldX + bounds.left;
-      box.y0 = worldY + bounds.top;
-      box.x1 = worldX + bounds.right;
-      box.y1 = worldY + bounds.bottom;
-    };
-
-    for (let row = 0; row < rows; row++) {
-      const tileY = originY + row;
-      for (let col = 0; col < cols; col++) {
-        const tileX = originX + col;
-        const kind = this.map.get(tileX, tileY, this.z);
-        if (kind !== "tree" && kind !== "underbrush") continue;
-        const prop = this.pack.prop(kind, tileHash(tileX, tileY));
-        if (!prop) continue;
-        // A prop stands on the bottom edge of its tile, so it sorts in front of
-        // anything whose feet are further north.
-        place(tileX + 0.5, tileY + 1, prop.texture, prop.anchorX, prop.anchorY, prop.bounds,
-              PROP_JITTER_PX, kind === "tree");
-      }
+    for (const placement of placementsIn(
+      this.map,
+      this.pack,
+      this.window,
+      camp,
+      nodes,
+      this.z,
+    )) {
+      this.draw(placement);
     }
-
-    if (this.window.covers(camp.x, camp.y)) {
-      const art = this.pack.camp;
-      place(camp.x, camp.y, art.texture, art.anchorX, art.anchorY, art.bounds);
-    }
-
-    for (const node of nodes) {
-      if (node.harvested || !this.window.covers(node.x, node.y)) continue;
-      const art = this.pack.resource(node.kind);
-      place(node.x, node.y, art.texture, art.anchorX, art.anchorY, art.bounds);
-    }
-
     for (let i = this.used; i < this.pool.length; i++) this.pool[i]!.visible = false;
+  }
+
+  /** Turn one placement into a positioned, snapped, depth-sorted sprite. */
+  private draw({ worldX, worldY, art, jitter, occludes }: Placement): void {
+    const { originX, originY } = this.window;
+    const sprite = this.take();
+    sprite.texture = art.texture;
+    sprite.anchor.set(art.anchorX, art.anchorY);
+
+    let dx = 0;
+    let dy = 0;
+    if (jitter > 0) {
+      // Break the grid so a forest reads as trees rather than a hedge row --
+      // but only ever by whole art pixels.
+      const h = tileHash(Math.floor(worldX), Math.floor(worldY));
+      dx = (((h % (jitter * 2 + 1)) - jitter) | 0) * this.scale;
+      dy = (((h >>> 8) % (jitter * 2 + 1)) - jitter) * this.scale;
+    }
+    const spriteW = art.texture.width * this.scale;
+    const spriteH = art.texture.height * this.scale;
+    sprite.x = snapToward((worldX - originX) * TILE + dx, art.anchorX * spriteW, this.scale);
+    sprite.y = snapToward((worldY - originY) * TILE + dy, art.anchorY * spriteH, this.scale);
+    sprite.zIndex = depthOf(worldX, worldY);
+
+    this.occludes[this.used - 1] = occludes;
+    const box = this.boxes[this.used - 1]!;
+    box.x0 = worldX + art.bounds.left;
+    box.y0 = worldY + art.bounds.top;
+    box.x1 = worldX + art.bounds.right;
+    box.y1 = worldY + art.bounds.bottom;
   }
 
   destroy(): void {
