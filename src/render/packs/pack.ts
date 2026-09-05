@@ -44,9 +44,6 @@ export interface AssetPack {
    */
   ground(kind: TerrainKind, mask: number, variant: number, frame: number): Texture;
 
-  /** Distinct animation frames for this terrain; 1 means static. */
-  frameCount(kind: TerrainKind): number;
-
   /** Multiplied into the ground tile; 0xffffff leaves it untouched. */
   groundTint(kind: TerrainKind): number;
 

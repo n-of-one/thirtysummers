@@ -87,9 +87,6 @@ class PlaceholderPack implements AssetPack {
     const variants = this.terrains.get(kind)!;
     return variants[variant % variants.length]!;
   }
-  frameCount(_kind: TerrainKind): number {
-    return 1;
-  }
   /** Each terrain is already drawn in its own colour. */
   groundTint(_kind: TerrainKind): number {
     return 0xffffff;

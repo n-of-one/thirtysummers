@@ -22,11 +22,6 @@ export function randInt(rng: Rng, min: number, maxExclusive: number): number {
   return min + Math.floor(rng() * (maxExclusive - min));
 }
 
-/** Uniform pick from a non-empty array. */
-export function pick<T>(rng: Rng, items: readonly T[]): T {
-  return items[randInt(rng, 0, items.length)]!;
-}
-
 /** Fisher-Yates, in place. */
 export function shuffle<T>(rng: Rng, items: T[]): T[] {
   for (let i = items.length - 1; i > 0; i--) {

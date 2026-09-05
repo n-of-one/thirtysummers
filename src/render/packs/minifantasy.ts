@@ -511,10 +511,6 @@ class MinifantasyPack implements AssetPack {
     };
   }
 
-  frameCount(kind: TerrainKind): number {
-    return kind === "stream" ? this.water.length : 1;
-  }
-
   ground(kind: TerrainKind, mask: number, variant: number, frame: number): Texture {
     switch (kind) {
       case "grass":
