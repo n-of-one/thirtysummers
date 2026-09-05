@@ -65,27 +65,41 @@ export const CAMERA_STIFFNESS = 12;
 // -------------------------------------------------------------- stamina ----
 // All rates are percentage points per second.
 
+/** [DOC] Stamina and hydration are percentages, so they top out here. */
+export const STAT_MAX = 100;
+
 /** [DOC] Sprinting costs 5%/s. */
 export const STAMINA_SPRINT = -5.0;
 /** [DOC] Walking over difficult terrain (or up a slope) costs 1%/s. */
 export const STAMINA_DIFFICULT = -1.0;
 /** [DOC] Walking over easy terrain restores 0.2%/s. */
 export const STAMINA_WALK_EASY = 0.2;
-/** [DOC] Standing still restores 0.3%/s. */
-export const STAMINA_STAND = 0.3;
+/** [DOC] Standing still restores 1%/s while hydration is above 50%... */
+export const STAMINA_STAND_HYDRATED = 1.0;
+/** [DOC] ...and half that once it is not. Resting is what water is for. */
+export const STAMINA_STAND_PARCHED = 0.5;
+
+/**
+ * [GUESS] Stamina needed to break into a sprint. The doc says only that
+ * sprinting costs 5%/s; this is what stops an empty bar from flickering in and
+ * out of a sprint one tick at a time. Above zero so exhaustion lasts long
+ * enough to be felt, low enough that it is never a wait.
+ */
+export const SPRINT_MIN_STAMINA = 5;
 
 // ------------------------------------------------------------- hydration ----
 
 /**
- * [GUESS] Passive hydration loss, %/s. At 0.11 a full bar runs dry in almost
- * exactly one 900s day, so water is a real but gentle constraint. Raise this
- * if hydration should drive routing decisions.
+ * [DOC] Passive hydration loss, %/s. A full bar runs dry in 100 seconds, so a
+ * 900-second day needs water found and drunk all the way through it.
  */
-export const HYDRATION_DRAIN = 0.11;
-/** [DOC] Below this, stamina no longer recharges passively. */
+export const HYDRATION_DRAIN = 1.0;
+/**
+ * [DOC] Above this, standing still recovers stamina at the fast rate; at or
+ * below it, at half that. The doc gives "> 50%" and "< 50%" and says nothing
+ * about 50% exactly, so exactly 50 counts as parched.
+ */
 export const HYDRATION_LOW_THRESHOLD = 50;
-/** [GUESS] At 0% hydration, stamina drains at this rate on top of everything else. */
-export const STAMINA_ZERO_DRAIN = 0.5;
 
 // ----------------------------------------------------------------- items ----
 
@@ -93,12 +107,20 @@ export const STAMINA_ZERO_DRAIN = 0.5;
 export const BACKPACK_CAPACITY = 10;
 /** [DOC] Fruit restores 20% stamina. */
 export const FRUIT_STAMINA = 20;
-/** [DOC] Water restores 20% hydration. */
-export const WATER_HYDRATION = 20;
+/** [DOC] Water restores 50% hydration. */
+export const WATER_HYDRATION = 50;
 /** [DOC] Eating starts a 60s "full stomach" cooldown. */
 export const FULL_STOMACH_SEC = 60;
 /** [DOC] Each ore chunk is worth 1 gold (the doc says feather; you asked for ore). */
 export const ORE_GOLD = 1;
+
+// -------------------------------------------------------------------- HUD ----
+// Purely cosmetic thresholds: when a readout turns from calm to alarming.
+
+/** [GUESS] Stamina below this colours the bar as a warning. */
+export const STAMINA_WARN_THRESHOLD = 25;
+/** [GUESS] Seconds left in the day below which the clock turns urgent. */
+export const CLOCK_URGENT_SEC = 60;
 
 // ---------------------------------------------------------- interaction ----
 

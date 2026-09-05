@@ -174,6 +174,96 @@ Related: the walk cycle bobs the head one pixel on alternate frames while the
 feet stay planted, and stopping returns to frame 0 — at 8× with a black outline,
 that alone reads as a snap.
 
+## Stats
+
+**One stamina rate per tick, not a sum.** The design doc gives four rates
+(sprinting -5%/s, difficult ground -1%/s, easy ground +0.2%/s, standing +0.3%/s)
+and never says what happens when two apply at once. They are resolved by
+precedence, sprint first, so sprinting through mud costs 5%/s rather than 6%/s.
+Adding them would invent a number the doc does not give, and the sum is the
+harder one to reason about while playing.
+
+**Effort is read off what happened, not off the keys.** Shoving into a tree with
+shift held is standing still, and it recovers stamina at the standing rate. The
+tick already writes a `moving` flag for the walk animation, and that flag is
+what the stamina rule reads.
+
+**A sprint floor, so exhaustion is not one tick long.** With sprinting gated on
+`stamina > 0`, an empty bar recovers 0.0033 of a point in a tick, permits one
+tick of sprint, and empties again. The bar flickers and the player stutters.
+`SPRINT_MIN_STAMINA = 5` gives the recovery something to climb before the sprint
+comes back. It is a guess, and the only stamina number in config.ts that the
+design doc does not supply.
+
+**Hydration is one dial, not a set of gates.** The first version implemented an
+earlier draft of the doc: below 50% stamina stopped recovering entirely, and at
+0% it drained. Both are gone. Hydration now does exactly one thing, which is
+choose between the two standing-still rates, 1%/s watered and 0.5%/s parched.
+Effort costs and the walking gain are not gated on it at all. Running dry has no
+penalty of its own beyond staying on the slow rate, so at 1%/s drain the
+question hydration asks is not "will I collapse" but "how often am I willing to
+stop and find water".
+
+**Hydration is read before it is drained.** Crossing 50% takes effect from the
+next tick. At 1/60s that is worth eight thousandths of a stamina point, and one
+consistent hydration value per tick is easier to reason about than chasing it
+inside the step.
+
+**The backpack says what is in it.** The count alone (`6/10`) does not tell you
+whether you are carrying the water you need. The pill now reads
+`Backpack 6/10  fruit 2, water 1, ore 3`, listing only kinds actually held and
+`empty` otherwise, which is the smallest thing that answers "can I drink".
+
+**The HUD reads a plain object.** `hudModel(world)` turns simulation state into
+numbers, and `Hud.update` writes those numbers into the markup. Splitting it
+that way is what makes the interesting half testable without a DOM, and it also
+makes the one-way rule structural: the HUD has no reference it could write back
+through.
+
+## The day loop
+
+**An append-only event log, not a callback.** The simulation records what it did
+(`harvested`, `ate`, `deposited`, `blocked`) and never removes anything. The
+HUD, the end-of-day count and the prop layer each walk the list with their own
+cursor. That keeps the one-way rule intact, since reading with a cursor takes
+nothing out of the world, and it means the summary counts the day from the same
+record the toasts came from rather than from a second set of totals that could
+drift.
+
+**One press, one action.** The first version banked the ore at camp and then,
+with the pack now empty and the key still down, started picking the node beside
+the camp. A press that resolves as a tap is spent until the key comes back up.
+Harvesting deliberately does not spend it, so one continuous hold still clears a
+patch of ore without tapping once per node. A test covers both halves, because
+they pull in opposite directions.
+
+**Banking wins at camp, but only while carrying ore.** Making the camp always
+take the interact key would make a node growing next to it unharvestable. The
+three-way choice (bank with ore, else harvest what is in reach, else say there
+is nothing to bank) is one query, `availableAction`, which the HUD prompt and
+the keypress both read. They cannot disagree about what E does, because they ask
+the same question.
+
+**Progress is thrown away, not banked.** Releasing the key or walking out of
+reach resets the harvest to zero. Keeping partial progress would make
+`HARVEST_TIME` a formality you could pay in instalments while doing something
+else.
+
+**A refusal is said once.** Holding E with a full backpack emits one
+`backpackFull` on the press rather than one per tick, which is 60 toasts a
+second. Everything one-shot (eating, drinking, banking) is edge-triggered
+against the previous tick's input, which works with the fixed timestep because
+every tick inside a frame sees the same input object.
+
+**Ties in `nearestNodeWithin` break on the lower id.** Standing exactly between
+two nodes would otherwise pick a different one each tick, reset the progress
+every time, and make the hold impossible to finish.
+
+**"New day" reloads the page.** Regenerating in place means rebuilding both
+render layers around a new map, and the tile layer holds the map it was built
+with. A reload is honest about what it does and keeps the seed. M6 turns it into
+a real reseed, which is when that work is worth doing.
+
 ## Method
 
 Claims about how the game looks or behaves are measured, not asserted: drive the

@@ -7,7 +7,9 @@ import { loadAssetPack } from "./render/atlas.ts";
 import { Camera } from "./render/camera.ts";
 import { PropLayer } from "./render/propLayer.ts";
 import { TileLayer } from "./render/tileLayer.ts";
+import { summarise } from "./sim/summary.ts";
 import { World } from "./sim/world.ts";
+import { Hud, hudModel } from "./ui/hud.ts";
 
 /**
  * Surface startup failures on the page. A module with top-level await that
@@ -58,6 +60,7 @@ applyViewport(app.screen.width, app.screen.height);
 app.renderer.on("resize", applyViewport);
 
 const keyboard = new Keyboard();
+const hud = new Hud();
 
 /** Which walk frame to draw, chosen by distance travelled rather than by time. */
 function playerTexture() {
@@ -70,12 +73,32 @@ function playerTexture() {
 /** Rendering runs once per frame and only ever reads simulation state. */
 const clock = new FrameClock();
 let elapsed = 0;
+/** How far through `world.events` the renderer has got. */
+let seenEvents = 0;
+let summaryShown = false;
 
 app.ticker.add(({ deltaMS }) => {
   const { frameSec, steps } = clock.tick(deltaMS / 1000);
   const input = keyboard.state();
 
-  for (let i = 0; i < steps; i++) world.step(C.TICK_SEC, input);
+  // When the light goes the world stops: the clock is the whole constraint, and
+  // a day you can keep playing past the end is not one.
+  if (!world.dayOver) {
+    for (let i = 0; i < steps; i++) world.step(C.TICK_SEC, input);
+  } else if (!summaryShown) {
+    summaryShown = true;
+    // Regenerating in place would mean rebuilding both layers around a new map;
+    // a reload keeps the same seed and is honest about what it does. M6 turns
+    // this into a proper reseed.
+    hud.showSummary(summarise(world), () => location.reload());
+  }
+
+  // A harvested node has to stop being drawn, and the prop layer only rebuilds
+  // when the camera crosses a tile boundary, so say so explicitly.
+  for (let i = seenEvents; i < world.events.length; i++) {
+    if (world.events[i]!.type === "harvested") props.invalidate();
+  }
+  seenEvents = world.events.length;
 
   camera.follow(world.player, frameSec);
   camera.clampTo(world.map.width, world.map.height);
@@ -84,6 +107,7 @@ app.ticker.add(({ deltaMS }) => {
   tiles.setAnimationFrame(Math.floor(elapsed / C.WATER_FRAME_SEC));
   tiles.update(camera);
   props.update(camera, world.camp, world.nodes, world.player, playerTexture(), frameSec);
+  hud.update(hudModel(world), world.events);
 });
 
 // Readout of the exact numbers this frame was drawn with, so a screenshot is
@@ -98,6 +122,8 @@ if (params.has("debug")) {
     debug.textContent =
       `pos ${p.x.toFixed(2)},${p.y.toFixed(2)} ${p.facing}${p.sprinting ? " sprint" : ""}  ` +
       `on ${world.groundUnderPlayer().kind} ${world.speed().toFixed(2)} tiles/s  ` +
+      `sta ${world.stats.stamina.toFixed(2)} hyd ${world.stats.hydration.toFixed(2)} ` +
+      `stomach ${world.stats.stomachCooldownSec.toFixed(1)}  t ${world.elapsedSec.toFixed(1)}  ` +
       `seed ${seed}  pack ${pack.id}  ${app.ticker.FPS.toFixed(0)}fps`;
   });
 }
@@ -105,5 +131,6 @@ if (params.has("debug")) {
 console.log(
   `seed ${seed} | pack "${pack.id}" @${pack.tileSize}px | ` +
     `${world.map.width}x${world.map.height} | ${world.nodes.length} nodes | ` +
-    `renderer ${app.renderer.name} | WASD to move, Shift to sprint`,
+    `renderer ${app.renderer.name} | WASD move, Shift sprint, ` +
+    `E/Space gather and bank ore, F eat fruit, R drink water`,
 );

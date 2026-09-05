@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import * as C from "../src/config.ts";
-import type { InputState } from "../src/input/keyboard.ts";
+import { NO_INPUT, type InputState } from "../src/input/keyboard.ts";
 import { canStand, createPlayer, facingFor, moveWithCollision } from "../src/sim/player.ts";
 import { TileMap } from "../src/sim/tilemap.ts";
 import type { TerrainKind } from "../src/sim/types.ts";
@@ -25,8 +25,8 @@ function worldOn(map: TileMap, spawn: { x: number; y: number }): World {
   });
 }
 
-const still: InputState = { moveX: 0, moveY: 0, sprint: false };
-const east: InputState = { moveX: 1, moveY: 0, sprint: false };
+const still: InputState = NO_INPUT;
+const east: InputState = { ...NO_INPUT, moveX: 1 };
 
 describe("canStand", () => {
   it("allows open ground and refuses impassable tiles", () => {
@@ -176,7 +176,7 @@ describe("World.step", () => {
         bearingX = Math.cos(angle);
         bearingY = Math.sin(angle);
       }
-      world.step(1 / 60, { moveX: bearingX, moveY: bearingY, sprint: i % 3 === 0 });
+      world.step(1 / 60, { ...NO_INPUT, moveX: bearingX, moveY: bearingY, sprint: i % 3 === 0 });
       expect(canStand(world.map, world.player.x, world.player.y)).toBe(true);
     }
   });

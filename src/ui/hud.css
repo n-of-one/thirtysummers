@@ -84,9 +84,20 @@ html, body {
   white-space: nowrap;
 }
 .pill + .pill { margin-left: 8px; }
+.pill-note { color: var(--ink-dim); margin-left: 4px; }
 .pill b, .cooldown b { color: var(--gold); font-variant-numeric: tabular-nums; }
 .cooldown { color: var(--stamina-low); }
-.prompt { color: var(--ink-dim); }
+
+/* The prompt doubles as the harvest progress bar: --progress is how far a hold
+   has got, and the fill is painted over the panel behind the text. */
+.prompt {
+  --progress: 0%;
+  color: var(--ink);
+  background:
+    linear-gradient(to right, rgba(127, 195, 107, 0.45) var(--progress), transparent var(--progress)),
+    var(--panel);
+}
+.prompt.is-blocked { color: var(--stamina-low); }
 .prompt b { color: var(--ink); }
 
 .clock {

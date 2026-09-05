@@ -2,9 +2,9 @@ import { describe, expect, it } from "vitest";
 import * as C from "../src/config.ts";
 import { FrameClock } from "../src/frameClock.ts";
 import { World } from "../src/sim/world.ts";
-import type { InputState } from "../src/input/keyboard.ts";
+import { NO_INPUT, type InputState } from "../src/input/keyboard.ts";
 
-const east: InputState = { moveX: 1, moveY: 0, sprint: false };
+const east: InputState = { ...NO_INPUT, moveX: 1 };
 
 describe("FrameClock", () => {
   it("runs exactly one step per frame at the tick rate", () => {

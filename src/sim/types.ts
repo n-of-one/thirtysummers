@@ -34,3 +34,29 @@ export interface ResourceNode {
   z: number;
   harvested: boolean;
 }
+
+/** Why an attempted action did nothing. The HUD turns these into words. */
+export type BlockedReason =
+  | "backpackFull"
+  | "stomachFull"
+  | "noFruit"
+  | "noWater"
+  | "noOre";
+
+/**
+ * Something the simulation did this tick, worth telling the player about.
+ *
+ * The world appends and never removes. A reader keeps its own cursor into the
+ * list, which is what lets the HUD show toasts and the end-of-day summary count
+ * the day up without either of them writing back into simulation state. A whole
+ * day produces a few hundred of these, so keeping them all costs nothing.
+ */
+export type WorldEventPayload =
+  | { type: "harvested"; kind: ResourceKind }
+  | { type: "ate" }
+  | { type: "drank" }
+  | { type: "deposited"; gold: number }
+  | { type: "blocked"; reason: BlockedReason };
+
+/** A payload, stamped with the second of the day it happened at. */
+export type WorldEvent = WorldEventPayload & { at: number };

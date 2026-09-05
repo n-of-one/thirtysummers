@@ -58,14 +58,14 @@ Improve the map to collect more and better resources.
 - drops (1%/s) when you walk over difficult terrain or up a slope
 - drops (5%/s) when you sprint
 - restores slowly (0.2%/s) when walking over easy terrain
-- restores slowly (0.3%/s) when standing still
-- restored by eating food
+- restores quickly (1%/s) when standing still and have hydration > 50%
+- restores slowly (0.5%/s) when standing still and have hydration < 50%
 
 **Hydration**
 
 - start at 100%
-- if below 50% your stamina does not recharge passively
-- if 0% your stamina passively decreases
+- replenishes by drinking water
+- drops by 1%/s
 
 **Backpack**
 
@@ -84,7 +84,7 @@ Improve the map to collect more and better resources.
 - just one day
 - resources:
   - fruit -> restores stamina (20%) cooldown full stomach: 60 seconds.
-  - water -> restores hydration (20%)
+  - water -> restores hydration (50%)
   - ore -> gives gold (1 gold/ore) = victory points in the prototype
 - terrain:
   - grass (passable, easy terrain)

@@ -4,12 +4,29 @@ export interface InputState {
   moveX: number;
   moveY: number;
   sprint: boolean;
+  /** Held to harvest, tapped to drop ore off at camp. */
+  interact: boolean;
+  eat: boolean;
+  drink: boolean;
 }
+
+/** Nothing held. Spread it to build an input in a test. */
+export const NO_INPUT: InputState = {
+  moveX: 0,
+  moveY: 0,
+  sprint: false,
+  interact: false,
+  eat: false,
+  drink: false,
+};
 
 const LEFT = ["a", "arrowleft"];
 const RIGHT = ["d", "arrowright"];
 const UP = ["w", "arrowup"];
 const DOWN = ["s", "arrowdown"];
+const INTERACT = ["e", " "];
+const EAT = ["f"];
+const DRINK = ["r"];
 
 /**
  * Tracks which keys are down and reports a direction.
@@ -54,7 +71,14 @@ export class Keyboard {
       moveX *= inv;
       moveY *= inv;
     }
-    return { moveX, moveY, sprint: this.held.has("shift") };
+    return {
+      moveX,
+      moveY,
+      sprint: this.held.has("shift"),
+      interact: this.any(INTERACT),
+      eat: this.any(EAT),
+      drink: this.any(DRINK),
+    };
   }
 
   dispose(): void {
