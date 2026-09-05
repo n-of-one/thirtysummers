@@ -141,6 +141,16 @@ export const STREAM_WIDTH = 0.03;
 /** Thickness of the impassable rock border around the playable area. */
 export const BORDER_THICKNESS = 2;
 
+/**
+ * Stream widening runs to a fixed point. This is the give-up count, not a
+ * target: two passes is already more than any seed has needed.
+ */
+export const STREAM_THICKEN_PASSES = 8;
+/** Stranded patches smaller than this are left stranded, not worth a ford. */
+export const FORD_MIN_REGION = 25;
+/** Give-up count for ford carving, so a pathological map cannot loop forever. */
+export const FORD_MAX_COUNT = 60;
+
 /** How many of each resource to scatter. */
 export const FRUIT_NODES = 45;
 export const WATER_NODES = 45;
