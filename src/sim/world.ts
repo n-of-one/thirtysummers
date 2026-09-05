@@ -47,8 +47,22 @@ export class World {
     return C.WALK_SPEED * ground.speedMul * sprint;
   }
 
-  /** Advance by exactly `dt` seconds. Call at a fixed rate. */
+  /**
+   * Advance by exactly `dt` seconds. Call at a fixed rate.
+   *
+   * Every part of a tick goes here, in order. Standing still is a tick like any
+   * other: hydration drains whether or not you are walking, and the day runs
+   * down whether or not you are doing anything with it. Nothing in this method
+   * may return early on "no input", which is why movement -- the one part that
+   * genuinely has nothing to do then -- keeps its own early return one level
+   * down.
+   */
   step(dt: number, input: InputState): void {
+    this.movePlayer(dt, input);
+  }
+
+  /** Walk the player for one tick, or stand them still if nothing is held. */
+  private movePlayer(dt: number, input: InputState): void {
     const player = this.player;
     const wants = input.moveX !== 0 || input.moveY !== 0;
     player.sprinting = input.sprint && wants;
