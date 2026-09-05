@@ -32,7 +32,7 @@ export const FILL = 4;
  * grass on two opposite sides at once, which no piece of a 3x3 has.
  *
  * A pack that owns art for them maps these indices to it; one that does not
- * points them all at {@link FILL}, which is what the whole set used to do.
+ * points them all at {@link FILL}.
  */
 export const NARROW_NONE = 15;
 export const NARROW_N = 16;

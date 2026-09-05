@@ -1,5 +1,7 @@
 import { Graphics, Rectangle, type Renderer, type Texture } from "pixi.js";
 import { mulberry32, type Rng } from "../../sim/rng.ts";
+import { TERRAIN_ORDER } from "../../sim/terrain.ts";
+import { FACINGS, RESOURCE_KINDS } from "../../sim/types.ts";
 import type { Facing, ResourceKind, TerrainKind } from "../../sim/types.ts";
 import type { AssetPack, AssetPackSource, Bounds, PropSprite } from "./pack.ts";
 
@@ -43,19 +45,18 @@ class PlaceholderPack implements AssetPack {
   };
 
   constructor(private readonly renderer: Renderer) {
-    const kinds: TerrainKind[] = ["grass", "underbrush", "mud", "tree", "stream", "rock"];
-    for (const kind of kinds) {
+    for (const kind of TERRAIN_ORDER) {
       const rng = mulberry32(hashString(kind));
       this.terrains.set(
         kind,
         Array.from({ length: VARIANTS }, () => this.bake((g) => drawTerrain(g, kind, rng))),
       );
     }
-    for (const kind of ["fruit", "water", "ore"] as ResourceKind[]) {
+    for (const kind of RESOURCE_KINDS) {
       this.resources.set(kind, this.bake((g) => drawResource(g, kind)));
     }
     this.camp = { texture: this.bake(drawCamp), anchorX: 0.5, anchorY: 0.5, bounds: WHOLE_TILE };
-    for (const facing of ["southEast", "southWest", "northEast", "northWest"] as Facing[]) {
+    for (const facing of FACINGS) {
       this.walks.set(
         facing,
         Array.from({ length: WALK_FRAMES }, (_, frame) =>

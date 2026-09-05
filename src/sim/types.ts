@@ -23,6 +23,8 @@ export const RESOURCE_KINDS: readonly ResourceKind[] = ["fruit", "water", "ore"]
  */
 export type Facing = "southEast" | "southWest" | "northEast" | "northWest";
 
+export const FACINGS: readonly Facing[] = ["southEast", "southWest", "northEast", "northWest"];
+
 export interface ResourceNode {
   id: number;
   kind: ResourceKind;

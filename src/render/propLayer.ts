@@ -34,15 +34,11 @@ export function depthOf(x: number, y: number): number {
 
 /**
  * Nudge applied to the player's depth so that an exact tie with a static prop
- * resolves in the player's favour.
- *
- * Standing dead centre on the camp gives the player and the chest identical
- * depth, and the tie then fell to insertion order -- which hid the player
- * completely, on the very tile they spawn on. A tie means the two are at the
- * same depth and either order is equally defensible, so pick the one that keeps
- * the player visible. Half a unit is far less than the one-unit gap between
- * adjacent props in a row, so this can never leapfrog a prop that is genuinely
- * in front.
+ * resolves in the player's favour -- standing dead centre on the camp is one.
+ * At a tie the two are at the same depth and either order is equally
+ * defensible, so pick the one that keeps the player visible. Half a unit is far
+ * less than the one-unit gap between adjacent props in a row, so this can never
+ * leapfrog a prop that is genuinely in front.
  */
 const PLAYER_TIEBREAK = 0.5;
 
@@ -126,13 +122,11 @@ export class PropLayer {
    * player. Pixi's alpha mask must be a single Sprite, so the covering canopies
    * are first drawn into a small render texture -- just the size of one player
    * frame, not the viewport -- and that texture becomes the mask.
-   */
-  /**
-   * The filter and the mask sit on different objects on purpose. Putting both
-   * on one sprite makes Pixi run the colour matrix over an already-masked,
-   * already-premultiplied intermediate texture, and the flat colour comes out
-   * muddied. Filtering the sprite and masking its parent keeps the two passes
-   * independent.
+   *
+   * The filter and the mask must sit on different objects: both on one sprite
+   * makes Pixi run the colour matrix over an already-masked, already-
+   * premultiplied intermediate texture and the flat colour comes out muddied.
+   * Filtering the sprite and masking its parent keeps the two passes independent.
    */
   private readonly silhouetteHolder = new Container();
   private readonly maskScene = new Container();
@@ -181,17 +175,16 @@ export class PropLayer {
     this.silhouette.filters = [flatten];
     this.silhouette.scale.set(this.scale);
     this.silhouette.anchor.set(pack.playerAnchor.x, pack.playerAnchor.y);
-    this.silhouette.visible = false;
 
-    // Pixi's alpha mask samples the RED channel by default, not alpha. Canopies
-    // are green, so masking with them directly produced a faint, patchy stencil
-    // that only showed through the yellower leaves. Flattening the mask scene to
-    // white makes red follow alpha, so the mask is the canopy's exact shape.
+    // Pixi's alpha mask samples the RED channel by default, not alpha, so a
+    // green canopy would mask only as strongly as it is red. Flattening the mask
+    // scene to white makes red follow alpha, giving the canopy's exact shape.
     const toWhite = new ColorMatrixFilter();
     toWhite.matrix = [0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0];
     this.maskScene.filters = [toWhite];
 
     this.silhouetteHolder.addChild(this.silhouette);
+    this.silhouetteHolder.visible = false;
     this.silhouetteHolder.mask = this.maskSprite;
     this.silhouetteHolder.zIndex = Number.MAX_SAFE_INTEGER;
     // The mask sprite is never drawn itself; Pixi clears `renderable` on it.
@@ -303,27 +296,20 @@ export class PropLayer {
     this.playerSprite.visible = true;
     this.playerSprite.texture = playerTexture;
     // While it moves the player is deliberately NOT snapped to the art grid,
-    // unlike the props.
-    //
-    // Props sit at fixed world positions, so snapping them is free. The player
-    // moves continuously while the camera pans smoothly behind it, and
-    // quantising only the player makes the two fight: the sprite holds still
-    // for a frame or two while the camera keeps drifting, so it visibly slides
-    // backwards before catching up. The slower the terrain, the longer it holds
-    // and the worse it looks -- it was plain in underbrush and nearly invisible
-    // on grass.
-    //
-    // Standing still there is nothing to fight, so each axis eases onto the grid
-    // as soon as it stops, always in the direction it was last travelling. The
-    // axes settle independently, so sliding along a wall still lines up the
-    // blocked one.
+    // unlike the props: quantising only the player fights the smoothly panning
+    // camera and the sprite visibly slides backwards. Standing still there is
+    // nothing to fight, so each axis eases onto the grid as soon as it stops,
+    // always in the direction it was last travelling. The axes settle
+    // independently, so sliding along a wall still lines up the blocked one.
     const rawX = (player.x - originX) * TILE;
     const rawY = (player.y - originY) * TILE;
     const anchorPxX = this.pack.playerAnchor.x * playerTexture.width * this.scale;
     const anchorPxY = this.pack.playerAnchor.y * playerTexture.height * this.scale;
 
-    const deltaX = player.x - this.lastPlayerX;
-    const deltaY = player.y - this.lastPlayerY;
+    // On the very first frame there is no previous position, so both deltas are
+    // zero: nothing has moved yet and `snapToward` falls back to nearest.
+    const deltaX = Number.isFinite(this.lastPlayerX) ? player.x - this.lastPlayerX : 0;
+    const deltaY = Number.isFinite(this.lastPlayerY) ? player.y - this.lastPlayerY : 0;
     if (deltaX !== 0) this.dirX = Math.sign(deltaX);
     if (deltaY !== 0) this.dirY = Math.sign(deltaY);
     const movingX = Math.abs(deltaX) > 1e-6;
@@ -363,13 +349,12 @@ export class PropLayer {
     }
 
     this.silhouetteHolder.visible = occluders.length > 0;
-    this.silhouette.visible = true;
     if (occluders.length > 0) {
       this.silhouette.texture = playerTexture;
       this.silhouette.x = this.playerSprite.x;
       this.silhouette.y = this.playerSprite.y;
       // The mask already limits the silhouette to the covered pixels, so it is
-      // drawn at full strength -- no need to fade it by how much is covered.
+      // drawn at full strength rather than faded by how much is covered.
       this.silhouette.alpha = SILHOUETTE_ALPHA;
       this.renderMask(playerTexture, occluders);
     }

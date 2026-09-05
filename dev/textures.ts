@@ -1,7 +1,9 @@
 import { Application, Sprite, Text, type Texture } from "pixi.js";
 import { loadAssetPack } from "../src/render/atlas.ts";
 import { autotileIndex } from "../src/render/packs/autotile.ts";
-import type { Facing, ResourceKind, TerrainKind } from "../src/sim/types.ts";
+import { TERRAIN_ORDER } from "../src/sim/terrain.ts";
+import { FACINGS, RESOURCE_KINDS } from "../src/sim/types.ts";
+import type { TerrainKind } from "../src/sim/types.ts";
 
 const app = new Application();
 await app.init({ width: 1400, height: 1000, background: "#555555", antialias: false, resolution: 1 });
@@ -30,8 +32,7 @@ function row(name: string, textures: readonly Texture[]): void {
 }
 
 // every autotile shape, in the 3x5 block order
-const kinds: TerrainKind[] = ["grass", "underbrush", "mud", "tree", "stream", "rock"];
-for (const kind of kinds) {
+for (const kind of TERRAIN_ORDER) {
   const masks = Array.from({ length: 15 }, (_, i) => i);
   const seen = new Map<number, number>();
   for (let m = 0; m < 256; m++) if (!seen.has(autotileIndex(m))) seen.set(autotileIndex(m), m);
@@ -43,7 +44,7 @@ for (const kind of ["tree", "underbrush"] as TerrainKind[]) {
   for (let v = 0; v < 400; v++) { const p = pack.prop(kind, v); if (p && !props.includes(p.texture)) props.push(p.texture); }
   row(`prop ${kind}`, props);
 }
-row("resources", (["fruit", "water", "ore"] as ResourceKind[]).map((k) => pack.resource(k).texture));
+row("resources", RESOURCE_KINDS.map((k) => pack.resource(k).texture));
 row("camp", [pack.camp.texture]);
-for (const f of ["southEast", "southWest", "northEast", "northWest"] as Facing[]) row(`walk ${f}`, pack.walk(f));
+for (const f of FACINGS) row(`walk ${f}`, pack.walk(f));
 label(`pack: ${pack.id}  tileSize ${pack.tileSize}px`, 4);

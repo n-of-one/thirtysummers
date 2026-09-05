@@ -25,7 +25,10 @@ addEventListener("error", (e) => showFatal(e.error ?? e.message));
 addEventListener("unhandledrejection", (e) => showFatal(e.reason));
 
 const params = new URLSearchParams(location.search);
-const seed = Number(params.get("seed") ?? C.DEFAULT_SEED);
+// `?seed=` with nothing usable after it falls back to the default rather than
+// generating from NaN, which silently produces a map unrelated to any seed.
+const requestedSeed = Number(params.get("seed"));
+const seed = params.get("seed") && Number.isFinite(requestedSeed) ? requestedSeed : C.DEFAULT_SEED;
 const world = World.fromSeed(seed);
 
 const app = await createApp(document.querySelector<HTMLDivElement>("#stage")!);
@@ -71,7 +74,6 @@ function playerTexture() {
 const FIXED_DT = 1 / 60;
 /** Cap on catch-up after a stall (a backgrounded tab), to avoid a spiral. */
 const MAX_FRAME_SEC = 0.25;
-const WATER_FRAME_SEC = 0.45;
 let accumulator = 0;
 let elapsed = 0;
 
@@ -89,7 +91,7 @@ app.ticker.add(({ deltaMS }) => {
   camera.clampTo(world.map.width, world.map.height);
 
   elapsed += frameSec;
-  tiles.setAnimationFrame(Math.floor(elapsed / WATER_FRAME_SEC));
+  tiles.setAnimationFrame(Math.floor(elapsed / C.WATER_FRAME_SEC));
   tiles.update(camera);
   props.update(camera, world.camp, world.nodes, world.player, playerTexture(), frameSec);
 });

@@ -104,7 +104,6 @@ const DIRT_NARROW: readonly NarrowTile[] = [
   [8, 9],
 ];
 
-/** Half or quarter of a tile, named by where in the tile it sits. */
 /**
  * How the undergrowth block is painted through the swamp block's outline.
  *
@@ -128,6 +127,7 @@ const BRUSH_STENCIL = {
   tint: [0x9f, 0xbc, 0x86],
 } as const;
 
+/** Half or quarter of a tile, named by where in the tile it sits. */
 type Region = "left" | "right" | "top" | "bottom" | "nw" | "ne" | "sw" | "se";
 
 const REGIONS: Record<Region, readonly [x: number, y: number, w: number, h: number]> = {
@@ -195,9 +195,8 @@ const SYNTH_NARROW: readonly (readonly (readonly [index: number, region: Region]
   ],
 ];
 
-/** One tile on a sheet, optionally mirrored top to bottom. */
-type NarrowTile = readonly [x: number, y: number, flipY?: boolean];
-
+/** One tile on a sheet. */
+type NarrowTile = readonly [x: number, y: number];
 
 export const minifantasyPackSource: AssetPackSource = {
   id: "minifantasy",
@@ -317,15 +316,12 @@ class MinifantasyPack implements AssetPack {
 
   constructor(private readonly sheets: Record<string, Sheet>) {
     this.grass = this.block(SHEETS.tiles, ...BLOCK.grass);
-    // The brush sheet is nothing but the block, so it starts at its own origin.
-    // One block per grass variant, so undergrowth keeps the same variety of
-    // speckle the open grass has.
+    // One undergrowth block per grass variant, so undergrowth keeps the same
+    // variety of speckle the open grass has.
     this.brush = Array.from({ length: BLOCK_TILES }, (_, v) => this.brushBlock(v));
     this.dirt = this.block(SHEETS.tiles, ...BLOCK.dirt, this.narrow(SHEETS.tiles, DIRT_NARROW));
     this.stone = this.block(SHEETS.tiles, ...BLOCK.stone, this.synth(SHEETS.tiles, ...BLOCK.stone));
-    // The lake block and the river sheet animate independently, so the two
-    // ripple frames are paired with river frames 0 and 2 -- half a cycle apart,
-    // matching the lake's own two-frame cadence.
+    // The two ripple frames of the tileset's own water, alternated.
     this.water = [
       this.block(SHEETS.tiles, ...BLOCK.waterFrame0, this.synth(SHEETS.tiles, ...BLOCK.waterFrame0)),
       this.block(SHEETS.tiles, ...BLOCK.waterFrame1, this.synth(SHEETS.tiles, ...BLOCK.waterFrame1)),
@@ -386,24 +382,6 @@ class MinifantasyPack implements AssetPack {
     });
     this.made.push(texture);
     return texture;
-  }
-
-  /**
-   * One tile copied into its own source, mirrored top to bottom.
-   *
-   * A `Texture` cannot flip a region of a shared sheet on its own, and the sheet
-   * only draws a river running one way, so the opposite cap is drawn here. One
-   * 8x8 canvas per flipped tile costs nothing.
-   */
-  private flippedY(sheet: string, x: number, y: number, w: number, h: number): Texture {
-    const canvas = document.createElement("canvas");
-    canvas.width = w;
-    canvas.height = h;
-    const ctx = canvas.getContext("2d")!;
-    ctx.translate(0, h);
-    ctx.scale(1, -1);
-    ctx.drawImage(this.sheets[sheet]!.pixels.canvas, x, y, w, h, 0, 0, w, h);
-    return this.fromCanvas(canvas);
   }
 
   /** A texture backed by its own small canvas, for tiles built rather than cut. */
@@ -476,7 +454,7 @@ class MinifantasyPack implements AssetPack {
     SYNTH_NARROW.forEach((parts, k) => {
       for (const [index, region] of parts) {
         const [rx, ry, rw, rh] = REGIONS[region];
-        ctx.drawImage(atlas, index * T + rx, ry, rw, rh, (15 + k) * T + rx, ry, rw, rh);
+        ctx.drawImage(atlas, index * T + rx, ry, rw, rh, (BLOCK_TILES + k) * T + rx, ry, rw, rh);
       }
     });
 
@@ -488,13 +466,9 @@ class MinifantasyPack implements AssetPack {
     });
   }
 
-  /** Resolve a narrow-shape table to textures, offset by `dx` tiles. */
-  private narrow(sheet: string, tiles: readonly NarrowTile[], dx = 0): Texture[] {
-    return tiles.map(([x, y, flipY]) =>
-      flipY
-        ? this.flippedY(sheet, (x + dx) * T, y * T, T, T)
-        : this.sub(sheet, (x + dx) * T, y * T, T, T),
-    );
+  /** Resolve a narrow-shape table to textures. */
+  private narrow(sheet: string, tiles: readonly NarrowTile[]): Texture[] {
+    return tiles.map(([x, y]) => this.sub(sheet, x * T, y * T, T, T));
   }
 
   /**
@@ -510,8 +484,8 @@ class MinifantasyPack implements AssetPack {
       const r = Math.floor(i / 3);
       out.push(this.sub(sheet, (bx + c) * T, (by + r) * T, T, T));
     }
-    for (let i = 15; i < TILE_COUNT; i++) {
-      out.push(narrow?.[i - 15] ?? out[FILL]!);
+    for (let i = BLOCK_TILES; i < TILE_COUNT; i++) {
+      out.push(narrow?.[i - BLOCK_TILES] ?? out[FILL]!);
     }
     return out;
   }

@@ -1,4 +1,4 @@
-import { TILE } from "../config.ts";
+import { CAMERA_STIFFNESS, TILE } from "../config.ts";
 import type { Vec2 } from "../sim/types.ts";
 
 /**
@@ -23,7 +23,7 @@ export class Camera {
   }
 
   /** Follow with a little lag so the view glides rather than snaps. */
-  follow(target: Vec2, dt: number, stiffness = 12): void {
+  follow(target: Vec2, dt: number, stiffness = CAMERA_STIFFNESS): void {
     const t = 1 - Math.exp(-stiffness * dt);
     this.x += (target.x - this.x) * t;
     this.y += (target.y - this.y) * t;

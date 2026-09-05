@@ -8,15 +8,6 @@ import { tileHash } from "./packs/pack.ts";
 import type { Camera } from "./camera.ts";
 
 /**
- * Draws one z-layer of the map with a pool of sprites just large enough to
- * cover the screen. Cost is bound to the size of the viewport, not the size of
- * the map, so a bigger world -- or a stack of layers -- costs nothing extra.
- *
- * Textures are only reassigned when the camera crosses a tile boundary or the
- * water animation advances; the sub-tile fraction is handled by shifting the
- * whole container, which is one transform instead of a thousand.
- */
-/**
  * The ground a terrain is drawn on, for autotiling purposes.
  *
  * Trees and underbrush share one: a wood is a floor of undergrowth with trunks
@@ -27,6 +18,15 @@ function surfaceOf(kind: TerrainKind): TerrainKind {
   return kind === "tree" ? "underbrush" : kind;
 }
 
+/**
+ * Draws one z-layer of the map with a pool of sprites just large enough to
+ * cover the screen. Cost is bound to the size of the viewport, not the size of
+ * the map, so a bigger world -- or a stack of layers -- costs nothing extra.
+ *
+ * Textures are only reassigned when the camera crosses a tile boundary or the
+ * water animation advances; the sub-tile fraction is handled by shifting the
+ * whole container, which is one transform instead of a thousand.
+ */
 export class TileLayer {
   readonly container = new Container();
 
@@ -72,7 +72,7 @@ export class TileLayer {
     this.originX = Number.NaN; // force a texture refill
   }
 
-  /** Advance animated terrain (water). Call with the elapsed seconds. */
+  /** Advance animated terrain (water). Takes a frame index; packs wrap it. */
   setAnimationFrame(frame: number): void {
     this.frame = frame;
   }

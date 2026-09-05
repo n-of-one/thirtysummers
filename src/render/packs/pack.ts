@@ -40,7 +40,7 @@ export interface AssetPack {
    * @param mask  8-neighbour connectivity, see autotile.ts. Packs without
    *              autotiling ignore it.
    * @param variant  per-tile hash, for packs offering interchangeable variants.
-   * @param frame  animation frame index; wrap with frameCount().
+   * @param frame  free-running animation frame index; packs wrap it themselves.
    */
   ground(kind: TerrainKind, mask: number, variant: number, frame: number): Texture;
 

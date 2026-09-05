@@ -40,6 +40,14 @@ export const EXHAUSTED_SPEED_MUL = 1.0;
 /** [GUESS] Collision radius of the player, in tiles. */
 export const PLAYER_RADIUS = 0.3;
 
+// ---------------------------------------------------------------- camera ----
+
+/**
+ * [GUESS] How hard the camera is pulled toward the player, per second. Higher
+ * follows more tightly; lower glides further behind.
+ */
+export const CAMERA_STIFFNESS = 12;
+
 // -------------------------------------------------------------- stamina ----
 // All rates are percentage points per second.
 
@@ -157,3 +165,6 @@ export const SILHOUETTE_ALPHA = 0.9;
  * Short enough to feel immediate, long enough not to read as a pop.
  */
 export const PIXEL_SETTLE_SEC = 0.05;
+
+/** [GUESS] Seconds each frame of the water ripple is held. */
+export const WATER_FRAME_SEC = 0.45;
