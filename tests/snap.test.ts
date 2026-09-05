@@ -48,6 +48,15 @@ describe("snapToward", () => {
     expect(snapToward(7, ANCHOR, SCALE, 0)).toBe(8);
   });
 
+  it("rounds to nearest when no direction is given, which is how props snap", () => {
+    for (let value = -20; value <= 40; value += 0.5) {
+      expect(snapToward(value, ANCHOR, SCALE)).toBe(snapToward(value, ANCHOR, SCALE, 0));
+      expect(snapToward(value, ANCHOR, SCALE)).toBe(
+        Math.round((value - ANCHOR) / SCALE) * SCALE + ANCHOR,
+      );
+    }
+  });
+
   it("snaps relative to the anchor, not the sprite corner", () => {
     // A measured anchor is rarely a whole number of scaled pixels; the grid the
     // art actually lands on is offset by that remainder.

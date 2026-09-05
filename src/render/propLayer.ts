@@ -65,14 +65,17 @@ const SNAP_EPS = 1e-6;
  * into a new pixel and the nearest grid point is the one just left, so the
  * sprite settles where it started and the step reads as lost. Rounding with the
  * direction of travel instead always finishes the crossing -- one screen pixel
- * in means seven more forward. `dir === 0` (nothing has moved yet) falls back to
- * nearest, the one case with no travel to agree with.
+ * in means seven more forward.
+ *
+ * `dir` defaults to 0, which rounds to nearest. That is the right answer for
+ * anything with no travel to agree with: a prop at a fixed world position, and
+ * the player on the first frame, before anything has moved.
  *
  * `anchorPx` is the distance from the sprite's top-left to its anchor, folded in
  * because that is the corner the art is laid out from and it is rarely a whole
  * number of scaled pixels. `scale` is screen pixels per asset pixel.
  */
-export function snapToward(value: number, anchorPx: number, scale: number, dir: number): number {
+export function snapToward(value: number, anchorPx: number, scale: number, dir = 0): number {
   const units = (value - anchorPx) / scale;
   const whole =
     dir > 0
@@ -236,16 +239,6 @@ export class PropLayer {
     this.dirty = true;
   }
 
-  /**
-   * Snap a screen coordinate so the sprite's drawn pixels land on whole asset
-   * pixels. `anchorPx` is the distance from the sprite's top-left to its anchor;
-   * it is folded in because that is the corner the art is actually laid out
-   * from, and it is rarely a whole number of scaled pixels.
-   */
-  private snap(value: number, anchorPx: number): number {
-    return Math.round((value - anchorPx) / this.scale) * this.scale + anchorPx;
-  }
-
   /** Force a rebuild, e.g. after a resource node is harvested. */
   invalidate(): void {
     this.dirty = true;
@@ -389,8 +382,8 @@ export class PropLayer {
       }
       const spriteW = texture.width * this.scale;
       const spriteH = texture.height * this.scale;
-      sprite.x = this.snap((worldX - originX) * TILE + dx, anchorX * spriteW);
-      sprite.y = this.snap((worldY - originY) * TILE + dy, anchorY * spriteH);
+      sprite.x = snapToward((worldX - originX) * TILE + dx, anchorX * spriteW, this.scale);
+      sprite.y = snapToward((worldY - originY) * TILE + dy, anchorY * spriteH, this.scale);
       sprite.zIndex = depthOf(worldX, worldY);
 
       this.occludes[this.used - 1] = occludes;
