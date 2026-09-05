@@ -6,6 +6,7 @@ import { E, N, NE, NW, S, SE, SW, W } from "./packs/autotile.ts";
 import type { AssetPack } from "./packs/pack.ts";
 import { tileHash } from "./packs/pack.ts";
 import type { Camera } from "./camera.ts";
+import { ScrollWindow } from "./scrollWindow.ts";
 
 /**
  * The ground a terrain is drawn on, for autotiling purposes.
@@ -31,10 +32,8 @@ export class TileLayer {
   readonly container = new Container();
 
   private sprites: Sprite[] = [];
-  private cols = 0;
-  private rows = 0;
-  private originX = Number.NaN;
-  private originY = Number.NaN;
+  /** Ground never reaches outside its own tile, so one tile all round is enough. */
+  private readonly window = new ScrollWindow({ left: 1, top: 1, right: 1, bottom: 1 });
   private frame = 0;
   private drawnFrame = -1;
 
@@ -47,13 +46,9 @@ export class TileLayer {
   }
 
   resize(widthPx: number, heightPx: number): void {
-    // One extra column and row on each side so tiles scroll in already drawn.
-    const cols = Math.ceil(widthPx / TILE) + 2;
-    const rows = Math.ceil(heightPx / TILE) + 2;
-    if (cols === this.cols && rows === this.rows) return;
+    if (!this.window.resize(widthPx, heightPx)) return;
+    const { cols, rows } = this.window;
 
-    this.cols = cols;
-    this.rows = rows;
     this.container.removeChildren();
     for (const sprite of this.sprites) sprite.destroy();
 
@@ -69,7 +64,6 @@ export class TileLayer {
         this.container.addChild(sprite);
       }
     }
-    this.originX = Number.NaN; // force a texture refill
   }
 
   /** Advance animated terrain (water). Takes a frame index; packs wrap it. */
@@ -78,21 +72,15 @@ export class TileLayer {
   }
 
   update(camera: Camera): void {
-    const left = camera.leftPx;
-    const top = camera.topPx;
-    const originX = Math.floor(left / TILE) - 1;
-    const originY = Math.floor(top / TILE) - 1;
-
-    if (originX !== this.originX || originY !== this.originY || this.frame !== this.drawnFrame) {
-      this.originX = originX;
-      this.originY = originY;
+    const scrolled = this.window.moveTo(camera.leftPx, camera.topPx);
+    if (scrolled || this.frame !== this.drawnFrame) {
       this.drawnFrame = this.frame;
       this.refill();
     }
 
     // Sub-tile scroll: shift the whole grid rather than every sprite.
-    this.container.x = Math.round(originX * TILE - left);
-    this.container.y = Math.round(originY * TILE - top);
+    this.container.x = this.window.offsetX;
+    this.container.y = this.window.offsetY;
   }
 
   /**
@@ -120,12 +108,13 @@ export class TileLayer {
   }
 
   private refill(): void {
-    for (let row = 0; row < this.rows; row++) {
-      const tileY = this.originY + row;
-      for (let col = 0; col < this.cols; col++) {
-        const tileX = this.originX + col;
+    const { originX, originY, cols, rows } = this.window;
+    for (let row = 0; row < rows; row++) {
+      const tileY = originY + row;
+      for (let col = 0; col < cols; col++) {
+        const tileX = originX + col;
         const kind = this.map.get(tileX, tileY, this.z);
-        const sprite = this.sprites[row * this.cols + col]!;
+        const sprite = this.sprites[row * cols + col]!;
         sprite.texture = this.pack.ground(
           kind,
           this.mask(tileX, tileY, kind),

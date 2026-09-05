@@ -5,6 +5,7 @@ import type { ResourceNode, Vec2 } from "../sim/types.ts";
 import type { AssetPack, Bounds } from "./packs/pack.ts";
 import { tileHash } from "./packs/pack.ts";
 import type { Camera } from "./camera.ts";
+import { ScrollWindow } from "./scrollWindow.ts";
 import { Silhouette } from "./silhouette.ts";
 
 /**
@@ -126,10 +127,11 @@ export class PropLayer {
   private dirX = 0;
   private dirY = 0;
 
-  private originX = Number.NaN;
-  private originY = Number.NaN;
-  private cols = 0;
-  private rows = 0;
+  /**
+   * Trees are four tiles tall, so ones rooted below the view still hang into
+   * it; the bottom margin is deeper than the others for that reason.
+   */
+  private readonly window = new ScrollWindow({ left: 2, top: 2, right: 2, bottom: 4 });
   private dirty = true;
 
   constructor(
@@ -150,11 +152,7 @@ export class PropLayer {
   }
 
   resize(widthPx: number, heightPx: number): void {
-    // Trees are four tiles tall, so ones rooted below the view still hang into
-    // it; the bottom margin is deeper than the others for that reason.
-    this.cols = Math.ceil(widthPx / TILE) + 4;
-    this.rows = Math.ceil(heightPx / TILE) + 6;
-    this.dirty = true;
+    if (this.window.resize(widthPx, heightPx)) this.dirty = true;
   }
 
   /** Force a rebuild, e.g. after a resource node is harvested. */
@@ -185,18 +183,14 @@ export class PropLayer {
     playerTexture: Texture | null = null,
     dt = 0,
   ): void {
-    const originX = Math.floor(camera.leftPx / TILE) - 2;
-    const originY = Math.floor(camera.topPx / TILE) - 2;
-
-    if (this.dirty || originX !== this.originX || originY !== this.originY) {
-      this.originX = originX;
-      this.originY = originY;
+    const scrolled = this.window.moveTo(camera.leftPx, camera.topPx);
+    if (scrolled || this.dirty) {
       this.dirty = false;
       this.rebuild(camp, nodes);
     }
 
-    this.container.x = Math.round(originX * TILE - camera.leftPx);
-    this.container.y = Math.round(originY * TILE - camera.topPx);
+    this.container.x = this.window.offsetX;
+    this.container.y = this.window.offsetY;
 
     if (!player || !playerTexture) {
       this.playerSprite.visible = false;
@@ -212,8 +206,8 @@ export class PropLayer {
     // nothing to fight, so each axis eases onto the grid as soon as it stops,
     // always in the direction it was last travelling. The axes settle
     // independently, so sliding along a wall still lines up the blocked one.
-    const rawX = (player.x - originX) * TILE;
-    const rawY = (player.y - originY) * TILE;
+    const rawX = (player.x - this.window.originX) * TILE;
+    const rawY = (player.y - this.window.originY) * TILE;
     const anchorPxX = this.pack.playerAnchor.x * playerTexture.width * this.scale;
     const anchorPxY = this.pack.playerAnchor.y * playerTexture.height * this.scale;
 
@@ -268,7 +262,7 @@ export class PropLayer {
 
   private rebuild(camp: Vec2, nodes: readonly ResourceNode[]): void {
     this.used = 0;
-    const { originX, originY, cols, rows } = this;
+    const { originX, originY, cols, rows } = this.window;
 
     const place = (
       worldX: number,
@@ -322,16 +316,13 @@ export class PropLayer {
       }
     }
 
-    const inView = (x: number, y: number) =>
-      x >= originX && x <= originX + cols && y >= originY && y <= originY + rows;
-
-    if (inView(camp.x, camp.y)) {
+    if (this.window.covers(camp.x, camp.y)) {
       const art = this.pack.camp;
       place(camp.x, camp.y, art.texture, art.anchorX, art.anchorY, art.bounds);
     }
 
     for (const node of nodes) {
-      if (node.harvested || !inView(node.x, node.y)) continue;
+      if (node.harvested || !this.window.covers(node.x, node.y)) continue;
       const art = this.pack.resource(node.kind);
       place(node.x, node.y, art.texture, art.anchorX, art.anchorY, art.bounds);
     }
