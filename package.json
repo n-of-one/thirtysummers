@@ -10,7 +10,8 @@
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
     "test:watch": "vitest",
-    "map": "node --experimental-strip-types --no-warnings scripts/dumpmap.ts"
+    "map": "node --experimental-strip-types --no-warnings scripts/dumpmap.ts",
+    "map:check": "node --experimental-strip-types --no-warnings scripts/checkmap.ts"
   },
   "dependencies": {
     "pixi.js": "^8.20.1",

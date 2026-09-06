@@ -9,11 +9,19 @@ export type TerrainKind =
   | "mud"
   | "tree"
   | "stream"
-  | "rock";
+  | "rock"
+  | "thicket"
+  | "bridge";
 
-export type ResourceKind = "fruit" | "water" | "ore";
+export type ResourceKind = "fruit" | "water" | "ore" | "vine" | "stick";
 
-export const RESOURCE_KINDS: readonly ResourceKind[] = ["fruit", "water", "ore"];
+export const RESOURCE_KINDS: readonly ResourceKind[] = [
+  "fruit",
+  "water",
+  "ore",
+  "vine",
+  "stick",
+];
 
 /**
  * The character art is drawn in a three-quarter view, so there are no straight
@@ -41,7 +49,8 @@ export type BlockedReason =
   | "stomachFull"
   | "noFruit"
   | "noWater"
-  | "noOre";
+  | "noOre"
+  | "noMaterials";
 
 /**
  * Something the simulation did this tick, worth telling the player about.
@@ -56,7 +65,12 @@ export type WorldEventPayload =
   | { type: "ate" }
   | { type: "drank" }
   | { type: "deposited"; gold: number }
-  | { type: "blocked"; reason: BlockedReason };
+  | { type: "blocked"; reason: BlockedReason }
+  /** A thicket tile cut through, and a stream tile bridged. Both change the map. */
+  | { type: "cut"; x: number; y: number }
+  | { type: "built"; x: number; y: number }
+  /** A new summer began on the same map. Everything the player changed is kept. */
+  | { type: "summerStarted"; year: number };
 
 /** A payload, stamped with the second of the day it happened at. */
 export type WorldEvent = WorldEventPayload & { at: number };

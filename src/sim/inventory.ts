@@ -9,7 +9,13 @@ import { RESOURCE_KINDS, type ResourceKind } from "./types.ts";
  * count against it -- ore turns into gold only when it is dropped off.
  */
 export class Inventory {
-  private readonly counts: Record<ResourceKind, number> = { fruit: 0, water: 0, ore: 0 };
+  private readonly counts: Record<ResourceKind, number> = {
+    fruit: 0,
+    water: 0,
+    ore: 0,
+    vine: 0,
+    stick: 0,
+  };
   gold = 0;
 
   constructor(readonly capacity: number = C.BACKPACK_CAPACITY) {}
@@ -50,6 +56,30 @@ export class Inventory {
     if (this.counts[kind] < n) return false;
     this.counts[kind] -= n;
     return true;
+  }
+
+  /** Enough of everything in `cost` to pay it? */
+  has(cost: Partial<Record<ResourceKind, number>>): boolean {
+    for (const kind of RESOURCE_KINDS) {
+      if (this.counts[kind] < (cost[kind] ?? 0)) return false;
+    }
+    return true;
+  }
+
+  /**
+   * Pay `cost`. All or nothing, so a bridge tile never eats the sticks and then
+   * discovers there was no vine: {@link has} and this cannot disagree, because
+   * this asks it first.
+   */
+  pay(cost: Partial<Record<ResourceKind, number>>): boolean {
+    if (!this.has(cost)) return false;
+    for (const kind of RESOURCE_KINDS) this.counts[kind] -= cost[kind] ?? 0;
+    return true;
+  }
+
+  /** Empty the pack. Used when a summer ends and the map is kept. */
+  clear(): void {
+    for (const kind of RESOURCE_KINDS) this.counts[kind] = 0;
   }
 
   /** Hand over every ore at camp. Returns the gold it was worth. */

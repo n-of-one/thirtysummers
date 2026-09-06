@@ -92,11 +92,13 @@ describe("Stats — hydration", () => {
     expect(stats.hydration).toBeCloseTo(0, 6);
   });
 
-  it("runs dry long before the day is out, so water has to be found", () => {
+  it("runs dry long before the summer is out, so water has to be found", () => {
     const stats = new Stats();
-    run(stats, "standing", C.DAY_LENGTH_SEC);
+    run(stats, "standing", C.SUMMER_LENGTH_SEC);
     expect(stats.hydration).toBe(0);
-    expect(100 / C.HYDRATION_DRAIN).toBeLessThan(C.DAY_LENGTH_SEC / 5);
+    // Comfortably more than one refill a summer, so hydration is a reason to
+    // route past water rather than a bar that happens to empty as the light goes.
+    expect(100 / C.HYDRATION_DRAIN).toBeLessThan(C.SUMMER_LENGTH_SEC / 2);
   });
 
   it("halves the resting rate below 50% rather than stopping it", () => {
@@ -251,15 +253,15 @@ describe("World — which stamina rule a tick uses", () => {
 describe("World — the day clock", () => {
   it("counts down in real seconds and stops at zero", () => {
     const world = worldOn("grass");
-    expect(world.remainingSec).toBe(C.DAY_LENGTH_SEC);
+    expect(world.remainingSec).toBe(C.SUMMER_LENGTH_SEC);
     expect(world.dayOver).toBe(false);
 
     for (let i = 0; i < 60 * 60; i++) world.step(C.TICK_SEC, still);
-    expect(world.remainingSec).toBeCloseTo(C.DAY_LENGTH_SEC - 60, 6);
+    expect(world.remainingSec).toBeCloseTo(C.SUMMER_LENGTH_SEC - 60, 6);
 
-    const ticks = Math.ceil(C.DAY_LENGTH_SEC / C.TICK_SEC);
+    const ticks = Math.ceil(C.SUMMER_LENGTH_SEC / C.TICK_SEC);
     for (let i = 0; i < ticks; i++) world.step(C.TICK_SEC, still);
-    expect(world.elapsedSec).toBe(C.DAY_LENGTH_SEC);
+    expect(world.elapsedSec).toBe(C.SUMMER_LENGTH_SEC);
     expect(world.remainingSec).toBe(0);
     expect(world.dayOver).toBe(true);
   });

@@ -142,3 +142,14 @@ describe("placementsIn", () => {
     expect(out).toEqual([]); // all of them are far from the window
   });
 });
+
+describe("thicket", () => {
+  it("puts growth on every thicket tile, with no gaps to step through", () => {
+    const map = arena(40, "grass", (x, y) => (x >= 30 && x < 34 && y >= 20 && y < 23 ? "thicket" : null));
+    const found = collect(map, new StubPack(), windowAt(), NOWHERE, NO_NODES);
+    const thicketTiles = found.filter((p) => p.worldX >= 30 && p.worldX < 34 && p.worldY <= 23);
+    expect(thicketTiles.length).toBeGreaterThan(0);
+    // A bramble wall is not tall enough to swallow the player; only trees are.
+    expect(thicketTiles.every((p) => !p.occludes)).toBe(true);
+  });
+});

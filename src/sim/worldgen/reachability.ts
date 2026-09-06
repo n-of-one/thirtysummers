@@ -3,18 +3,33 @@ import type { Vec2 } from "../types.ts";
 import { Grid, NEIGHBOURS_4 } from "./grid.ts";
 
 /**
+ * Can the player stand on this tile? The default is what the terrain says.
+ *
+ * Taking it as an argument is what lets the same fill answer a different
+ * question: "where could I get to if the thicket were not there" is the fill
+ * with thicket counted as passable, and that is how the map checker proves a
+ * chain of barriers is really a chain rather than a scenic route.
+ */
+export type Passable = (x: number, y: number) => boolean;
+
+/**
  * Breadth-first flood fill over passable tiles.
  *
  * A winding stream can cut the map in two, which would strand resources behind
  * impassable water. Rather than constrain the generator, we generate freely and
  * then only place resources in the region actually walkable from camp.
  */
-export function reachableFrom(map: TileMap, start: Vec2, z = 0): Uint8Array {
+export function reachableFrom(
+  map: TileMap,
+  start: Vec2,
+  z = 0,
+  passable: Passable = (x, y) => map.isPassable(x, y, z),
+): Uint8Array {
   const grid = new Grid(map.width, map.height);
   const seen = new Uint8Array(grid.size);
   const sx = Math.floor(start.x);
   const sy = Math.floor(start.y);
-  if (!map.isPassable(sx, sy, z)) return seen;
+  if (!passable(sx, sy)) return seen;
 
   const queue = new Int32Array(grid.size);
   let head = 0;
@@ -32,7 +47,7 @@ export function reachableFrom(map: TileMap, start: Vec2, z = 0): Uint8Array {
       if (!grid.contains(nx, ny)) continue;
       const nIdx = grid.index(nx, ny);
       if (seen[nIdx]) continue;
-      if (!map.isPassable(nx, ny, z)) continue;
+      if (!passable(nx, ny)) continue;
       seen[nIdx] = 1;
       queue[tail++] = nIdx;
     }

@@ -1,16 +1,20 @@
 import { ImageSource, Rectangle, Texture } from "pixi.js";
+import { RESOURCE_KINDS } from "../../sim/types.ts";
 import type { Facing, ResourceKind, TerrainKind } from "../../sim/types.ts";
-import { autotileIndex, FILL, TILE_COUNT } from "./autotile.ts";
+import { autotileIndex, E, FILL, N, S, TILE_COUNT, W } from "./autotile.ts";
 import type { AssetPack, AssetPackSource, Bounds, PropSprite } from "./pack.ts";
 import {
   BLOCK,
   BLOCK_TILES,
+  BRIDGE_PLANK,
   BRUSH_STENCIL,
   DIRT_NARROW,
   REGIONS,
+  RESOURCE_CELL,
   SHEETS,
   SYNTH_NARROW,
   T,
+  THICKET_TINT,
   WALK_ROWS,
   type NarrowTile,
   type SheetName,
@@ -121,9 +125,13 @@ class MinifantasyPack implements AssetPack {
   private readonly made: Texture[] = [];
   private readonly grass: Texture[];
   private readonly brush: Texture[][];
+  /** The same blocks again, painted darker: the wall version of undergrowth. */
+  private readonly thicket: Texture[][];
   private readonly dirt: Texture[];
   private readonly stone: Texture[];
   private readonly water: Texture[][];
+  /** The two plank decks, [horizontal, vertical]. See BRIDGE_PLANK. */
+  private readonly bridge: Texture[];
   private readonly trees: PropSprite[];
   private readonly bushes: PropSprite[];
   private readonly resources: Record<ResourceKind, PropSprite>;
@@ -144,12 +152,26 @@ class MinifantasyPack implements AssetPack {
     // One undergrowth block per grass variant, so undergrowth keeps the same
     // variety of speckle the open grass has.
     this.brush = Array.from({ length: BLOCK_TILES }, (_, v) => this.brushBlock(v));
+    // A thicket has to read as a wall from across the map, and one shade of
+    // green and a few more ferns is not a difference you can see while
+    // playing. It is painted through the same stencil rather than tinted as a
+    // whole tile, so the dark stops exactly where the growth does: tinting the
+    // finished tile would darken the open ground inside it too, and turn every
+    // ragged edge the stencil draws into a square.
+    this.thicket = Array.from({ length: BLOCK_TILES }, (_, v) =>
+      this.brushBlock(v, THICKET_TINT),
+    );
     this.dirt = this.block("tiles", ...BLOCK.dirt, this.narrow("tiles", DIRT_NARROW));
     this.stone = this.block("tiles", ...BLOCK.stone, this.synth("tiles", ...BLOCK.stone));
     // The two ripple frames of the tileset's own water, alternated.
     this.water = [
       this.block("tiles", ...BLOCK.waterFrame0, this.synth("tiles", ...BLOCK.waterFrame0)),
       this.block("tiles", ...BLOCK.waterFrame1, this.synth("tiles", ...BLOCK.waterFrame1)),
+    ];
+
+    this.bridge = [
+      this.deck(...BRIDGE_PLANK.horizontal),
+      this.deck(...BRIDGE_PLANK.vertical),
     ];
 
     // Trees are 3x4 tiles; anchor at the foot of the trunk so they sit on the
@@ -162,11 +184,12 @@ class MinifantasyPack implements AssetPack {
     this.bushes = [];
     for (let x = 12; x <= 18; x++) this.bushes.push(this.prop24("props", x, 5, 1, 2));
 
-    this.resources = {
-      fruit: this.prop24("farmCrops", 16, 1, 1, 1),
-      water: this.prop24("farmCrops", 16, 7, 1, 1),
-      ore: this.prop24("mining", 13, 1, 1, 1),
-    };
+    this.resources = Object.fromEntries(
+      RESOURCE_KINDS.map((kind) => {
+        const [sheet, tx, ty] = RESOURCE_CELL[kind];
+        return [kind, this.prop24(sheet, tx, ty, 1, 1)];
+      }),
+    ) as Record<ResourceKind, PropSprite>;
     this.camp = this.prop24("farmProps", 15, 5, 2, 1);
 
     this.walks = {} as Record<Facing, Texture[]>;
@@ -218,6 +241,29 @@ class MinifantasyPack implements AssetPack {
     return texture;
   }
 
+  /**
+   * One plank deck tile: the dirt block's solid fill with a board laid over it.
+   *
+   * The board art is rails with daylight between them, drawn to sit on top of
+   * something. Over nothing it shows the stream straight through, which reads
+   * as a hole rather than as a bridge; over the dirt fill it reads as timber on
+   * a solid deck, and meets the water at the edge of the tile the way a real
+   * bridge ends.
+   */
+  private deck(px: number, py: number): Texture {
+    const canvas = document.createElement("canvas");
+    canvas.width = T;
+    canvas.height = T;
+    const ctx = canvas.getContext("2d")!;
+    const [bx, by] = BLOCK.dirt;
+    // FILL is the centre of the 3x3, the tile with no bank on any side.
+    const fx = (bx + (FILL % 3)) * T;
+    const fy = (by + Math.floor(FILL / 3)) * T;
+    ctx.drawImage(this.sheets.tiles.pixels.canvas, fx, fy, T, T, 0, 0, T, T);
+    ctx.drawImage(this.sheets.farmTiles.pixels.canvas, px * T, py * T, T, T, 0, 0, T, T);
+    return this.fromCanvas(canvas);
+  }
+
   /** The seven narrow shapes, cut from the block at (bx, by). See SYNTH_NARROW. */
   private synth(sheet: SheetName, bx: number, by: number): Texture[] {
     return SYNTH_NARROW.map((parts) => {
@@ -242,7 +288,7 @@ class MinifantasyPack implements AssetPack {
    * Everything lands in one strip of TILE_COUNT tiles so a block is a single
    * texture and the tile sprites keep batching.
    */
-  private brushBlock(grassIndex: number): Texture[] {
+  private brushBlock(grassIndex: number, tint: readonly number[] = BRUSH_STENCIL.tint): Texture[] {
     const atlas = document.createElement("canvas");
     atlas.width = TILE_COUNT * T;
     atlas.height = T;
@@ -266,7 +312,7 @@ class MinifantasyPack implements AssetPack {
         const inside = rim || is(shape.data, at, BRUSH_STENCIL.bulk);
         for (let c = 0; c < 3; c++) {
           let value = grass.data[at + c]!;
-          if (inside) value = (value * BRUSH_STENCIL.tint[c]!) / 255;
+          if (inside) value = (value * tint[c]!) / 255;
           if (rim) value = (value * BRUSH_STENCIL.rim[c]!) / BRUSH_STENCIL.bulk[c]!;
           out.data[at + c] = Math.round(value);
         }
@@ -341,12 +387,22 @@ class MinifantasyPack implements AssetPack {
       case "grass":
         return this.grass[variant % BLOCK_TILES]!;
       // A wood is a floor of undergrowth with trunks standing on it, so both
-      // draw the same ground and autotile as one surface.
+      // draw the same ground and autotile as one surface. Thicket joins them:
+      // it is the same undergrowth, grown too dense to walk through, and a wall
+      // of it should meet the wood around it without a seam.
       case "underbrush":
       case "tree":
         return this.brush[variant % BLOCK_TILES]![autotileIndex(mask)]!;
+      case "thicket":
+        return this.thicket[variant % BLOCK_TILES]![autotileIndex(mask)]!;
       case "mud":
         return this.dirt[autotileIndex(mask)]!;
+      // Timbers running the way the bridge does. The mask counts neighbouring
+      // bridge tiles, so the run is known from the tiles already laid.
+      case "bridge": {
+        const northSouth = (mask & (N | S)) !== 0 && (mask & (E | W)) === 0;
+        return this.bridge[northSouth ? 1 : 0]!;
+      }
       case "rock":
         return this.stone[autotileIndex(mask)]!;
       case "stream": {
@@ -358,6 +414,10 @@ class MinifantasyPack implements AssetPack {
 
   prop(kind: TerrainKind, variant: number): PropSprite | null {
     if (kind === "tree") return this.trees[variant % this.trees.length]!;
+    // A shrub on every single tile, with no gaps: the 45% of bare ground below
+    // is exactly what makes underbrush read as something you can walk through,
+    // so a thicket has to be the version without it.
+    if (kind === "thicket") return this.bushes[variant % this.bushes.length]!;
     if (kind === "underbrush") {
       // A shrub on every single tile reads as a hedge and costs a lot of
       // overdraw; the darker ground tint carries the terrain, the shrubs just
@@ -368,7 +428,7 @@ class MinifantasyPack implements AssetPack {
     return null;
   }
 
-  /** Every terrain is now drawn in its own colours; nothing needs tinting. */
+  /** Every terrain is drawn in its own colours; nothing needs tinting. */
   groundTint(_kind: TerrainKind): number {
     return 0xffffff;
   }

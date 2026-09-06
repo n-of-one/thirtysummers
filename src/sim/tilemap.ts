@@ -56,6 +56,17 @@ export class TileMap {
     return this.def(Math.floor(wx), Math.floor(wy), z);
   }
 
+  /**
+   * An independent copy. Used where a rule has to be run as a question rather
+   * than as a change: "how many tiles would thickening move" is asked of a copy
+   * so that asking it does not move any.
+   */
+  clone(): TileMap {
+    const copy = new TileMap(this.width, this.height, this.layers);
+    copy.data.set(this.data);
+    return copy;
+  }
+
   /** Raw ids for one layer -- used by tests and the renderer's fast paths. */
   layerData(z = 0): Uint8Array {
     const size = this.width * this.height;

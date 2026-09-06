@@ -3,17 +3,19 @@
 How the game in [DESIGN.md](DESIGN.md) gets built. Why the choices below were
 made is in [RATIONALE.md](RATIONALE.md); this document is only what to do.
 
-**Status: the summer phase plays end to end. The discovery test, the one
-milestone this phase needs, is planned and not started.**
+**Status: the discovery test is built and has been played four times, by the
+designer. The next tester is a stranger on itch.io, and M7 below is the build
+that makes that possible. The fruit and stamina tuning the log asks for is a
+separate step after it.**
 
-Scope so far: the summer phase only. One flat map, one 15-minute summer,
-walk around collecting fruit / water / ore while stamina and hydration drain,
-deposit ore at camp for gold. The discovery test adds the first terrain
-changes and a second summer on the same map. What it is testing and why is in
-[BRAINSTORM.md](BRAINSTORM.md); read that before touching it.
+Scope so far: the summer phase only. One flat map, one 5-minute summer, walk
+around collecting while stamina and hydration drain, cut a thicket, bridge a
+stream, deposit ore at camp for gold, and start another summer on the same map
+with every change kept. What that is testing and why is in
+[BRAINSTORM.md](BRAINSTORM.md); read it before proposing anything new.
 
 Vocabulary, decided 5 Sep 2026: the phases are summer and winter. "Day" and
-"night" are on their way out. The discovery test renames only what the player
+"night" are on their way out. The discovery test renamed only what the player
 sees; the identifiers go when winter is built.
 
 ## Stack
@@ -43,8 +45,9 @@ Four dependencies total. Keep it that way.
 
 ## What is built
 
-Seven milestones, M0 to M6, delivered the summer phase. What they left behind,
-as it stands today:
+Seven milestones, M0 to M6, delivered the summer phase, and the discovery test
+added terrain the player can change. What they left behind, as it stands today.
+The discovery test's own half is listed under its heading below.
 
 **Worldgen, seeded and headless.** Simplex noise thresholded into grass /
 underbrush / tree, a second octave for mud, a noise-band stream, a rock border,
@@ -72,15 +75,17 @@ plus the clock, to the markup in `index.html`. `EXHAUSTED_SPEED_MUL` is wired
 and sits at 1.0, so exhaustion currently costs only the sprint.
 
 **The loop itself.** Harvest on proximity by holding E, eat fruit with F, drink
-water with R, bank ore at camp, and an end-of-day summary with the gold total.
+water with R, bank ore at camp, cut a thicket and lay a bridge tile on the same
+key, and an end-of-summer summary with the gold total and a button for the next
+summer.
 Everything the simulation does is recorded in `world.events`, an append-only log
 the toasts, the summary and the prop layer each walk with their own cursor. The
 prompt and the toasts hang off the player rather than off a corner; the keys for
 fruit and water are spelled out in the bottom right, and only once there is
 something to use them on.
 
-Controls: WASD or arrows to move, Shift to sprint, E or Space to gather and to
-bank ore, F to eat, R to drink.
+Controls: WASD or arrows to move, Shift to sprint, E or Space to gather, cut,
+build and bank ore, F to eat, R to drink.
 
 **A debug overlay**, on backtick or `?debug=1`: seed box and regenerate, `[` and
 `]` to step seeds, a 1x–10x time scale, a tile grid, a stat freeze,
@@ -105,7 +110,7 @@ src/
     inventory.ts       the ten-slot backpack, and gold banked at camp
     interaction.ts     what is in reach: nearest node, nearest tile of a kind, distance to camp
     summary.ts         the summer counted up from the event log
-    mapfile.ts         [new] text map format: parseMap / formatMap, one char per tile
+    mapfile.ts         text map format: parseMap / formatMap, one char per tile
     world.ts           owns everything; world.step(dt, input); nextSummer()
     worldgen.ts        seed → GeneratedWorld; what order the steps run in, and why
     worldgen/
@@ -127,19 +132,20 @@ src/
     tileLayer.ts       culled sprite-pool ground renderer, autotiled
     propLayer.ts       y-sorted props + player, pixel snapping
     silhouette.ts      the player redrawn flat where a canopy covers them
+    targetMarker.ts    outlines the tile a cut or a bridge would land on
   input/keyboard.ts    keydown/keyup → InputState; NO_INPUT for tests
-  ui/hud.ts            world state → the markup in index.html; toasts, day summary
+  ui/hud.ts            world state → the markup in index.html; toasts, summer summary
   ui/hud.css           HUD styling (markup lives in index.html)
-  debug/overlay.ts     seed, time scale, grid, freeze, teleport; hidden until ```
+  debug/overlay.ts     seed, time scale, grid, freeze, teleport; hidden until backtick
   main.ts              wires it together
 scripts/
   dumpmap.ts           npm run map: map to stdout, stats to stderr
-  checkmap.ts          [new] npm run map:check <file>: does the chain hold?
-tests/                 17 files, 225 tests
+  checkmap.ts          npm run map:check <file>: does the chain hold?
+tests/                 20 files, 281 tests
   stubPack.ts          an AssetPack that draws nothing and records everything
 public/assets/minifantasy/   real art — GITIGNORED
-public/maps/           [new] edited map dumps for the discovery test; the designer does not open them
-docs/PLAYTEST.md       [new] one entry per play session
+public/maps/           edited map dumps, a..e; the person playing does not open them
+docs/PLAYTEST.md       one entry per play session
 ```
 
 ## Rules to build to
@@ -186,127 +192,303 @@ What `HYDRATION_DRAIN 1.0` costs, now that it is a doc value: a full bar lasts
 staying watered all day means drinking 18 of the 45 water nodes on the map, and
 finding them. Hydration now drives routing, which is what it was raised for.
 
-The discovery test adds, from the design doc: `SUMMER_LENGTH_SEC 300` (replaces
-`DAY_LENGTH_SEC`), `BRIDGE_STICKS 1`, `BRIDGE_VINES 1`. Guesses to tune in
-play: `CUT_TIME` and `BUILD_TIME` in seconds (start around 1.5 and 2),
-`CUT_LEAVES`, the terrain a cut thicket tile becomes (start with `grass`, so a
-cut path is a fast path; `underbrush` is the other candidate).
+From the design doc, added by the discovery test: `SUMMER_LENGTH_SEC 300`
+(which replaced `DAY_LENGTH_SEC 900`), `BRIDGE_STICKS 1`, `BRIDGE_VINES 1`.
+
+Untuned guesses, and the first things to change if the playtest says the pacing
+is wrong: `CUT_TIME 1.5` and `BUILD_TIME 2` seconds, against `HARVEST_TIME 0.6`
+-- a wall should cost more than a berry, and a bridge more than a wall.
+`CUT_LEAVES` is `grass`, so a cut path is also a fast path and the second trip
+through is visibly cheaper than the first; `underbrush` is the other candidate
+and would leave the cut readable but still slow.
 
 ## The discovery test
 
-The one milestone this phase needs, and it is not started. The smallest game
-that can answer "when I broke through, did I feel anything?" One 5-minute
-summer on a map loaded from a text file, a thicket the knife cuts, a stream a
-bridge crosses, vines and sticks as the bridge's materials, gold only across
-the stream, and a button for another summer on the same map with every change
-kept. No winter, no gravel, no cache, no hazards. `DESIGN.md` has the rules
-under "Prototype, phase 2"; `BRAINSTORM.md` has the reasoning.
+Built, and unplayed. The smallest game that can answer "when I broke through,
+did I feel anything?" One 5-minute summer on a map loaded from a text file, a
+thicket the knife cuts, a stream a bridge crosses, vines and sticks as the
+bridge's materials, gold only across the stream, and a button for another summer
+on the same map with every change kept. No winter, no gravel, no cache, no
+hazards. `DESIGN.md` has the rules under "Prototype, phase 2"; `BRAINSTORM.md`
+has the reasoning.
 
-It ends in something runnable, and it stops there for verification before
-anything beyond it starts.
+What the milestone leaves behind:
 
-### Decisions made in planning
+1. **Terrain.** `thicket` (impassable, glyph `%`) and `bridge` (passable, easy,
+   glyph `-`), appended to `TERRAIN_ORDER` so the indices already written into
+   every map dump keep meaning what they meant. Thicket autotiles as one
+   surface with trees and undergrowth; a bridge is its own. `TileLayer` gained
+   an `invalidate()` on the pattern of `PropLayer`'s, so a cut redraws in the
+   frame it happens rather than when the player next walks far enough to scroll.
+2. **Resources.** `vine` and `stick`, harvested like ore. The vine grows in the
+   mud pocket, the stick in the walled tree stand.
+3. **Cutting and building.** `nearestTileWithin` in `interaction.ts`, and two
+   more `Action` kinds. `availableAction` answers bank, harvest, cut, build, in
+   that order, so picking a vine beats cutting the thicket it grows against. All
+   three holds are one code path with a table of durations. A bridge tile costs
+   `BRIDGE_STICKS` sticks and `BRIDGE_VINES` vines, and refuses with a
+   `noMaterials` that names the price.
+4. **Map files.** `sim/mapfile.ts`: `parseMap` and `formatMap`, one character per
+   tile. `npm run map` writes the map to stdout and its statistics to stderr, so
+   a dump redirected to a file is a map the game can load. `npm run map:check`
+   flood-fills three ways and says whether the chain holds. `?map=<name>` plays
+   `/maps/<name>.txt`.
+5. **Next summer.** `world.nextSummer()` keeps the map, the terrain the player
+   changed, the gold and the backpack; regrows every node, refills the stats,
+   returns the player to camp and restarts the clock. The event log is kept too,
+   so `Hud.reset` takes the cursor to resume from.
+6. **Five maps** in `public/maps/`, `a` through `e`, each a generated map cropped
+   to 64x64 and edited to hold the chain, each passing `map:check`. Their seeds
+   are in `public/maps/README.md`; their layouts are not written down anywhere,
+   which is the point. `docs/PLAYTEST.md` is the log, with the first entry's
+   questions already written.
 
-Overrule them in the doc before building, not in the code.
+Decisions taken while building it, over and above the plan. The reasoning is in
+[RATIONALE.md](RATIONALE.md) under "The discovery test", "Maps as text" and
+"Drawing the new terrain".
 
-- A cut thicket tile becomes `CUT_LEAVES` (grass), so a cut path is a fast
-  path.
-- Cut and build target the nearest thicket or stream tile within
-  `INTERACT_RADIUS`, the way harvesting targets the nearest node. Facings are
-  diagonal, so "the tile in front" has no clean meaning.
-- A bridge tile costs `BRIDGE_STICKS` sticks and `BRIDGE_VINES` vines. A vine
-  node yields one vine, a tree-stand node one stick, harvested like ore.
-- "Next summer" keeps the map, every cut and bridge, gold and the backpack.
-  Every resource node regrows. Stats refill, the player returns to camp, the
-  clock restarts, the year counts up.
-- The knife is implicit. Nothing represents it; the prompt offers to cut.
-- Only user-visible strings and the length constant change from day to
-  summer. Identifiers such as `dayOver` wait for the winter milestone.
+- **A thicket is undergrowth painted darker through the same stencil**, with
+  growth on every tile rather than the 45% that makes undergrowth read as
+  passable. Tinting the finished tile was tried and squares off every ragged
+  edge the stencil draws.
+- **A bridge is planks over the dirt fill, not the dirt block**, with the timbers
+  following the run of tiles. The dirt block alone read as a muddy ford, which is
+  the thing the stream had its fords removed to stop being.
+- **The summary counts one summer**, from the last `summerStarted` in the kept
+  log. Gold is the exception and carries: it is the score.
+- **The maps are 64x64, not 128x128.** A 5-minute summer does not need a map a
+  player cannot cross in one.
 
-### The work, in the order to do it
+### Changed after the first playtest
 
-1. **Terrain.** Add `thicket` (impassable, glyph `%`) and `bridge` (passable,
-   easy, glyph `-`) to `TerrainKind`, `TERRAIN` and the *end* of
-   `TERRAIN_ORDER`; the grid stores the index. In `tileLayer.ts`, `surfaceOf`
-   folds thicket into the underbrush surface with trees, so a thicket wall
-   autotiles into the wood around it; bridge is its own surface and the dirt
-   block's narrow shapes already draw a one-tile strip. Minifantasy: thicket
-   ground is the brush block with a bush prop on *every* tile (the 45% gap is
-   what makes underbrush read as passable); bridge ground is the dirt block.
-   Placeholder: a dense dark thicket, brown planks. Add
-   `TileLayer.invalidate()` on the pattern of `PropLayer.invalidate`: the pool
-   only re-textures when the camera crosses a tile boundary, so a cut tile
-   would otherwise stay drawn until the player walked.
-2. **Resources.** Add `vine` and `stick` to `ResourceKind` and
-   `RESOURCE_KINDS`; the inventory record, `RESOURCE_NAME` and the summary rows
-   in `hud.ts`, both packs' `resource()`, and the dump glyphs (`y` vine, `s`
-   stick) follow. Minifantasy sprites: vine from the crafting pack's
-   `FibresPlants` sheet, stick from its `Logging` sheet, registered in
-   `minifantasy.sheets.ts` with cell positions decoded from pixels, as the
-   existing sprites were. They must read across a barrier; check on screen.
-3. **Cutting and building.** `nearestTileWithin(map, x, y, kind, radius)` in
-   `interaction.ts`, ties on the lower index. `Action` gains
-   `{ type: "cut"; x; y }` and `{ type: "build"; x; y; blocked }`;
-   `availableAction` order is bank ore at camp, harvest a node, cut a thicket,
-   build on stream, blocked bank at camp. Build is blocked without the
-   materials, with a new `BlockedReason` `noMaterials` whose HUD text names the
-   cost. Both are holds shaped like harvest: progress in `harvestProgress`,
-   keyed on the tile index, thrown away on release or out of reach; on
-   completion `map.set` to `CUT_LEAVES` or `bridge`, remove materials, record
-   `{ type: "cut" }` or `{ type: "built" }`. `main.ts` calls
-   `tiles.invalidate()` and `props.invalidate()` on those events beside the
-   existing `harvested` check. Prompts: "Hold E to cut through", "Hold E to lay
-   a bridge tile". Toasts: "Cut a path", "Laid a bridge tile".
-4. **Map files.** New `sim/mapfile.ts`, pure: `parseMap(text): GeneratedWorld`
-   and `formatMap(world): string`. One character per tile, rows are lines;
-   terrain glyphs from `TERRAIN`, node glyphs `f w v y s`, camp `C`. A node
-   glyph implies the ground under it, mud for vine and grass for the rest;
-   camp stands on grass. `reachable` comes from the existing `reachableFrom`,
-   which gains an optional passability predicate. `formatMap` is the dump
-   script's body moved into `sim/`, so the round trip is testable and the
-   script is a caller; the stats footer moves to stderr so
-   `npm run map -- 42 > public/maps/a.txt` writes a clean file. New
-   `scripts/checkmap.ts` (`npm run map:check <file>`): parse, flood-fill three
-   ways (as is, thicket passable, stream passable) and print whether the chain
-   holds: vines reachable as is, sticks only with thicket passable, gold only
-   with stream passable, and how many tiles `thickenStream` would change on a
-   copy, which must be zero. `main.ts`: `?map=<name>` fetches
-   `/maps/<name>.txt` and builds the `World` from `parseMap`; without it,
-   seeds work as before.
-5. **Next summer.** `world.year` from 1; `world.nextSummer()` resets
-   `elapsedSec`, the stats and every node's `harvested`, puts the player at
-   camp, drops harvest progress, and records `{ type: "summerStarted"; year }`.
-   The summary button reads "Next summer" and calls it; debug Regenerate still
-   builds a fresh `World`. `Hud.reset` takes the cursor to resume from, since
-   the log is kept; `props.invalidate()` after, so regrown nodes draw. HUD:
-   "left in summer", a "Year N" pill, summary title "Summer over".
-   `SUMMER_LENGTH_SEC 300` replaces `DAY_LENGTH_SEC`.
-6. **Maps and the log.** Three to five maps in `public/maps/`, each a dump
-   edited to hold the chain and one pre-cut path near camp, each passing
-   `map:check`. Names carry no hints. `docs/PLAYTEST.md` with the first entry's
-   questions pre-written: when I broke through, did I feel anything; which
-   barrier felt best; did I see the field before I reached it; did the first
-   bridge feel earned.
+- **The target tile is outlined.** Cut and build act on the nearest tile of the
+  right kind, and nothing said which one that was: the first session laid a
+  bridge on the wrong tile and paid for it. `render/targetMarker.ts` draws an
+  outline on the tile the key would act on, above the props, red when the action
+  is right here but cannot be paid for, with the hold's progress as a bar along
+  the tile's bottom edge. Harvesting is not marked -- a node is a sprite
+  standing where it is.
 
 ### Verification
 
-- `npm run typecheck`, `npm run test`. New tests: the terrain order ends with
-  the new kinds; map file round trip on two seeds; the loader infers ground
-  under nodes; cut turns thicket to `CUT_LEAVES` after `CUT_TIME` held and not
-  before; build refuses without materials with one `noMaterials` event,
-  consumes them on success, and the tile is passable after; harvest wins over
+Everything below was run, and the numbers are what it reported.
+
+- `npm run typecheck`, `npm run test` — clean; 281 tests over 20 files. New:
+  the terrain order ends with the new kinds and their glyphs are distinct; map
+  file round trip on two seeds, including the reachability mask; the loader
+  infers the ground under each node glyph and refuses a ragged map, an unknown
+  glyph, two camps or none, naming the line and column; `nearestTileWithin`
+  including its tie-break; cut turns thicket to `CUT_LEAVES` after `CUT_TIME`
+  and not before, and throws the progress away on release or out of reach;
+  build refuses without materials with exactly one `noMaterials`, spends them on
+  success, leaves a passable tile, and pays only once per hold; harvest beats
   cut when both are in reach; `nextSummer` regrows nodes, keeps terrain edits
-  and gold, resets the clock; HUD prompt text for cut and build.
-- `npm run map:check public/maps/*.txt` passes on every shipped map.
-- Non-vacuous check: revert the `tiles.invalidate()` call and confirm a cut
-  tile stays drawn as thicket until the camera scrolls; restore.
-- Drive one summer with `?map=<name>` over DevTools: cut, wade to the vines,
-  cut into the tree stand, lay a bridge, bank gold, hit the 5-minute end,
-  press Next summer, confirm the bridge is still there and the nodes are back,
-  reading positions and inventory from `window.__game`.
-- Then the designer plays blind and writes the first `PLAYTEST.md` entry.
-  That entry is the milestone's output, and the verdict on it decides what the
-  next milestone is.
+  and gold, resets the clock and does not carry a held key across; the HUD
+  prompt text for cut and build; `TileLayer.invalidate` re-textures with the
+  camera stationary; the target marker sits on the tile the action names, hides
+  when nothing is in reach, and follows a moving camera by transform alone.
+- `npm run map:check public/maps/*.txt` — all five OK, 20 checks passed.
+- Non-vacuous checks, both by reverting the fix and watching it fail: removing
+  `tiles.invalidate()` leaves the cut tile drawn as thicket in the frame after
+  the cut (with the water animation pinned, or its periodic refill stands in for
+  it); removing the spent-press guard in `nextSummer` lets a key held across the
+  turn of the summer start cutting immediately.
+- One summer driven over the DevTools protocol on `?map=a`: cut a thicket and
+  watched the ground texture change with the camera stationary, picked two vines
+  and two sticks, laid a bridge tile for one vine and one stick and confirmed the
+  tile passable, mined and banked gold, ran the clock out to the summary card
+  ("Summer 1 over" / "Next summer"), pressed it, and confirmed year 2 with the
+  bridge and the cut still there, every node back, stats full, the player at camp
+  and 300 seconds on the clock. 60fps.
+- The same on `?pack=placeholder`, so a fresh clone with no art still shows the
+  new terrain, and with real keystrokes rather than teleports, so movement is
+  measured rather than assumed.
+
+**What is left is the part no code can do**: someone plays a map blind and writes
+the first `PLAYTEST.md` entry. That entry is the milestone's output, and the
+verdict on it decides what the next milestone is.
+
+## M7: the shareable build
+
+Not started. Planned 6 Sep 2026 from the third entry in
+[PLAYTEST.md](PLAYTEST.md): the next tester is someone on itch.io who plays
+alone, so the game has to be its own observer, and the licensed art has to
+leave this machine as a game rather than as files.
+
+What it delivers: `npm run build:itch` writes a zip that plays one map on
+itch.io, draws from a single baked art file that holds only the pixels the game
+uses, records where the tester went, and puts that record on the summary card
+for them to paste into a comment. `npm run log:read` turns a pasted record back
+into a path drawn on the map. The dev loop is untouched: on localhost the game
+still cuts its textures from the raw Minifantasy folders exactly as it does now.
+
+Why it is needed and not just `npm run build`: Vite copies `public/` into
+`dist/` whole, and the `dist/` on disk today contains all 1852 raw art PNGs.
+
+Decisions taken in planning. Overturn them in this section before starting,
+not while building.
+
+- **The public build plays map `d`.** `e` stays unshipped and unspoiled for a
+  watched session later. Which map ships is one constant.
+- **The baked art is one binary file, not a PNG.** Anything a browser can draw
+  can be read back from a canvas, so this stops "save image as", not a
+  determined person. The point is licence hygiene: the raw pack folders never
+  leave the machine, and what ships is the built game, which is the licensed
+  use.
+- **The raw art moves out of `public/`.** A dev-only server route serves it
+  from its new home, so nothing under `public/` is licensed and no build step
+  can leak it by accident.
+- **Logs are pasted, not uploaded.** No server, no account, no privacy
+  question. A summer compresses to a few kilobytes of text.
+- **The debug overlay does not exist on the public build.** Seed stepping and
+  teleport would show a tester the map they are meant to discover.
+- **Hostname decides.** `localhost`, `127.0.0.1` and `[::1]` are the dev
+  machine; everything else is public. `?public=1` forces the public behaviour
+  on localhost so `vite preview` can be checked.
+
+Work, in order. Each item names its files and what proves it.
+
+1. **One answer to "is this the dev machine".** `src/env.ts` exports
+   `isDevHost(): boolean` from `location.hostname` and the `?public=1`
+   override. It is the only file that reads the hostname. `main.ts` uses it
+   three times: pack order, the default map when `?map=` is absent, and
+   whether to construct the debug overlay at all. Test: the classification of
+   a table of hostnames and the override.
+
+2. **The raw art leaves `public/`.** `public/assets/minifantasy/` becomes
+   `art/minifantasy/`, gitignored at the new path. A plugin in
+   `vite.config.ts` uses `configureServer` to serve `/assets/minifantasy/*`
+   from that folder during `npm run dev` only, so `minifantasy.sheets.ts` and
+   `textures.html` keep working with the same URLs. `public/assets/README.md`
+   says where to unzip now. Proof: `npm run dev` still logs pack
+   "minifantasy"; `npm run build` produces a `dist/` with zero `.png` files.
+
+3. **The texture table.** `MinifantasyPack` does two jobs: building every
+   texture from the sheets, and answering `ground`, `prop`, `resource`,
+   `walk`, `idle` from arrays. Split them. `src/render/packs/table.ts` holds a
+   `TextureTable` interface with those arrays and the measured
+   `playerAnchor`/`playerBounds`, and a `TablePack implements AssetPack` that
+   answers from a table; the `ground` switch with its variant, autotile and
+   bridge-orientation logic moves there unchanged. `minifantasy.ts` shrinks to
+   `buildTable(sheets): TextureTable` plus the source. Behaviour must not
+   change. Proof: the screenshot diff in verification below, taken before and
+   after this item, is zero.
+
+4. **Baking.** `src/render/packs/bake.ts`, in three pure parts.
+   - `packRects(sizes)` is a shelf packer returning an atlas size and one rect
+     per input, deterministic. Textures are 8, 16, 24 and 32 pixels on a side,
+     so shelves by height are enough.
+   - `bakeTable(table)` walks every texture reachable from the table, once per
+     distinct texture (a block's narrow slots reuse its fill texture and must
+     not be drawn seven times), draws each into one canvas and returns the
+     pixels plus a manifest: format version, atlas size, `tileSize`,
+     `playerAnchor`, `playerBounds`, and for every slot a rect, with anchor
+     and bounds for props. Slot names are the table's own field names and
+     indices, so the manifest reads as the table flattened.
+   - `encodePack(pixels, manifest)` and `decodePack(bytes)`: the ASCII tag
+     `TSPK`, a u32 manifest length, the manifest as UTF-8 JSON, then the RGBA
+     bytes through `deflate-raw`. Both `CompressionStream` and
+     `DecompressionStream` exist in the browser and in Node 22, so the script
+     in item 7 decodes without a dependency.
+   The bake runs in a browser, because the raw pack is built from canvases.
+   `dev/bake.html` and `dev/bake.ts` load the raw pack on localhost, bake it,
+   and POST the bytes to a second route on the same Vite plugin, which writes
+   `public/assets/baked/minifantasy.tspk` and answers with the size. The
+   folder is gitignored. The page prints the atlas dimensions, the file size
+   and the slot count. Document it as `npm run dev`, then open
+   `http://localhost:5173/bake.html`. Tests: the packer never overlaps and
+   never exceeds the atlas; `encodePack` then `decodePack` on synthetic
+   pixels and a manifest is the identity.
+
+5. **The baked pack.** `src/render/packs/baked.ts`: `bakedPackSource` with
+   `available()` as a HEAD on the `.tspk`, `load()` as fetch, decode,
+   `ImageData` into a canvas, one `ImageSource` with nearest scaling, then a
+   `TextureTable` built from the manifest and handed to `TablePack`. It
+   imports nothing from `minifantasy.ts` or `minifantasy.sheets.ts`; the
+   manifest is the only thing it knows. `atlas.ts` orders sources by
+   `isDevHost()`: dev is minifantasy, baked, placeholder; public is baked,
+   placeholder. `?pack=baked` still forces it on localhost for comparison,
+   and `textures.html` shows it.
+
+6. **The trace.** `src/sim/trace.ts`: a `Trace` the `World` owns and samples
+   from `step` every `TRACE_SAMPLE_SEC` of simulated time (a `[GUESS]` in
+   config, 1 second): summer, elapsed second, tile x and y, terrain kind
+   under the player, stamina, hydration, sprinting. Three hundred samples a
+   summer, append-only across summers like the event log. Pure, no DOM.
+   `src/sim/playtestLog.ts` builds the `PlaytestLog` record: format version,
+   build id, map name, pack id, wall-clock start, the events, the samples.
+   `digest(log)` computes what an observer would have written down, per
+   summer: gold, seconds to first cut, first bridge tile, first ore banked,
+   whether "Next summer" was pressed, tiles walked, and idle spots (the same
+   tile for longer than `TRACE_IDLE_SEC`, with its terrain). Tests: a
+   synthetic trace with known answers; `nextSummer` keeps earlier samples.
+
+7. **Getting the log out and reading it back.** `src/ui/logExport.ts` (DOM)
+   encodes the record as `deflate-raw` then base64 with a `TS1.` prefix, so a
+   summer is a few kilobytes of pasteable text. The summary card gains a
+   textarea holding it, labelled "Copy this into your comment", selected on
+   focus, with a Copy button that tries `navigator.clipboard` and falls back
+   to the selection. No download link: an itch iframe may block both clipboard
+   and downloads, and a selected textarea works everywhere. The record is also
+   written to `localStorage` after every summer, so a closed tab loses
+   nothing, and the textarea holds every summer played so far, not the last
+   one. `scripts/readlog.ts` as `npm run log:read <file>` decodes a pasted
+   record, prints the digest, then prints the map from `public/maps/` with
+   the path density overlaid on the dump's own glyphs. It is the substitute
+   for the observer's notes and is for use after a tester has played, so the
+   blind-play rule is not in its way.
+
+8. **What the tester sees.** A start card in `index.html`: title, four lines
+   of controls, "art by Krishna Palacio", "5 minutes, then the summer ends".
+   The first movement key dismisses it. The build id (git short hash and
+   date, injected with Vite `define`) sits small on the summary card and in
+   the log, so a pasted record can be matched to a build. On the public build
+   the overlay is not constructed and backtick does nothing. Nothing about
+   fruit, stamina or sprint changes here.
+
+9. **The zip.** `scripts/itch.ts` as `npm run build:itch`: runs `vite build`
+   with a relative `base` (itch serves from a subpath), prunes `dist/maps/`
+   to the shipped map, refuses if `dist/` contains any `.png` or anything
+   under `assets/minifantasy`, refuses if the `.tspk` is missing, and zips
+   `dist/` with `index.html` at the root to `dist/thirtysummers-<build>.zip`
+   using the `zip` already on the machine. Prints the zip size, the `.tspk`
+   size and the file list.
+
+10. **Docs.** `public/assets/README.md` for the new art location and the bake
+    step; `public/maps/README.md` says which map ships; `docs/PLAYTEST.md`
+    gains a remote-tester variant of the entry with "log pasted by", the
+    build id, and the questions to put on the itch page; `CLAUDE.md` lists
+    the new commands; `RATIONALE.md` records the format choice, paste over
+    upload, and hostname switching. This section moves to "What is built"
+    with the numbers verification produced.
+
+### Verification
+
+All of it measured, none of it asserted, on the pattern of the discovery
+test's list above.
+
+- `npm run typecheck`, `npm run test` clean. New tests are named in the items.
+- **The baked pack draws the same picture.** Over the DevTools protocol on
+  localhost: `?map=d&pack=minifantasy` and `?map=d&pack=baked`, the camera at
+  the same place, the water frame pinned, one screenshot each, pixel diff
+  zero. Non-vacuous: shift one rect in the manifest by a pixel and watch the
+  diff go non-zero, then restore it.
+- **The refactor in item 3 changed nothing.** The same diff, raw pack against
+  itself, before and after the split.
+- **The zip is clean.** Unzip it into a scratch folder: zero `.png`, no
+  `assets/minifantasy` path, one map file, the `.tspk` present. Report the
+  sizes.
+- **The public build behaves as public.** `vite preview` with `?public=1`:
+  the console logs pack "baked" and map "d" with no `?map=`, backtick opens
+  nothing, the start card shows and the first key clears it.
+- **A log round-trips.** Play one summer over the protocol on the preview
+  build, cut a thicket at a known second, press "Next summer", take the
+  textarea text, run `npm run log:read` on it: the path lands on the tiles
+  walked, and the first-cut second matches the `cut` event.
+- 60fps unchanged on the baked pack.
+
+**What is left is the same as last time**: a stranger plays it and pastes a
+log. That entry is the milestone's output.
 
 ## Beyond the discovery test
 
@@ -327,12 +509,20 @@ What must keep passing, whatever is being built.
   distribution, autotile table, collision, camera, depth sorting, pixel snapping,
   the fixed-timestep clock under a stall, the scroll window, both layers driven
   headlessly against a stub pack, every stamina and hydration rate over simulated
-  time, the backpack, the HUD model, the harvest / eat / drink / bank loop
-  including every way it can refuse, and the debug overlay's arithmetic: time
-  scaling, grid alignment, teleport refusals, and a freeze that holds.
-- `npm run dev` — play a day: walk, sprint until stamina empties, eat fruit and
-  hit the 60s cooldown, drink water, fill the backpack, bank ore at camp, watch
-  the timer run out and the summary appear.
-- `npm run dev -- ?debug=1` — drag the speed slider to 10x and watch a day out
-  in 90 seconds, toggle the grid, click across the map, freeze the bars.
+  time, the backpack, the HUD model, the map file round trip and every way it
+  refuses a bad one, the harvest / eat / drink / bank / cut / build loop
+  including every way it can refuse, `nextSummer`, and the debug overlay's
+  arithmetic: time scaling, grid alignment, teleport refusals, and a freeze that
+  holds.
+- `npm run map:check public/maps/*.txt` — the chain still holds on every
+  shipped map. Run it after editing one by hand.
+- `npm run dev` — play a summer on a seed: walk, sprint until stamina empties,
+  eat fruit and hit the 60s cooldown, drink water, fill the backpack, bank ore
+  at camp, watch the timer run out and the summary appear.
+- `npm run dev` on `?map=a` — the discovery test itself: through the cut path,
+  wade to the vines, cut into the stand, lay a bridge, bank gold across the
+  water, and take the next summer to see it all still there.
+- `npm run dev -- ?debug=1` — drag the speed slider to 10x and watch a summer
+  out in 30 seconds, toggle the grid, click across the map, freeze the bars.
+- `?pack=placeholder` — a fresh clone with no art still draws every terrain.
 - 60fps with headroom at 128×128.

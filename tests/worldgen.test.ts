@@ -88,11 +88,13 @@ describe("generateWorld", () => {
 
   it.each(SEEDS)("places every requested resource somewhere usable (seed %i)", (seed) => {
     const { map, nodes, reachable, camp } = generateWorld(seed);
-    const counts = { fruit: 0, water: 0, ore: 0 };
+    // The generator scatters the three original kinds; vines and sticks are
+    // placed by hand in the edited maps, so nothing here should produce them.
+    const counts: Record<string, number> = { fruit: 0, water: 0, ore: 0 };
     const occupied = new Set<number>();
 
     for (const node of nodes) {
-      counts[node.kind]++;
+      counts[node.kind] = (counts[node.kind] ?? 0) + 1;
       const x = Math.floor(node.x);
       const y = Math.floor(node.y);
       const idx = y * map.width + x;

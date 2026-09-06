@@ -182,6 +182,35 @@ function drawTerrain(g: Graphics, kind: TerrainKind, rng: Rng): void {
       speckle(g, rng, 6, [0x606060, 0x333331]);
       break;
 
+    case "thicket": {
+      // Denser and darker than underbrush, and drawn to the tile edges: what
+      // makes underbrush read as passable is the ground showing through it.
+      g.rect(0, 0, S, S).fill(0x1f3b18);
+      speckle(g, rng, 14, [0x162c11, 0x2a5020], 3);
+      for (let i = 0; i < 9; i++) {
+        const x = Math.floor(rng() * S);
+        const y = Math.floor(rng() * S);
+        // brambles: a short diagonal with a thorn on it
+        g.rect(x, y, 1, 3).fill(0x14290f);
+        g.rect(x + 1, y + 1, 2, 1).fill(0x14290f);
+        g.rect(x + 2, y, 1, 1).fill(0x4d7a35);
+      }
+      break;
+    }
+
+    case "bridge": {
+      // planks across the tile, gaps between them showing dark water
+      g.rect(0, 0, S, S).fill(0x2a4d68);
+      for (let i = 0; i < 4; i++) {
+        g.rect(0, i * 4, S, 3).fill(i % 2 === 0 ? 0x7a5433 : 0x8a6039);
+      }
+      speckle(g, rng, 10, [0x694627, 0x9a6f45]);
+      // rails along the two long edges, so a bridge reads as built, not painted
+      g.rect(0, 0, S, 1).fill(0x5c3d22);
+      g.rect(0, S - 1, S, 1).fill(0x5c3d22);
+      break;
+    }
+
     case "tree": {
       // forest floor, then a trunk and canopy so trees read as solid obstacles
       g.rect(0, 0, S, S).fill(0x2f5624);
@@ -217,6 +246,24 @@ function drawResource(g: Graphics, kind: ResourceKind): void {
       g.poly([8, 3, 11, 8, 8.6, 13, 6.6, 12.5, 5.4, 7.5]).fill(0xe8e0c8);
       g.poly([8, 4, 9.6, 8, 8.3, 12]).fill(0xc9bfa1);
       g.rect(7.8, 4, 0.9, 9).fill(0x9c9077);
+      break;
+
+    case "vine":
+      // a coil of creeper, bright against the mud it grows in
+      g.ellipse(8, 9, 5, 4).fill(0x6f9c3a);
+      g.ellipse(8, 9, 2.6, 2).fill(0x3f5f22);
+      g.rect(7.5, 3, 1, 5).fill(0x6f9c3a);
+      g.ellipse(5.6, 5.4, 2, 1.2).fill(0x8bbf4c);
+      g.ellipse(10.4, 4.6, 2, 1.2).fill(0x8bbf4c);
+      break;
+
+    case "stick":
+      // three cut lengths of branch, stacked
+      g.rect(3, 6, 10, 2).fill(0x8a6039);
+      g.rect(3.5, 9, 9, 2).fill(0x9c6e42);
+      g.rect(4.5, 12, 7, 1.5).fill(0x74502e);
+      g.rect(3, 6, 1.5, 2).fill(0xc0a071);
+      g.rect(11, 9, 1.5, 2).fill(0xc0a071);
       break;
   }
 }

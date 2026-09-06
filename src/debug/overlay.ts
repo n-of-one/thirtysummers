@@ -316,7 +316,7 @@ export class DebugOverlay {
   /** Both what the slider is set to and what it costs: a day at that speed. */
   private showSpeed(): void {
     this.speedValue.textContent =
-      `x${this.timeScale.toFixed(1)} ${formatClock(C.DAY_LENGTH_SEC / this.timeScale)}`;
+      `x${this.timeScale.toFixed(1)} ${formatClock(C.SUMMER_LENGTH_SEC / this.timeScale)}`;
   }
 
   /** Say something in place of the hint, and put the hint back afterwards. */

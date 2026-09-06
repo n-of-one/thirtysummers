@@ -13,6 +13,9 @@ winter, 30-summer generations, an ageing character.
 - **[docs/BRAINSTORM.md](docs/BRAINSTORM.md)** — what the project is for, the
   hypothesis being tested, what is decided and what is parked. Read it before
   proposing a new system.
+- **[docs/PLAYTEST.md](docs/PLAYTEST.md)** — one entry per play session. The
+  discovery test's verdict comes from here, and nothing beyond it gets planned
+  until there is one.
 
 ## Commands
 
@@ -22,6 +25,8 @@ npm run test        # vitest run
 npm run typecheck   # tsc --noEmit
 npm run build
 npm run map         # ASCII dump of a generated map, for eyeballing worldgen
+npm run map -- 42 > public/maps/x.txt   # ...and the same dump as a playable map
+npm run map:check public/maps/*.txt     # does each edited map still hold the chain?
 ```
 
 Press `` ` `` in the running game for the debug overlay: seed and regenerate
@@ -29,8 +34,13 @@ Press `` ` `` in the running game for the debug overlay: seed and regenerate
 click-to-teleport, and a fixed-width readout. `window.__game` is always there to
 measure from.
 
-Useful URL params: `?seed=<n>`, `?pack=placeholder` (run without the paid art),
-`?debug=1` (start with the overlay already open).
+Useful URL params: `?map=<name>` (play `public/maps/<name>.txt` instead of a
+generated world — `a` through `e` are the discovery test's maps), `?seed=<n>`,
+`?pack=placeholder` (run without the paid art), `?debug=1` (start with the
+overlay already open).
+
+Controls: WASD or arrows to move, Shift to sprint, E or Space to gather, cut,
+build and bank ore, F to eat, R to drink.
 
 ## Architecture rules
 
@@ -55,6 +65,12 @@ Useful URL params: `?seed=<n>`, `?pack=placeholder` (run without the paid art),
   — drive the running game over the Chrome DevTools Protocol and read numbers
   back, and check a fix is non-vacuous by reverting it and watching the check
   fail.
+
+## Playing the discovery test
+
+`public/maps/*.txt` are played blind: **do not read a map file to someone who is
+about to play it**, and do not describe its layout. `public/maps/README.md` is
+the safe half — it says which seed each came from, not what is in it.
 
 ## Art licence
 

@@ -17,10 +17,14 @@ export const DEFAULT_SEED = 1337;
 /** On-screen size of one tile, in CSS pixels. */
 export const TILE = 64;
 
-// ------------------------------------------------------------------ day ----
+// --------------------------------------------------------------- summer ----
 
-/** [DOC] A day is 15 minutes. */
-export const DAY_LENGTH_SEC = 900;
+/**
+ * [DOC] A summer is 5 minutes in year 1. The design doc puts summer length on
+ * an age curve that peaks at 15 minutes from year 10 to 20; nothing ages yet,
+ * so every summer is the year-1 length.
+ */
+export const SUMMER_LENGTH_SEC = 300;
 
 // ------------------------------------------------------------ simulation ----
 
@@ -91,7 +95,7 @@ export const SPRINT_MIN_STAMINA = 5;
 
 /**
  * [DOC] Passive hydration loss, %/s. A full bar runs dry in 100 seconds, so a
- * 900-second day needs water found and drunk all the way through it.
+ * summer needs water found and drunk all the way through it.
  */
 export const HYDRATION_DRAIN = 1.0;
 /**
@@ -119,8 +123,32 @@ export const ORE_GOLD = 1;
 
 /** [GUESS] Stamina below this colours the bar as a warning. */
 export const STAMINA_WARN_THRESHOLD = 25;
-/** [GUESS] Seconds left in the day below which the clock turns urgent. */
+/** [GUESS] Seconds left in the summer below which the clock turns urgent. */
 export const CLOCK_URGENT_SEC = 60;
+
+/**
+ * The outline drawn on the tile a cut or a bridge would land on.
+ *
+ * Both act on the nearest tile of the right kind rather than on the one the
+ * player is facing, and until the tile was marked there was no way to tell
+ * which one that was until the materials had already been spent on it.
+ */
+/** [GUESS] Thickness of the outline, in screen pixels. */
+export const TARGET_OUTLINE_PX = 3;
+/** [GUESS] Colour when the action can be carried out... */
+export const TARGET_COLOR = 0xffe9a8;
+/** ...and when it is the right action here but not possible. */
+export const TARGET_BLOCKED_COLOR = 0xe0674f;
+/** [GUESS] Opacity of the outline. */
+export const TARGET_OUTLINE_ALPHA = 0.95;
+/**
+ * [GUESS] Height of the progress bar along the bottom of the marked tile.
+ *
+ * A bar rather than a fill over the whole tile: a wash pale enough to see the
+ * ground through lightens a thicket until it reads as already cut, which is
+ * the one thing the marker must not say.
+ */
+export const TARGET_PROGRESS_PX = 8;
 
 /**
  * [GUESS] Screen pixels below the player's feet where the action prompt and the
@@ -141,6 +169,25 @@ export const PROMPT_EDGE_MARGIN_PX = 16;
 export const HARVEST_TIME = 0.6;
 /** [GUESS] How close (in tiles) you must be to harvest or use the camp. */
 export const INTERACT_RADIUS = 1.1;
+
+/**
+ * [GUESS] Seconds of holding the interact key to cut through one thicket tile.
+ * Longer than a harvest, because a wall should cost more than a berry.
+ */
+export const CUT_TIME = 1.5;
+/** [GUESS] Seconds of holding it to lay one bridge tile. */
+export const BUILD_TIME = 2;
+
+/**
+ * What a cut thicket tile turns into. Grass, so a cut path is also a fast path
+ * and the second trip through is visibly cheaper than the first. `underbrush`
+ * is the other candidate: it would leave the cut readable but still slow.
+ */
+export const CUT_LEAVES = "grass" as const;
+
+/** [DOC] Sticks and vines one bridge tile costs. */
+export const BRIDGE_STICKS = 1;
+export const BRIDGE_VINES = 1;
 
 // ------------------------------------------------------------- worldgen ----
 
@@ -234,9 +281,9 @@ export const WATER_FRAME_SEC = 0.45;
 /** Slowest the debug overlay will run the simulation: real time. */
 export const TIME_SCALE_MIN = 1;
 /**
- * [GUESS] Fastest time scale. Ten turns the 15-minute day into 90 seconds,
- * which is what the whole slider is for: seeing a full day out without
- * spending a full day on it.
+ * [GUESS] Fastest time scale. Ten turns the 5-minute summer into 30 seconds,
+ * which is what the whole slider is for: seeing a summer out without spending
+ * one on it.
  */
 export const TIME_SCALE_MAX = 10;
 /** Granularity of the slider. */

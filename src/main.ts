@@ -7,7 +7,9 @@ import { createApp } from "./render/app.ts";
 import { loadAssetPack } from "./render/atlas.ts";
 import { Camera } from "./render/camera.ts";
 import { PropLayer } from "./render/propLayer.ts";
+import { TargetMarker, targetTile } from "./render/targetMarker.ts";
 import { TileLayer } from "./render/tileLayer.ts";
+import { parseMap } from "./sim/mapfile.ts";
 import { summarise } from "./sim/summary.ts";
 import { World } from "./sim/world.ts";
 import { Hud, hudModel } from "./ui/hud.ts";
@@ -34,7 +36,22 @@ const params = new URLSearchParams(location.search);
 // generating from NaN, which silently produces a map unrelated to any seed.
 const requestedSeed = Number(params.get("seed"));
 let seed = params.get("seed") && Number.isFinite(requestedSeed) ? requestedSeed : C.DEFAULT_SEED;
-let world = World.fromSeed(seed);
+
+/**
+ * `?map=<name>` plays `/maps/<name>.txt` instead of a generated world.
+ *
+ * That is what the discovery test runs on: a generated dump, edited by hand to
+ * hold the chain of barriers, played by someone who has not opened the file.
+ * Without the parameter nothing changes and seeds work exactly as before.
+ */
+const mapName = params.get("map");
+let world = mapName ? await loadMap(mapName) : World.fromSeed(seed);
+
+async function loadMap(name: string): Promise<World> {
+  const res = await fetch(`/maps/${encodeURIComponent(name)}.txt`);
+  if (!res.ok) throw new Error(`no map "${name}" (/maps/${name}.txt: ${res.status})`);
+  return new World(parseMap(await res.text()));
+}
 
 const stage = document.querySelector<HTMLDivElement>("#stage")!;
 const app = await createApp(stage);
@@ -43,7 +60,10 @@ const pack = await loadAssetPack(app.renderer, params.get("pack") ?? undefined);
 const camera = new Camera();
 let tiles = new TileLayer(world.map, pack);
 let props = new PropLayer(world.map, pack, app.renderer);
-app.stage.addChild(tiles.container, props.container);
+// Last, so the marker is over the props: it says "this tile", and a marker a
+// bush can hide is no use on the one terrain that is made of bushes.
+const marker = new TargetMarker();
+app.stage.addChild(tiles.container, props.container, marker.container);
 
 camera.centreOn(world.player);
 
@@ -70,12 +90,12 @@ let seenEvents = 0;
 let summaryShown = false;
 
 /**
- * Throw the day away and start a new one on `nextSeed`.
+ * Throw the world away and generate a new one on `nextSeed`.
  *
  * The layers are built around a particular map, so a new map means new layers;
  * they are cheap to build and there is a pool of sprites to release, so they
  * are destroyed rather than retargeted. Everything that was counting through
- * the old day -- the event cursors, the summary card -- goes back to zero, and
+ * the old world -- the event cursors, the summary card -- goes back to zero, and
  * the URL is rewritten so a reload lands on the same world.
  */
 function regenerate(nextSeed: number): void {
@@ -86,7 +106,7 @@ function regenerate(nextSeed: number): void {
   props.destroy();
   tiles = new TileLayer(world.map, pack);
   props = new PropLayer(world.map, pack, app.renderer);
-  app.stage.addChild(tiles.container, props.container);
+  app.stage.addChild(tiles.container, props.container, marker.container);
   applyViewport(app.screen.width, app.screen.height);
   camera.centreOn(world.player);
   camera.clampTo(world.map.width, world.map.height);
@@ -99,7 +119,27 @@ function regenerate(nextSeed: number): void {
 
   const url = new URL(location.href);
   url.searchParams.set("seed", String(seed));
+  // A regenerate replaces an edited map with a generated one, so the parameter
+  // that would load the edited one back on reload has to go with it.
+  url.searchParams.delete("map");
   history.replaceState(null, "", url);
+}
+
+/**
+ * Start the next summer on the same world.
+ *
+ * Nothing is rebuilt: the map, the layers and the camera are the ones already
+ * on screen, and the event log carries on where it left off -- so the HUD
+ * resumes at the cursor it had reached rather than replaying the summer that
+ * just ended.
+ */
+function nextSummer(): void {
+  world.nextSummer();
+  summaryShown = false;
+  hud.reset(seenEvents);
+  props.invalidate();
+  camera.centreOn(world.player);
+  camera.clampTo(world.map.width, world.map.height);
 }
 
 /**
@@ -126,7 +166,15 @@ const overlay = new DebugOverlay({
 
 /** Handle for measuring from the console or a devtools driver. */
 function exposeGame(): void {
-  (window as unknown as { __game?: unknown }).__game = { app, world, camera, props, tiles, overlay };
+  (window as unknown as { __game?: unknown }).__game = {
+    app,
+    world,
+    camera,
+    props,
+    tiles,
+    marker,
+    overlay,
+  };
 }
 exposeGame();
 
@@ -173,20 +221,29 @@ app.ticker.add(({ deltaMS }) => {
   const input = keyboard.state();
 
   // When the light goes the world stops: the clock is the whole constraint, and
-  // a day you can keep playing past the end is not one.
+  // a summer you can keep playing past the end is not one.
   if (!world.dayOver) {
     for (let i = 0; i < steps; i++) world.step(C.TICK_SEC, input);
   } else if (!summaryShown) {
     summaryShown = true;
-    // A new day on the same seed, so a run can be replayed on the map it was
-    // learned on. The debug overlay is where a different one comes from.
-    hud.showSummary(summarise(world), () => regenerate(seed));
+    // Another summer on the same map, with every cut and every bridge kept.
+    // That persistence is the whole question the discovery test asks, so the
+    // button in front of the player is the one that keeps it; a fresh map is
+    // the debug overlay's job.
+    hud.showSummary(summarise(world), nextSummer);
   }
 
-  // A harvested node has to stop being drawn, and the prop layer only rebuilds
-  // when the camera crosses a tile boundary, so say so explicitly.
+  // Neither layer rebuilds unless the camera crosses a tile boundary, so
+  // anything that changes the world in place has to say so. A harvested node
+  // stops being drawn; a cut or a bridge changes the ground itself, and the
+  // props standing on it.
   for (let i = seenEvents; i < world.events.length; i++) {
-    if (world.events[i]!.type === "harvested") props.invalidate();
+    const type = world.events[i]!.type;
+    if (type === "harvested" || type === "summerStarted") props.invalidate();
+    else if (type === "cut" || type === "built") {
+      tiles.invalidate();
+      props.invalidate();
+    }
   }
   seenEvents = world.events.length;
 
@@ -197,6 +254,7 @@ app.ticker.add(({ deltaMS }) => {
   tiles.setAnimationFrame(Math.floor(elapsed / C.WATER_FRAME_SEC));
   tiles.update(camera);
   props.update(camera, world.camp, world.nodes, world.player, playerTexture(), frameSec);
+  marker.update(camera, targetTile(world.availableAction(), world.harvestProgress));
   // The prompt and the toasts hang off the player, so the HUD needs the one
   // thing the simulation cannot tell it: where that is on the canvas.
   hud.update(hudModel(world), camera.toScreen(world.player), world.events);
@@ -204,8 +262,9 @@ app.ticker.add(({ deltaMS }) => {
 });
 
 console.log(
-  `seed ${seed} | pack "${pack.id}" @${pack.tileSize}px | ` +
+  `${mapName ? `map "${mapName}"` : `seed ${seed}`} | pack "${pack.id}" @${pack.tileSize}px | ` +
     `${world.map.width}x${world.map.height} | ${world.nodes.length} nodes | ` +
     `renderer ${app.renderer.name} | WASD move, Shift sprint, ` +
-    `E/Space gather and bank ore, F eat fruit, R drink water, \` debug panel`,
+    `E/Space gather, cut, bridge and bank ore, F eat fruit, R drink water, ` +
+    `\` debug panel`,
 );

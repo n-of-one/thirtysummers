@@ -55,7 +55,8 @@ describe("hudModel", () => {
       gold: 0,
       holdingFruit: false,
       holdingWater: false,
-      secondsLeft: C.DAY_LENGTH_SEC,
+      secondsLeft: C.SUMMER_LENGTH_SEC,
+      year: 1,
       urgent: false,
       prompt: null,
     });
@@ -82,7 +83,7 @@ describe("hudModel", () => {
     w.inventory.add("ore", 3);
     w.inventory.add("fruit", 1);
     w.inventory.gold = 12;
-    w.elapsedSec = C.DAY_LENGTH_SEC - 30;
+    w.elapsedSec = C.SUMMER_LENGTH_SEC - 30;
     const model = hudModel(w);
     expect(model.carried).toBe(4);
     expect(model.contents).toBe("fruit 1, ore 3");

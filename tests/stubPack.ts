@@ -59,6 +59,8 @@ export class StubPack implements AssetPack {
     // A tree is three tiles tall so it overlaps what is behind it; a bush is one.
     this.props.set("tree", stubProp(24, 32, { left: -1.5, top: -4, right: 1.5, bottom: 0 }));
     this.props.set("underbrush", stubProp(8, 16, { left: -0.5, top: -2, right: 0.5, bottom: 0 }));
+    // A thicket is undergrowth with no gaps in it, so it has growth on it too.
+    this.props.set("thicket", stubProp(8, 16, { left: -0.5, top: -2, right: 0.5, bottom: 0 }));
     for (const kind of RESOURCE_KINDS) this.resources.set(kind, stubProp());
     for (const facing of FACINGS) this.walks.set(facing, [stubTexture(32, 32), stubTexture(32, 32)]);
   }

@@ -49,7 +49,10 @@ export function* placementsIn(
     for (let col = 0; col < cols; col++) {
       const tileX = originX + col;
       const kind = map.get(tileX, tileY, z);
-      if (kind !== "tree" && kind !== "underbrush") continue;
+      // Thicket stands here too: its ground is the same undergrowth, and what
+      // separates the wall from the walkable version of it is that the wall
+      // has growth on every tile with no gaps to step through.
+      if (kind !== "tree" && kind !== "underbrush" && kind !== "thicket") continue;
       const art = pack.prop(kind, tileHash(tileX, tileY));
       if (!art) continue;
       yield {

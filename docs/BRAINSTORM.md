@@ -1,7 +1,8 @@
 # Phase 2 brainstorm
 
-M0 to M6 are done. One summer plays, and it is not fun yet. This document is
-the thinking about what to do about that. Decisions are marked as such, with a
+M0 to M6 are done, and so is the discovery test they led to; it has not been
+played yet. One summer plays, and it was not fun yet. This document is the
+thinking about what to do about that. Decisions are marked as such, with a
 date; everything else is open. Anything that changes the game goes to
 [DESIGN.md](DESIGN.md) once decided.
 
@@ -116,16 +117,26 @@ paths regrow is a pricing question.
 
 **The log's first entry asks:** when I broke through, did I feel anything?
 Which barrier felt best? Did I see the field before I reached it? Did the
-first bridge feel earned?
+first bridge feel earned? Those four questions are pre-written into
+[PLAYTEST.md](PLAYTEST.md), and answering them is what the milestone is for.
 
-Still open, to settle while building
-- Cut time for a thicket tile and lay time for a bridge tile.
-- How many sticks and how much rope a bridge tile costs, and how a single
-  vine or tree turns into them. For the test, one vine is one rope and one
-  tree is one stick, harvested like ore.
-- Sprites for thicket, vine and stick nodes. Placeholder art is fine for the
-  test; the sprite must read across a barrier.
-- Map size for a 5-minute summer. Rock can fill the rest of 128 by 128.
+Settled while building, 5 Sep 2026. All of these are guesses the playtest is
+allowed to overturn; the reasoning is in [RATIONALE.md](RATIONALE.md).
+
+- **Cut 1.5s, bridge 2s**, against a 0.6s harvest. A wall costs more than a
+  berry and a bridge costs more than a wall, and that is the whole of the
+  argument for the numbers so far.
+- **One vine and one stick per bridge tile**, both harvested like ore. The
+  narrowest crossing on every shipped map is two tiles, so a bridge is four
+  things gathered rather than a shopping trip.
+- **Sprites are the real art, not placeholders.** The vine is the crafting
+  pack's agave and the stick its birch pickup, both picked because they read
+  across a barrier: anything in the same green as the ground does not. A
+  thicket is undergrowth painted darker with growth on every tile, and a bridge
+  is planks over dirt -- on the dirt block alone it read as a ford.
+- **64 by 64, not 128.** A 5-minute summer does not need a map a player cannot
+  cross in one. Cropping a generated map to a window around the camp keeps the
+  generator's terrain and throws away the part nobody would reach.
 
 ---
 

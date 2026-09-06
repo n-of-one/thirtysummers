@@ -11,12 +11,16 @@ import { ScrollWindow } from "./scrollWindow.ts";
 /**
  * The ground a terrain is drawn on, for autotiling purposes.
  *
- * Trees and underbrush share one: a wood is a floor of undergrowth with trunks
- * standing on it, so comparing raw terrain would ring every tree with a
- * transition back to open grass. Everything else is its own surface.
+ * Trees, thicket and underbrush share one: a wood is a floor of undergrowth
+ * with trunks standing on it and a thicket is that undergrowth grown too dense
+ * to pass, so comparing raw terrain would ring every tree and every bramble
+ * with a transition back to open grass. Everything else is its own surface --
+ * including a bridge, which is planks laid over the water and reads as its own
+ * thing crossing it. Exported so the placement tests can agree about what
+ * autotiles with what.
  */
-function surfaceOf(kind: TerrainKind): TerrainKind {
-  return kind === "tree" ? "underbrush" : kind;
+export function surfaceOf(kind: TerrainKind): TerrainKind {
+  return kind === "tree" || kind === "thicket" ? "underbrush" : kind;
 }
 
 /**
@@ -36,6 +40,7 @@ export class TileLayer {
   private readonly window = new ScrollWindow({ left: 1, top: 1, right: 1, bottom: 1 });
   private frame = 0;
   private drawnFrame = -1;
+  private dirty = true;
 
   constructor(
     private readonly map: TileMap,
@@ -47,6 +52,7 @@ export class TileLayer {
 
   resize(widthPx: number, heightPx: number): void {
     if (!this.window.resize(widthPx, heightPx)) return;
+    this.dirty = true;
     const { cols, rows } = this.window;
 
     this.container.removeChildren();
@@ -66,6 +72,18 @@ export class TileLayer {
     }
   }
 
+  /**
+   * Force a re-texture on the next update, after the map itself has changed.
+   *
+   * The pool only reassigns textures when the camera crosses a tile boundary,
+   * so a cut thicket tile would otherwise stay drawn as thicket until the
+   * player walked far enough to scroll the window -- the one moment the change
+   * most needs to be visible is the one moment nothing would redraw it.
+   */
+  invalidate(): void {
+    this.dirty = true;
+  }
+
   /** Advance animated terrain (water). Takes a frame index; packs wrap it. */
   setAnimationFrame(frame: number): void {
     this.frame = frame;
@@ -73,7 +91,8 @@ export class TileLayer {
 
   update(camera: Camera): void {
     const scrolled = this.window.moveTo(camera.leftPx, camera.topPx);
-    if (scrolled || this.frame !== this.drawnFrame) {
+    if (scrolled || this.dirty || this.frame !== this.drawnFrame) {
+      this.dirty = false;
       this.drawnFrame = this.frame;
       this.refill();
     }

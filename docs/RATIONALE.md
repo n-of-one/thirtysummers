@@ -335,6 +335,164 @@ clock, the pack, the gold. The bottom right, freed up by the move, now carries
 the two lines the player needs exactly once — which key eats fruit, which key
 drinks water — shown only while carrying some.
 
+## The discovery test
+
+**Three actions, one shape.** Harvesting, cutting a thicket and laying a bridge
+tile are all a hold on the same key: progress builds while the key is down and
+the target stays in reach, and is thrown away the moment either stops being
+true. They are one code path with a table of durations, because the alternative
+-- three nearly identical loops -- is three places to fix the next thing learned
+about how a hold should feel. What differs between them is only what happens at
+the end, which is where they are actually different.
+
+The hold is keyed by a string, `node:7` or `tile:31,44`, rather than by a number.
+A node id and a tile index are both small integers and would otherwise collide,
+which would let walking from a node onto a thicket tile of the same number
+inherit the node's progress.
+
+**Tools aim at the nearest tile, not at the tile in front.** Every facing in this
+art is diagonal, so "the tile in front of you" falls between two tiles and names
+neither. Cutting and building therefore pick the nearest tile of the right kind
+within the same radius harvesting uses, ties breaking on the lower tile index --
+the same rule and for the same reason: a tie that resolves differently each tick
+resets the hold every tick, and the cut can never finish.
+
+**Picking beats cutting when both are in reach.** A vine growing against the
+thicket that walls it in is still a vine, and a player holding E next to one
+means to pick it. The order in `availableAction` is bank, harvest, cut, build,
+and one query answers both what the prompt says and what the key does.
+
+**A bridge tile is paid for at the end of the hold, and checked again there.**
+The materials are verified when the action is offered and spent when it
+completes, because a hold can start with a stick in the pack and finish without
+one -- lay a tile, keep the key down, and the next tile begins with an empty
+pack. Paying is all-or-nothing for the same reason.
+
+**A summer keeps its map and its log.** "Next summer" is not a new world: the
+terrain, the gold and the backpack survive, every node regrows, the stats refill
+and the clock restarts. The event log is not cleared either, so readers holding a
+cursor into it carry on rather than replay -- which is why `Hud.reset` takes the
+cursor to resume from, and why the summary counts up from the last
+`summerStarted` rather than from the beginning. A regenerate passes 0, because
+that world's log really is new.
+
+That leaves gold as the one number in the summary that is not a record of the
+summer: it is the score, it carries, and counting only what was banked since
+sunrise would be a different question.
+
+**The target tile marks itself.** Cutting and building act on the nearest tile
+of the right kind, and the prompt says what will happen but not where. The first
+playtest laid a bridge tile on the wrong tile and paid for it, which is exactly
+the failure that costs materials rather than time. There is now an outline on the
+tile the key would act on, drawn above the props -- a marker a bush can hide is
+no use on the one terrain made of bushes -- and red rather than pale when the
+action is right here but cannot be paid for.
+
+Progress is a bar along the bottom edge of that tile rather than a fill over the
+whole of it. The fill was tried first: pale enough to see the ground through, it
+lightens a thicket until the tile reads as ground already cut, which is the one
+thing the marker must never say.
+
+Harvesting is deliberately not marked. A node is a sprite standing where it is
+and the prompt already names it, so an outline would be a second answer to a
+question the screen has answered.
+
+## Maps as text
+
+**The dump became the format.** `npm run map` has printed one character per tile
+since M1. Reading it back is about half an evening of work and it is what makes
+the discovery test possible at all: the chain of barriers can be edited into a
+generated map by hand, and the alternative -- teaching the generator to build the
+chain -- is several evenings plus open-ended tuning against seeds that pass a
+validator and are still dull. The edited maps become the fixtures for that
+generator pass if the verdict ever calls for one.
+
+`formatMap` and `parseMap` live in `sim/` rather than in the script, so the round
+trip is testable and the script is just a caller. The stats the script used to
+print after the map went to stderr, so `npm run map -- 42 > a.txt` writes a file
+the loader can read.
+
+**One character cannot say both what grows and what it grows on**, so a node
+glyph implies its ground: mud under a vine, grass under everything else. That is
+a deliberate limit rather than a gap. The format is meant to be small enough to
+edit in a text editor and to be checked by eye; anything it cannot express is
+something an editor should not be adjusting one character at a time.
+
+**The parser is strict and says where.** These files are edited by hand, and a
+typo that silently became grass is a barrier quietly missing from a playtest.
+Every complaint names the line and column.
+
+**The chain is checked by flood-filling three ways.** `npm run map:check` runs
+the fill as the player is, then as if the thicket were not there, then as if the
+stream were not there, and compares the three answers with what the chain
+requires: vines on foot, sticks only once cut, gold only once bridged. It also
+re-runs stream thickening on a copy, which must change nothing -- an edited
+stream pinched to one tile across is a wall with a hole in it.
+
+"Gold is not reachable" is not enough on its own, and asking only that was the
+first version's bug: a pocket sealed behind a forest is also not reachable, and
+gold in one would simply never be found. The far bank is defined as what opens up
+when the stream is crossed and not before.
+
+**The maps are generated, cropped and then edited.** Each runs the generator's
+own terrain steps, stops before ford carving, crops a 64x64 window around the
+camp -- a 5-minute summer is not 128 tiles wide -- and then has the chain edited
+in: a mud pocket of vines, a stand walled in thicket, gold on the far bank, and
+one short wall near camp already cut through. What a map feels like to walk
+across is still the generator's.
+
+Two things went wrong doing it and are worth not repeating. Placing a feature
+"about nine tiles from camp" by taking the best-scoring tile puts it next to the
+camp when nothing at nine tiles qualifies -- the first run walled the camp in
+completely, and the flood fill reported one reachable tile. And scoring on
+distance alone makes the scan order the tiebreak, so every seed put its pocket in
+the same corner; the layouts only became per-map once the score carried a
+per-seed jitter.
+
+## Drawing the new terrain
+
+**A thicket is undergrowth painted darker through the same stencil.** It
+autotiles as one surface with trees and undergrowth, because it is the same
+growth; what makes it a wall is density, and density in this palette reads as
+shade. Tinting the finished tile was tried first and is wrong: the tint lands on
+the open ground inside the tile as well, so every ragged edge the stencil draws
+comes out square. Painting a second set of blocks through the stencil with a
+darker multiply puts the dark exactly where the growth is.
+
+The other half is growth on every tile with no gaps. Walkable undergrowth leaves
+45% of its tiles bare, and that gap is precisely what reads as "you can step
+through this" -- so the wall is the version without it. Measured on screen: with
+neither change, a thicket next to grass is one shade of green and a few more
+ferns, which is not a difference you can see while playing.
+
+**A bridge is planks over the dirt fill, and the timbers follow the run.** The
+farm tileset draws boards in two orientations; alone they are rails with daylight
+between them and show the stream straight through, which reads as a hole. Over
+the dirt block's solid fill they read as timber on a deck. The orientation is
+chosen from the autotile mask, so a crossing built north to south has its timbers
+running north to south.
+
+The first version used the dirt block on its own, as planned. On screen it read
+as a muddy ford -- exactly the thing the stream had its fords taken away to stop
+being. A bridge that looks like a ford cannot be the payoff for two barriers.
+
+**A cut tile has to be redrawn the moment it is cut.** Both layers only rebuild
+when the camera crosses a tile boundary, and the player cutting a path is
+standing still. `TileLayer.invalidate` is the ground's version of the prop
+layer's, and `main.ts` calls both on a `cut` or a `built` event.
+
+Measuring that it works needed the water animation held still: the ripple
+advances every 0.45 seconds and refills the whole pool when it does, which
+silently stood in for the invalidate and made the check pass with the call
+removed. With the frame index pinned, removing the call leaves the cut tile drawn
+as thicket in the frame after the cut, and restoring it puts grass there.
+
+**The two new node sprites are picked for contrast, not for botany.** A node has
+to be recognisable from across the barrier it is behind, which rules out anything
+in the same green as the ground: the crafting pack's hemp and ramie are exactly
+that, so the vine is its agave, whose teal reads at a distance against the mud it
+grows in, and the stick is the pale birch pickup from the logging sheet.
+
 ## Method
 
 Claims about how the game looks or behaves are measured, not asserted: drive the

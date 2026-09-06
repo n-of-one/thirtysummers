@@ -181,3 +181,41 @@ describe("TileLayer", () => {
     expect(sprites(layer).length).toBe(14 * 6);
   });
 });
+
+describe("invalidate", () => {
+  it("re-textures the pool without the camera moving", () => {
+    // Cutting a thicket changes the ground under a standing player. The pool
+    // only re-textures when the window scrolls, so without this the tile stays
+    // drawn as thicket until the player walks -- which is the one moment the
+    // change most needs to be visible.
+    const map = arena(40, "grass", (x, y) => (x === 20 && y === 20 ? "thicket" : null));
+    const { pack, layer } = scene(map);
+    const camera = cameraAt(20.5, 20.5);
+    layer.update(camera);
+    expect(pack.groundCalls.some((c) => c.kind === "thicket")).toBe(true);
+
+    map.set(20, 20, "grass");
+    pack.groundCalls.length = 0;
+    layer.update(camera);
+    expect(pack.groundCalls).toHaveLength(0);
+
+    layer.invalidate();
+    layer.update(camera);
+    expect(pack.groundCalls.some((c) => c.kind === "thicket")).toBe(false);
+    expect(pack.groundCalls.some((c) => c.kind === "grass")).toBe(true);
+  });
+});
+
+describe("thicket", () => {
+  it("autotiles as one surface with the wood around it", () => {
+    // A thicket is undergrowth grown too dense to walk through, so a wall of it
+    // has to meet the wood it stands in without a transition back to grass.
+    const map = arena(40, "grass", (x) => (x === 20 ? "thicket" : x === 21 ? "underbrush" : null));
+    const { pack, layer } = scene(map);
+    layer.update(cameraAt(20.5, 20.5));
+    const call = pack.groundCalls.find((c) => c.kind === "thicket")!;
+    expect(call.mask & E).toBe(E);
+    // ...and still ends where the open grass begins.
+    expect(call.mask & W).toBe(0);
+  });
+});

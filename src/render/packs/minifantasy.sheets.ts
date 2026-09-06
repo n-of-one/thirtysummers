@@ -43,7 +43,10 @@ export const SHEETS = {
   props: `${FP}/props/Minifantasy_ForgottenPlainsProps.png`,
   farmCrops: `${FARM}/Crops/Minifantasy_FarmSeedsAndCrops.png`,
   farmProps: `${FARM}/Props/Minifantasy_FarmProps.png`,
+  farmTiles: `${FARM}/Tileset/Minifantasy_FarmTileset.png`,
   mining: `${CRAFT}/Gathering_Professions/Mining/Minifantasy_CraftingAndProfessionsMining.png`,
+  fibres: `${CRAFT}/Gathering_Professions/Harvesting/Minifantasy_CraftingAndProfessionsFibresPlants.png`,
+  logging: `${CRAFT}/Gathering_Professions/Logging/Minifantasy_CraftingAndProfessionsLogging.png`,
   walk: `${NPC}/${CHARACTER}/Minifantasy_NPCs${CHARACTER}Walk.png`,
   /**
    * Undergrowth. The swamp pack ships this expressly to meet Forgotten Plains
@@ -118,10 +121,38 @@ export const DIRT_NARROW: readonly NarrowTile[] = [
  * all 70 rim pixels in that block touch open ground, so it reads as the step up
  * into denser growth.
  */
+/**
+ * The multiply used in place of `BRUSH_STENCIL.tint` for a thicket.
+ *
+ * Roughly half the light, so the wall is unmistakably darker than the
+ * undergrowth it is made of, while still being the same growth: what has
+ * changed is the density, and density in this palette reads as shade.
+ */
+export const THICKET_TINT = [0x52, 0x66, 0x44] as const;
+
 export const BRUSH_STENCIL = {
   bulk: [47, 90, 50],
   rim: [39, 73, 52],
   tint: [0x9f, 0xbc, 0x86],
+} as const;
+
+/**
+ * The plank decking a bridge tile is drawn with, as [tile x, tile y] on the
+ * farm tileset, and the ground it is laid over.
+ *
+ * The farm tileset draws boards three tiles long in two orientations and three
+ * tones; these are the middle tiles of the mid-tone board, which are the ones
+ * that repeat without a seam. They are rails with gaps between them -- alone
+ * they show the water straight through -- so each is composited over the dirt
+ * block's solid fill, which is what turns a rail into a deck.
+ *
+ * The orientation follows the run of bridge tiles, so a crossing built north to
+ * south has its timbers running north to south. A single tile has no run yet
+ * and gets the horizontal one.
+ */
+export const BRIDGE_PLANK = {
+  horizontal: [2, 6],
+  vertical: [2, 2],
 } as const;
 
 /** Half or quarter of a tile, named by where in the tile it sits. */
@@ -191,6 +222,28 @@ export const SYNTH_NARROW: readonly (readonly (readonly [index: number, region: 
     [7, "bottom"],
   ],
 ];
+
+/**
+ * Where each resource node is cut from, as [sheet, tile x, tile y].
+ *
+ * Every one is a single 8x8 cell, decoded from the pixels the way the rest of
+ * this file was. The two new ones are picked for contrast rather than for
+ * botany: a node has to be recognisable from across the barrier it is behind,
+ * which rules out anything that sits in the same green as the ground.
+ *
+ * `vine` is the crafting pack's agave, whose teal spikes read at a distance
+ * against the mud it grows in -- hemp and ramie are the same greens as the
+ * undergrowth. `stick` is the birch pickup icon from the logging sheet, a pale
+ * cut length that stands out on the forest floor of the stand it comes from.
+ * `ore` is the gold node it has always been.
+ */
+export const RESOURCE_CELL = {
+  fruit: ["farmCrops", 16, 1],
+  water: ["farmCrops", 16, 7],
+  ore: ["mining", 13, 1],
+  vine: ["fibres", 9, 1],
+  stick: ["logging", 23, 11],
+} as const satisfies Record<string, readonly [SheetName, number, number]>;
 
 /** One tile on a sheet. */
 export type NarrowTile = readonly [x: number, y: number];

@@ -8,7 +8,7 @@ import {
   type Vec2,
   type WorldEvent,
 } from "../sim/types.ts";
-import type { Action, World } from "../sim/world.ts";
+import { BRIDGE_COST, type Action, type World } from "../sim/world.ts";
 
 /**
  * Everything the HUD draws, as plain numbers.
@@ -38,15 +38,17 @@ export interface HudModel {
   holdingWater: boolean;
   secondsLeft: number;
   urgent: boolean;
+  /** Which summer this is, counting from 1. */
+  year: number;
   /** What the interact key would do here, or null for nothing in reach. */
   prompt: Prompt | null;
 }
 
 export interface Prompt {
   text: string;
-  /** Harvest progress, 0 to 1. Zero for anything that is not a hold. */
+  /** How far through the hold, 0 to 1. Zero for anything that is not a hold. */
   progress: number;
-  /** The right action here, but not possible: a full pack, or no ore to bank. */
+  /** The right action here, but not possible: a full pack, or nothing to build with. */
   blocked: boolean;
 }
 
@@ -55,6 +57,8 @@ const RESOURCE_NAME: Record<ResourceKind, string> = {
   fruit: "fruit",
   water: "water",
   ore: "ore",
+  vine: "vine",
+  stick: "stick",
 };
 
 /** The pack's contents in words, listing only what is actually in it. */
@@ -71,18 +75,43 @@ const BLOCKED_TEXT: Record<BlockedReason, string> = {
   noFruit: "No fruit in the backpack",
   noWater: "No water in the backpack",
   noOre: "No ore to bank",
+  // Says the price, not just the refusal: the player has to learn what a
+  // bridge tile costs somewhere, and standing at the water is where it matters.
+  noMaterials: `A bridge tile needs ${bridgeCostText()}`,
 };
+
+/** What one bridge tile costs, in words: "1 stick and 1 vine". */
+export function bridgeCostText(): string {
+  const parts = RESOURCE_KINDS.filter((kind) => (BRIDGE_COST[kind] ?? 0) > 0).map(
+    (kind) => `${BRIDGE_COST[kind]} ${RESOURCE_NAME[kind]}`,
+  );
+  return parts.length > 1
+    ? `${parts.slice(0, -1).join(", ")} and ${parts[parts.length - 1]}`
+    : (parts[0] ?? "nothing");
+}
 
 function promptFor(action: Action | null, progress: number): Prompt | null {
   if (!action) return null;
-  if (action.type === "deposit") {
-    return action.blocked
-      ? { text: BLOCKED_TEXT.noOre, progress: 0, blocked: true }
-      : { text: `Press E to bank ${action.ore} ore`, progress: 0, blocked: false };
+  switch (action.type) {
+    case "deposit":
+      return action.blocked
+        ? { text: BLOCKED_TEXT.noOre, progress: 0, blocked: true }
+        : { text: `Press E to bank ${action.ore} ore`, progress: 0, blocked: false };
+    case "harvest":
+      return action.blocked
+        ? { text: BLOCKED_TEXT.backpackFull, progress: 0, blocked: true }
+        : {
+            text: `Hold E to gather ${RESOURCE_NAME[action.node.kind]}`,
+            progress,
+            blocked: false,
+          };
+    case "cut":
+      return { text: "Hold E to cut through", progress, blocked: false };
+    case "build":
+      return action.blocked
+        ? { text: BLOCKED_TEXT.noMaterials, progress: 0, blocked: true }
+        : { text: "Hold E to lay a bridge tile", progress, blocked: false };
   }
-  return action.blocked
-    ? { text: BLOCKED_TEXT.backpackFull, progress: 0, blocked: true }
-    : { text: `Hold E to gather ${RESOURCE_NAME[action.node.kind]}`, progress, blocked: false };
 }
 
 /** One line of feedback for something that just happened. */
@@ -98,6 +127,12 @@ export function toastFor(event: WorldEvent): string {
       return `Banked ${event.gold} gold`;
     case "blocked":
       return BLOCKED_TEXT[event.reason];
+    case "cut":
+      return "Cut a path";
+    case "built":
+      return "Laid a bridge tile";
+    case "summerStarted":
+      return `Summer ${event.year}`;
   }
 }
 
@@ -120,6 +155,7 @@ export function hudModel(world: World): HudModel {
     holdingWater: inventory.count("water") > 0,
     secondsLeft: world.remainingSec,
     urgent: world.remainingSec < C.CLOCK_URGENT_SEC,
+    year: world.year,
     prompt: promptFor(world.availableAction(), world.harvestProgress),
   };
 }
@@ -127,9 +163,9 @@ export function hudModel(world: World): HudModel {
 /**
  * Seconds to `m:ss`.
  *
- * Rounded up, so a full 900-second day reads 15:00 on the first frame and only
- * reaches 0:00 when the day is genuinely over -- a clock that shows 0:00 with a
- * second still to play would be a lie in the direction that matters.
+ * Rounded up, so a full summer reads 5:00 on the first frame and only reaches
+ * 0:00 when it is genuinely over -- a clock showing 0:00 with a second still to
+ * play would be a lie in the direction that matters.
  */
 export function formatClock(seconds: number): string {
   const whole = Math.max(0, Math.ceil(seconds));
@@ -196,6 +232,7 @@ export class Hud {
   private readonly stomachValue: HTMLElement;
   private readonly clock: HTMLElement;
   private readonly clockTime: HTMLElement;
+  private readonly year: HTMLElement;
   private readonly backpack: HTMLElement;
   private readonly backpackContents: HTMLElement;
   private readonly gold: HTMLElement;
@@ -205,6 +242,7 @@ export class Hud {
   private readonly hintFruit: HTMLElement;
   private readonly hintWater: HTMLElement;
   private readonly summary: HTMLElement;
+  private readonly summaryTitle: HTMLElement;
   private readonly summaryStats: HTMLElement;
   private readonly restart: HTMLButtonElement;
 
@@ -232,6 +270,7 @@ export class Hud {
     this.stomachValue = need(this.stomach, "b");
     this.clock = need(root, ".clock");
     this.clockTime = need(root, "#clock-time");
+    this.year = need(root, "#year-count");
     this.backpack = need(root, "#backpack-count");
     this.backpackContents = need(root, "#backpack-contents");
     this.gold = need(root, "#gold-count");
@@ -241,6 +280,7 @@ export class Hud {
     this.hintFruit = need(root, "#hint-fruit");
     this.hintWater = need(root, "#hint-water");
     this.summary = need(root, "#summary");
+    this.summaryTitle = need(root, "#summary-title");
     this.summaryStats = need(root, "#summary-stats");
     this.restart = need(root, "#summary-restart");
 
@@ -274,6 +314,7 @@ export class Hud {
 
     setText(this.clockTime, formatClock(model.secondsLeft));
     this.clock.classList.toggle("is-urgent", model.urgent);
+    setText(this.year, String(model.year));
 
     setText(this.backpack, String(model.carried));
     setText(this.backpackContents, model.contents);
@@ -329,31 +370,39 @@ export class Hud {
   }
 
   /**
-   * Forget the day that just finished: hide the summary, clear the toasts still
-   * in the air, and rewind the event cursor.
+   * Put the summary away and start reading the log from `cursor`.
    *
-   * A regenerated world starts with an empty event log, so a cursor left where
-   * the old one ended would swallow the new day's first few hundred toasts.
+   * Two callers with opposite needs, which is why the cursor is a parameter. A
+   * regenerated world has a brand new, empty log, so it resumes at 0; the next
+   * summer on the same map keeps the log it has, so it resumes at the end of
+   * the summer that just finished. Get it the wrong way round and the HUD
+   * either swallows a summer of toasts or replays one.
    */
-  reset(): void {
+  reset(cursor = 0): void {
     this.summary.hidden = true;
     this.toasts.replaceChildren();
-    this.seenEvents = 0;
+    this.seenEvents = cursor;
     this.anchorContent = "";
   }
 
-  /** Show the end-of-day card. `onRestart` is wired to the button. */
+  /** Show the end-of-summer card. `onRestart` is wired to the button. */
   showSummary(day: DaySummary, onRestart: () => void): void {
     const rows: [string, string, boolean][] = [
       ["Gold", String(day.gold), true],
       ["Fruit picked", String(day.harvested.fruit), false],
       ["Water drawn", String(day.harvested.water), false],
       ["Ore mined", String(day.harvested.ore), false],
+      ["Vines cut", String(day.harvested.vine), false],
+      ["Sticks gathered", String(day.harvested.stick), false],
       ["Ore left unbanked", String(day.oreUnbanked), false],
       ["Fruit eaten", String(day.fruitEaten), false],
       ["Water drunk", String(day.waterDrunk), false],
+      ["Paths cut", String(day.tilesCut), false],
+      ["Bridge tiles laid", String(day.bridgesBuilt), false],
       ["Distance walked", `${day.distanceWalked.toFixed(0)} tiles`, false],
     ];
+
+    setText(this.summaryTitle, `Summer ${day.year} over`);
 
     this.summaryStats.replaceChildren();
     for (const [label, value, isGold] of rows) {

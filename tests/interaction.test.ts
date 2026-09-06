@@ -301,7 +301,7 @@ describe("a day played end to end", () => {
 
     const day = summarise(world);
     expect(day.gold).toBe(2);
-    expect(day.harvested).toEqual({ ore: 2, fruit: 1, water: 1 });
+    expect(day.harvested).toEqual({ ore: 2, fruit: 1, water: 1, vine: 0, stick: 0 });
     expect(day.fruitEaten).toBe(1);
     expect(day.waterDrunk).toBe(1);
     expect(day.oreUnbanked).toBe(0);
@@ -318,11 +318,14 @@ describe("a day played end to end", () => {
   it("reports an untouched day as all zeroes", () => {
     const day = summarise(worldWith([]));
     expect(day).toEqual({
+      year: 1,
       gold: 0,
-      harvested: { fruit: 0, water: 0, ore: 0 },
+      harvested: { fruit: 0, water: 0, ore: 0, vine: 0, stick: 0 },
       fruitEaten: 0,
       waterDrunk: 0,
       oreUnbanked: 0,
+      tilesCut: 0,
+      bridgesBuilt: 0,
       distanceWalked: 0,
     });
   });
