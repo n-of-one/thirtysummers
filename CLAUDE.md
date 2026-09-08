@@ -27,7 +27,16 @@ npm run build
 npm run map         # ASCII dump of a generated map, for eyeballing worldgen
 npm run map -- 42 > public/maps/x.txt   # ...and the same dump as a playable map
 npm run map:check public/maps/*.txt     # does each edited map still hold the chain?
+npm run build:itch  # the zip that goes on itch.io, with the refusals that keep art out
+npm run log:read <file>   # a pasted playtest record: the digest, then the route on the map
 ```
+
+The art has one build step of its own. `npm run dev`, then open
+http://localhost:5173/bake.html: it bakes the raw packs into
+`public/assets/baked/minifantasy.tspk`, the single file the public build draws
+from. Rerun it whenever the art or `minifantasy.sheets.ts` changes. Nothing on
+localhost needs it -- the dev machine still cuts its textures from the raw
+folders -- but `build:itch` refuses without it.
 
 Press `` ` `` in the running game for the debug overlay: seed and regenerate
 (`[` and `]` step it), a 1x–10x time scale, a tile grid, a stat freeze,
@@ -36,8 +45,9 @@ measure from.
 
 Useful URL params: `?map=<name>` (play `public/maps/<name>.txt` instead of a
 generated world — `a` through `e` are the discovery test's maps), `?seed=<n>`,
-`?pack=placeholder` (run without the paid art), `?debug=1` (start with the
-overlay already open).
+`?pack=placeholder` (run without the paid art), `?pack=baked` (the pack the
+public build uses), `?debug=1` (start with the overlay already open),
+`?public=1` (behave as though this were itch.io, for checking a `vite preview`).
 
 Controls: WASD or arrows to move, Shift to sprint, E or Space to gather, cut,
 build and bank ore, F to eat, R to drink.
@@ -54,6 +64,16 @@ build and bank ore, F to eat, R to drink.
 - The simulation runs on a **fixed 1/60s timestep** so per-second rates do not
   drift with frame rate. Anything that asks "is this moving" must read a flag the
   tick wrote, not diff positions between draws.
+- **`src/env.ts` is the only file that reads the hostname.** Everything that
+  differs between this machine and a stranger's -- which packs are tried, which
+  map loads, whether the debug overlay is built, whether there is a start card
+  and a pasteable record -- hangs off `isDevHost()`. Add a fifth difference
+  there, not with a second hostname test.
+- **A built bundle must contain no path back to the raw art.** `atlas.ts`
+  reaches the Minifantasy loader through a dynamic import behind
+  `import.meta.env.DEV`, so Rollup drops the module from a build and the sheet
+  paths and tile coordinates go with it. Check with
+  `grep -o "Minifantasy_" dist/assets/*.js` after a build: it must find nothing.
 
 ## Working agreement
 
@@ -74,10 +94,16 @@ the safe half — it says which seed each came from, not what is in it.
 
 ## Art licence
 
-The Minifantasy art is a paid licence and **must not be committed**.
-`public/assets/minifantasy/` is gitignored; `public/assets/README.md` says where
-to buy the packs and where to unzip them. The repo stays runnable without them
-via the code-drawn placeholder pack.
+The Minifantasy art is a paid licence and **must not be committed**. The raw
+packs live in `art/minifantasy/` -- outside `public/`, because Vite copies
+`public/` into `dist/` whole -- and the file baked from them lives in
+`public/assets/baked/`. Both paths are gitignored, and
+`public/assets/README.md` says where to buy the packs, where to unzip them and
+how to bake. The repo stays runnable without any of it via the code-drawn
+placeholder pack.
 
-This is not going to be a published project. If that changes, re-read the licence
-agreement and fulfil its requirements — see RATIONALE.md for what they were.
+**It is now a published project**, as of M7: the build goes on itch.io so a
+stranger can play it. The licence's obligations therefore apply. Krishna Palacio
+is credited on the start card; the link still has to be sent once the page is
+up. `public/assets/README.md` keeps that list, and RATIONALE.md records what the
+agreement said.

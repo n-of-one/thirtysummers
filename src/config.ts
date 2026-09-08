@@ -275,6 +275,44 @@ export const PIXEL_SETTLE_SEC = 0.05;
 /** [GUESS] Seconds each frame of the water ripple is held. */
 export const WATER_FRAME_SEC = 0.45;
 
+// ------------------------------------------------------------ the build ----
+
+/**
+ * Which map the public build plays.
+ *
+ * One constant, because it is a decision rather than a setting: `d` goes out to
+ * itch.io and `e` stays unshipped, kept clean for a session I can watch later.
+ * Their layouts are written down nowhere, which is the point -- see
+ * public/maps/README.md.
+ */
+export const SHIPPED_MAP = "d";
+
+// -------------------------------------------------------- playtest trace ----
+// The public build is played by someone nobody is watching, so the game has to
+// be its own observer. These decide how closely.
+
+/**
+ * [GUESS] Seconds of simulated time between trace samples.
+ *
+ * One a second is 300 samples a summer, which draws a path with every turn in
+ * it and still compresses to a couple of kilobytes. Finer would record the
+ * stride rather than the route, and the route is the question.
+ */
+export const TRACE_SAMPLE_SEC = 1;
+
+/**
+ * [GUESS] How long the player has to stay on one tile before it counts as a
+ * place they stopped.
+ *
+ * Five seconds is longer than any hold in the game -- a bridge tile is the
+ * slowest at two -- so a spot only shows up when they stood there doing
+ * nothing, which is what "they got stuck here" looks like from the outside.
+ */
+export const TRACE_IDLE_SEC = 5;
+
+/** Format version of a pasted playtest record; bumped when its shape changes. */
+export const PLAYTEST_LOG_VERSION = 1;
+
 // ------------------------------------------------------------------ debug ----
 // Only reachable with ?debug=1. Nothing here changes how the game plays.
 

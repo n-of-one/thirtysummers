@@ -3,10 +3,12 @@
 How the game in [DESIGN.md](DESIGN.md) gets built. Why the choices below were
 made is in [RATIONALE.md](RATIONALE.md); this document is only what to do.
 
-**Status: the discovery test is built and has been played four times, by the
-designer. The next tester is a stranger on itch.io, and M7 below is the build
-that makes that possible. The fruit and stamina tuning the log asks for is a
-separate step after it.**
+**Status: M7 is built. The discovery test has been played four times by the
+designer, and the shareable build is ready to upload: `npm run build:itch`
+writes a 190 kB zip that plays one map, draws from a 70 kB baked art file, and
+hands the tester a record to paste back. What is left is the part no code can
+do -- someone plays it and pastes a log. The fruit and stamina tuning the log
+asks for is a separate step after that.**
 
 Scope so far: the summer phase only. One flat map, one 5-minute summer, walk
 around collecting while stamina and hydration drain, cut a thicket, bridge a
@@ -41,7 +43,7 @@ Four dependencies total. Keep it that way.
 | Map | 128×128 tiles, `TILE = 64` screen px, 8px source art (8× scale) |
 | HUD | HTML/CSS overlay on top of the canvas |
 | Art | Minifantasy, behind a swappable pack layer |
-| Hosting | Localhost only |
+| Hosting | Localhost to develop on, an itch.io zip to be played |
 
 ## What is built
 
@@ -99,6 +101,8 @@ The hard rule: **nothing under `src/sim/` imports Pixi or touches the DOM.**
 ```
 src/
   config.ts          ALL tunable numbers, one file
+  env.ts             isDevHost(): the ONLY file that reads the hostname
+  build.d.ts         __BUILD_ID__, injected by Vite
   frameClock.ts      real elapsed time → whole fixed steps; clamps a stalled tab
   sim/                        ← pure TypeScript, no renderer, no DOM
     types.ts           TerrainKind, ResourceKind, Facing, Vec2
@@ -111,6 +115,8 @@ src/
     interaction.ts     what is in reach: nearest node, nearest tile of a kind, distance to camp
     summary.ts         the summer counted up from the event log
     mapfile.ts         text map format: parseMap / formatMap, one char per tile
+    trace.ts           where the player was, once a second
+    playtestLog.ts     the record a tester pastes back, and the digest read out of it
     world.ts           owns everything; world.step(dt, input); nextSummer()
     worldgen.ts        seed → GeneratedWorld; what order the steps run in, and why
     worldgen/
@@ -127,8 +133,11 @@ src/
     packs/pack.ts      AssetPack interface
     packs/autotile.ts  8-neighbour mask → tile index, narrow shapes included
     packs/placeholder.ts  code-drawn textures, used when the art is absent
-    packs/minifantasy.ts  loads the real art
+    packs/table.ts     TextureTable + TablePack: which texture a tile gets, written once
+    packs/minifantasy.ts  cuts a table out of the real art; dev only, dropped from builds
     packs/minifantasy.sheets.ts  where that art sits on disk, and nothing else
+    packs/bake.ts      shelf packer, atlas + manifest, the .tspk file format
+    packs/baked.ts     reads a .tspk back into a table; knows nothing of Minifantasy
     tileLayer.ts       culled sprite-pool ground renderer, autotiled
     propLayer.ts       y-sorted props + player, pixel snapping
     silhouette.ts      the player redrawn flat where a canopy covers them
@@ -136,14 +145,21 @@ src/
   input/keyboard.ts    keydown/keyup → InputState; NO_INPUT for tests
   ui/hud.ts            world state → the markup in index.html; toasts, summer summary
   ui/hud.css           HUD styling (markup lives in index.html)
+  ui/logExport.ts      the record as pasteable text, and the localStorage copy
   debug/overlay.ts     seed, time scale, grid, freeze, teleport; hidden until backtick
   main.ts              wires it together
+dev/
+  bake.ts              /bake.html: builds the .tspk and POSTs it to the dev server
+  textures.ts          /textures.html: every texture in every pack, side by side
 scripts/
   dumpmap.ts           npm run map: map to stdout, stats to stderr
   checkmap.ts          npm run map:check <file>: does the chain hold?
-tests/                 20 files, 281 tests
+  itch.ts              npm run build:itch: the zip, and the refusals that guard it
+  readlog.ts           npm run log:read: a pasted record → digest + route on the map
+tests/                 24 files, 307 tests
   stubPack.ts          an AssetPack that draws nothing and records everything
-public/assets/minifantasy/   real art — GITIGNORED
+art/minifantasy/             raw art — GITIGNORED, and outside public/ on purpose
+public/assets/baked/         the baked .tspk — GITIGNORED, licensed art too
 public/maps/           edited map dumps, a..e; the person playing does not open them
 docs/PLAYTEST.md       one entry per play session
 ```
@@ -167,6 +183,13 @@ docs/PLAYTEST.md       one entry per play session
   layers take a layer index; worldgen only ever produces layer 0.
 - **Nothing outside `render/packs/` knows Minifantasy exists.** The art is never
   committed; `placeholderPack` keeps a fresh clone runnable without it.
+- **`src/env.ts` is the only file that reads the hostname.** Everything that
+  differs between this machine and a stranger's hangs off `isDevHost()`. A fifth
+  difference goes there, not behind a second hostname test.
+- **A built bundle contains no path back to the raw art**, not just no pixels.
+  The raw loader is reached through a dynamic import behind
+  `import.meta.env.DEV` so Rollup drops it; `grep -o Minifantasy_ dist/assets/*.js`
+  must find nothing.
 
 ## Tunables
 
@@ -306,189 +329,156 @@ Everything below was run, and the numbers are what it reported.
 
 **What is left is the part no code can do**: someone plays a map blind and writes
 the first `PLAYTEST.md` entry. That entry is the milestone's output, and the
-verdict on it decides what the next milestone is.
+verdict on it decides what the next milestone is. Four such entries exist. The
+fifth comes from a stranger, which is what the next section was built for.
 
 ## M7: the shareable build
 
-Not started. Planned 6 Sep 2026 from the third entry in
-[PLAYTEST.md](PLAYTEST.md): the next tester is someone on itch.io who plays
-alone, so the game has to be its own observer, and the licensed art has to
-leave this machine as a game rather than as files.
+Built 6 Sep 2026, from the third entry in [PLAYTEST.md](PLAYTEST.md). The next
+tester plays alone, so the game has to be its own observer, and the licensed art
+has to leave this machine as a game rather than as files.
 
-What it delivers: `npm run build:itch` writes a zip that plays one map on
-itch.io, draws from a single baked art file that holds only the pixels the game
-uses, records where the tester went, and puts that record on the summary card
-for them to paste into a comment. `npm run log:read` turns a pasted record back
-into a path drawn on the map. The dev loop is untouched: on localhost the game
-still cuts its textures from the raw Minifantasy folders exactly as it does now.
+`npm run build:itch` writes a 190 kB zip that plays one map on itch.io, draws
+from a single 70 kB baked art file holding only the pixels the game uses,
+records where the tester went, and puts that record on the summary card for them
+to paste into a comment. `npm run log:read` turns a pasted record back into a
+digest and a path drawn on the map. The dev loop is untouched: on localhost the
+game still cuts its textures from the raw Minifantasy folders exactly as before.
 
-Why it is needed and not just `npm run build`: Vite copies `public/` into
-`dist/` whole, and the `dist/` on disk today contains all 1852 raw art PNGs.
-
-Decisions taken in planning. Overturn them in this section before starting,
-not while building.
-
-- **The public build plays map `d`.** `e` stays unshipped and unspoiled for a
-  watched session later. Which map ships is one constant.
-- **The baked art is one binary file, not a PNG.** Anything a browser can draw
-  can be read back from a canvas, so this stops "save image as", not a
-  determined person. The point is licence hygiene: the raw pack folders never
-  leave the machine, and what ships is the built game, which is the licensed
-  use.
-- **The raw art moves out of `public/`.** A dev-only server route serves it
-  from its new home, so nothing under `public/` is licensed and no build step
-  can leak it by accident.
-- **Logs are pasted, not uploaded.** No server, no account, no privacy
-  question. A summer compresses to a few kilobytes of text.
-- **The debug overlay does not exist on the public build.** Seed stepping and
-  teleport would show a tester the map they are meant to discover.
-- **Hostname decides.** `localhost`, `127.0.0.1` and `[::1]` are the dev
-  machine; everything else is public. `?public=1` forces the public behaviour
-  on localhost so `vite preview` can be checked.
-
-Work, in order. Each item names its files and what proves it.
+What the milestone leaves behind:
 
 1. **One answer to "is this the dev machine".** `src/env.ts` exports
-   `isDevHost(): boolean` from `location.hostname` and the `?public=1`
-   override. It is the only file that reads the hostname. `main.ts` uses it
-   three times: pack order, the default map when `?map=` is absent, and
-   whether to construct the debug overlay at all. Test: the classification of
-   a table of hostnames and the override.
+   `isDevHost()` from `location.hostname` with a `?public=1` override, and is
+   the only file that reads the hostname. `main.ts` uses it four times: the pack
+   order, the default map, whether the debug overlay is constructed at all, and
+   whether there is a start card and a record.
 
-2. **The raw art leaves `public/`.** `public/assets/minifantasy/` becomes
-   `art/minifantasy/`, gitignored at the new path. A plugin in
-   `vite.config.ts` uses `configureServer` to serve `/assets/minifantasy/*`
-   from that folder during `npm run dev` only, so `minifantasy.sheets.ts` and
-   `textures.html` keep working with the same URLs. `public/assets/README.md`
-   says where to unzip now. Proof: `npm run dev` still logs pack
-   "minifantasy"; `npm run build` produces a `dist/` with zero `.png` files.
+2. **The raw art out of `public/`.** `art/minifantasy/`, gitignored at the new
+   path, served at the old URLs by a `configureServer` plugin in
+   `vite.config.ts` that exists only in the dev server. `minifantasy.sheets.ts`
+   did not change. The route refuses a traversal after decoding the URL, not
+   before it.
 
-3. **The texture table.** `MinifantasyPack` does two jobs: building every
-   texture from the sheets, and answering `ground`, `prop`, `resource`,
-   `walk`, `idle` from arrays. Split them. `src/render/packs/table.ts` holds a
-   `TextureTable` interface with those arrays and the measured
-   `playerAnchor`/`playerBounds`, and a `TablePack implements AssetPack` that
-   answers from a table; the `ground` switch with its variant, autotile and
-   bridge-orientation logic moves there unchanged. `minifantasy.ts` shrinks to
-   `buildTable(sheets): TextureTable` plus the source. Behaviour must not
-   change. Proof: the screenshot diff in verification below, taken before and
-   after this item, is zero.
+3. **The texture table.** `render/packs/table.ts` holds `TextureTable` -- every
+   texture as data, with the measured `playerAnchor` and `playerBounds` -- and
+   `TablePack`, which owns every rule about which texture a tile gets. Two packs
+   build a table now: `minifantasy.ts` cuts one out of the sheets, `baked.ts`
+   reads one back out of a file. The rules are written once, so the two cannot
+   drift apart.
 
-4. **Baking.** `src/render/packs/bake.ts`, in three pure parts.
-   - `packRects(sizes)` is a shelf packer returning an atlas size and one rect
-     per input, deterministic. Textures are 8, 16, 24 and 32 pixels on a side,
-     so shelves by height are enough.
-   - `bakeTable(table)` walks every texture reachable from the table, once per
-     distinct texture (a block's narrow slots reuse its fill texture and must
-     not be drawn seven times), draws each into one canvas and returns the
-     pixels plus a manifest: format version, atlas size, `tileSize`,
-     `playerAnchor`, `playerBounds`, and for every slot a rect, with anchor
-     and bounds for props. Slot names are the table's own field names and
-     indices, so the manifest reads as the table flattened.
-   - `encodePack(pixels, manifest)` and `decodePack(bytes)`: the ASCII tag
-     `TSPK`, a u32 manifest length, the manifest as UTF-8 JSON, then the RGBA
-     bytes through `deflate-raw`. Both `CompressionStream` and
-     `DecompressionStream` exist in the browser and in Node 22, so the script
-     in item 7 decodes without a dependency.
-   The bake runs in a browser, because the raw pack is built from canvases.
-   `dev/bake.html` and `dev/bake.ts` load the raw pack on localhost, bake it,
-   and POST the bytes to a second route on the same Vite plugin, which writes
-   `public/assets/baked/minifantasy.tspk` and answers with the size. The
-   folder is gitignored. The page prints the atlas dimensions, the file size
-   and the slot count. Document it as `npm run dev`, then open
-   `http://localhost:5173/bake.html`. Tests: the packer never overlaps and
-   never exceeds the atlas; `encodePack` then `decodePack` on synthetic
-   pixels and a manifest is the identity.
+4. **Baking.** `render/packs/bake.ts`, in three pure parts: `packRects` is a
+   deterministic shelf packer; `bakeTable` walks the table once per *distinct*
+   texture (a block pads its narrow slots with its own fill, and undergrowth and
+   trees share blocks outright) and returns pixels plus a manifest whose slot
+   names are the table's own field names; `encodePack` / `decodePack` are the
+   `TSPK` file -- tag, u32 manifest length, manifest as plain JSON, atlas RGBA
+   through `deflate-raw`. The bake runs in a browser at `/bake.html` because the
+   raw pack builds half its tiles on canvases, and POSTs the result to a second
+   dev-server route.
 
-5. **The baked pack.** `src/render/packs/baked.ts`: `bakedPackSource` with
-   `available()` as a HEAD on the `.tspk`, `load()` as fetch, decode,
-   `ImageData` into a canvas, one `ImageSource` with nearest scaling, then a
-   `TextureTable` built from the manifest and handed to `TablePack`. It
-   imports nothing from `minifantasy.ts` or `minifantasy.sheets.ts`; the
-   manifest is the only thing it knows. `atlas.ts` orders sources by
-   `isDevHost()`: dev is minifantasy, baked, placeholder; public is baked,
-   placeholder. `?pack=baked` still forces it on localhost for comparison,
-   and `textures.html` shows it.
+5. **The baked pack.** `render/packs/baked.ts` rebuilds the table by reading the
+   slot names apart. It imports nothing from `minifantasy.ts` or
+   `minifantasy.sheets.ts`. `atlas.ts` orders the sources by `isDevHost()`, and
+   reaches the raw loader through a dynamic import behind `import.meta.env.DEV`
+   so Rollup drops the module from a build entirely.
 
-6. **The trace.** `src/sim/trace.ts`: a `Trace` the `World` owns and samples
-   from `step` every `TRACE_SAMPLE_SEC` of simulated time (a `[GUESS]` in
-   config, 1 second): summer, elapsed second, tile x and y, terrain kind
-   under the player, stamina, hydration, sprinting. Three hundred samples a
-   summer, append-only across summers like the event log. Pure, no DOM.
-   `src/sim/playtestLog.ts` builds the `PlaytestLog` record: format version,
-   build id, map name, pack id, wall-clock start, the events, the samples.
-   `digest(log)` computes what an observer would have written down, per
-   summer: gold, seconds to first cut, first bridge tile, first ore banked,
-   whether "Next summer" was pressed, tiles walked, and idle spots (the same
-   tile for longer than `TRACE_IDLE_SEC`, with its terrain). Tests: a
-   synthetic trace with known answers; `nextSummer` keeps earlier samples.
+6. **The trace.** `sim/trace.ts` samples summer, second, tile, terrain, both
+   bars and sprinting every `TRACE_SAMPLE_SEC` of simulated time, append-only
+   across summers like the event log. `sim/playtestLog.ts` builds the record and
+   `digest()` computes what an observer would have written down, per summer:
+   gold, seconds to the first cut, bridge tile and banked ore, whether "Next
+   summer" was pressed, tiles walked, idle spots and seconds spent in each bar's
+   warning.
 
-7. **Getting the log out and reading it back.** `src/ui/logExport.ts` (DOM)
-   encodes the record as `deflate-raw` then base64 with a `TS1.` prefix, so a
-   summer is a few kilobytes of pasteable text. The summary card gains a
-   textarea holding it, labelled "Copy this into your comment", selected on
-   focus, with a Copy button that tries `navigator.clipboard` and falls back
-   to the selection. No download link: an itch iframe may block both clipboard
-   and downloads, and a selected textarea works everywhere. The record is also
-   written to `localStorage` after every summer, so a closed tab loses
-   nothing, and the textarea holds every summer played so far, not the last
-   one. `scripts/readlog.ts` as `npm run log:read <file>` decodes a pasted
-   record, prints the digest, then prints the map from `public/maps/` with
-   the path density overlaid on the dump's own glyphs. It is the substitute
-   for the observer's notes and is for use after a tester has played, so the
-   blind-play rule is not in its way.
+7. **Getting the log out and reading it back.** `ui/logExport.ts` encodes the
+   record as `deflate-raw` then base64 behind a `TS1.` prefix. The summary card
+   gains a textarea holding every summer played so far, selected on focus, with
+   a Copy button that falls back to the selection; there is no download link,
+   because an itch iframe may block both the clipboard and downloads. The record
+   is written to `localStorage` after every summer. `npm run log:read` prints the
+   digest and then the map with the route overlaid on the dump's own glyphs.
 
-8. **What the tester sees.** A start card in `index.html`: title, four lines
-   of controls, "art by Krishna Palacio", "5 minutes, then the summer ends".
-   The first movement key dismisses it. The build id (git short hash and
-   date, injected with Vite `define`) sits small on the summary card and in
-   the log, so a pasted record can be matched to a build. On the public build
-   the overlay is not constructed and backtick does nothing. Nothing about
-   fruit, stamina or sprint changes here.
+8. **What the tester sees.** A start card with the title, the controls, "art by
+   Krishna Palacio" and the length of a summer. It holds the clock as well as the
+   screen: nothing steps until a movement key is pressed, and that key also takes
+   the card away. The build id sits on the summary card and in the record.
 
-9. **The zip.** `scripts/itch.ts` as `npm run build:itch`: runs `vite build`
-   with a relative `base` (itch serves from a subpath), prunes `dist/maps/`
-   to the shipped map, refuses if `dist/` contains any `.png` or anything
-   under `assets/minifantasy`, refuses if the `.tspk` is missing, and zips
-   `dist/` with `index.html` at the root to `dist/thirtysummers-<build>.zip`
-   using the `zip` already on the machine. Prints the zip size, the `.tspk`
-   size and the file list.
+9. **The zip.** `scripts/itch.ts` builds, prunes `dist/maps/` to `SHIPPED_MAP`,
+   drops the art README, and then refuses: on any `.png`, on any raw-art path, on
+   a missing `.tspk`, and on anything but the one shipped map. Then it zips
+   `dist/` with `index.html` at the root.
 
-10. **Docs.** `public/assets/README.md` for the new art location and the bake
-    step; `public/maps/README.md` says which map ships; `docs/PLAYTEST.md`
-    gains a remote-tester variant of the entry with "log pasted by", the
-    build id, and the questions to put on the itch page; `CLAUDE.md` lists
-    the new commands; `RATIONALE.md` records the format choice, paste over
-    upload, and hostname switching. This section moves to "What is built"
-    with the numbers verification produced.
+Decisions taken while building it, over and above the plan. The reasoning is in
+[RATIONALE.md](RATIONALE.md) under "The shareable build" and the additions to
+"Art licence".
+
+- **Moving the art out of `public/` was not enough.** The first build still had
+  every sheet path and every tile coordinate in its JavaScript, because
+  `atlas.ts` imported the raw loader whether or not it would be used. No pixels,
+  so no licence breach, but a recipe, and it made the guarantee a runtime `if`
+  rather than an absence. The dynamic import behind `import.meta.env.DEV` is
+  what actually removes it, and `grep -o Minifantasy_ dist/assets/*.js` is the
+  check.
+- **The public build has a stand-in overlay, not an optional one.** The frame
+  loop reads the time scale and the freeze every frame; `NO_OVERLAY` answers
+  "real time, nothing frozen, nothing to draw" so the loop has no branch in it.
+  The real `DebugOverlay` is never constructed, so backtick has no listener.
+- **Grass keeps only its 15 drawn tiles in the table.** It has no edges to
+  autotile, and padding it out to 22 would have silently changed which variant a
+  tile got.
+- **The trace carries its sampling remainder with a modulo, not a subtraction.**
+  A single `dt` longer than the interval -- a test stepping a whole second --
+  would otherwise leave it still due and sample twice.
 
 ### Verification
 
-All of it measured, none of it asserted, on the pattern of the discovery
-test's list above.
+Everything below was run, and the numbers are what it reported.
 
-- `npm run typecheck`, `npm run test` clean. New tests are named in the items.
-- **The baked pack draws the same picture.** Over the DevTools protocol on
-  localhost: `?map=d&pack=minifantasy` and `?map=d&pack=baked`, the camera at
-  the same place, the water frame pinned, one screenshot each, pixel diff
-  zero. Non-vacuous: shift one rect in the manifest by a pixel and watch the
-  diff go non-zero, then restore it.
-- **The refactor in item 3 changed nothing.** The same diff, raw pack against
-  itself, before and after the split.
-- **The zip is clean.** Unzip it into a scratch folder: zero `.png`, no
-  `assets/minifantasy` path, one map file, the `.tspk` present. Report the
-  sizes.
-- **The public build behaves as public.** `vite preview` with `?public=1`:
-  the console logs pack "baked" and map "d" with no `?map=`, backtick opens
-  nothing, the start card shows and the first key clears it.
-- **A log round-trips.** Play one summer over the protocol on the preview
-  build, cut a thicket at a known second, press "Next summer", take the
-  textarea text, run `npm run log:read` on it: the path lands on the tiles
-  walked, and the first-cut second matches the `cut` event.
-- 60fps unchanged on the baked pack.
+- `npm run typecheck`, `npm run test` — clean; 307 tests over 24 files. New:
+  the hostname table and both directions of the `?public=1` override; the shelf
+  packer never overlaps, never leaves the atlas, is deterministic, wastes under
+  half the atlas, and handles one texture and none; `encodePack`/`decodePack`
+  round trip, compress, and refuse a wrong tag and a wrong version; the trace
+  samples at a steady rate without drifting, restarts its interval on a new
+  summer, and keeps earlier summers; the digest splits summers, finds first
+  events, idle spots and warning seconds, and reads an empty record; the log
+  codec round trips, fits a summer in under 6 kB, survives being wrapped and
+  re-indented by a comment box, refuses text that is not a record, and does not
+  throw when `localStorage` does.
+- **The baked pack draws the same picture.** Over the DevTools protocol,
+  `?map=d&pack=minifantasy` against `?map=d&pack=baked`, the water frame pinned,
+  the camera on the same tile, standing beside one tile of each of stream,
+  thicket, mud, underbrush and tree, plus a run of bridge and a block of rock
+  painted into the map identically in both runs: **0 differing pixels** at every
+  one of the six, out of 1.25M to 1.9M pixels each. Non-vacuous: shifting one
+  manifest rect by a single pixel takes the diffs to 320–4160 pixels, and
+  restoring it takes them back to zero.
+- **The refactor in item 3 changed nothing.** The pre-split loader was restored
+  from git as a second pack and diffed against the split one over the same six
+  spots: 0 differing pixels everywhere.
+- **The zip is clean.** Unzipped into a scratch folder: 0 `.png` files, 0 paths
+  under `minifantasy`, one map (`d.txt`), the `.tspk` present, `index.html` at
+  the root. 190 kB zipped, 708 kB unzipped, of which the art is 70 kB.
+  `grep -o Minifantasy_ dist/assets/*.js` finds 0 hits; the only surviving
+  mention of the word in the bundle is the filename `minifantasy.tspk`.
+- **The public build behaves as public.** `vite preview` with `?public=1`: the
+  console logs `map "d" | pack "baked" | ... | public build dd1615c+ 2026-09-06`
+  with no `?map=` in the URL, backtick leaves the debug panel hidden, the start
+  card shows, the clock reads exactly 0 until the first movement key, and that
+  key clears the card.
+- **A log round-trips.** One summer driven over the protocol on the preview
+  build: cut a thicket at 2.2s, ran the clock out, took the textarea text, played
+  a second summer, took it again. `npm run log:read` on that text reports
+  "first cut 2s" against the `cut` event's 2.2s, "played on: yes — they pressed
+  Next summer" for summer 1 and "no" for summer 2, and draws the route on the map
+  with a `3` on the tile the cut was made from. The `localStorage` copy matched
+  the textarea exactly.
+- `npm run map:check public/maps/*.txt` — all five still OK.
+- 59.9fps on the baked pack, on the dev server and on the preview build alike.
 
-**What is left is the same as last time**: a stranger plays it and pastes a
-log. That entry is the milestone's output.
+**What is left is the same as last time**: a stranger plays it and pastes a log.
+That entry is the milestone's output. `docs/PLAYTEST.md` has the remote template
+and the text to put on the itch.io page.
 
 ## Beyond the discovery test
 
@@ -516,6 +506,14 @@ What must keep passing, whatever is being built.
   holds.
 - `npm run map:check public/maps/*.txt` — the chain still holds on every
   shipped map. Run it after editing one by hand.
+- `npm run build:itch` — the zip builds and every refusal in it stays silent:
+  no PNG, no raw-art path, the `.tspk` present, one map. Then
+  `grep -o Minifantasy_ dist/assets/*.js` finds nothing.
+- `vite preview` on `?public=1` — pack "baked", map "d" with no `?map=`,
+  backtick does nothing, the start card holds the clock at 0 until the first
+  movement key.
+- `npm run log:read` on a record taken from that preview — the digest's first-cut
+  second matches the `cut` event, and the route lands on the tiles walked.
 - `npm run dev` — play a summer on a seed: walk, sprint until stamina empties,
   eat fruit and hit the 60s cooldown, drink water, fill the backpack, bank ore
   at camp, watch the timer run out and the summary appear.

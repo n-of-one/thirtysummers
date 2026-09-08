@@ -47,13 +47,41 @@ of the PNGs is the thing to avoid. Hence: the art is gitignored, nothing outside
 `render/packs/` knows the pack exists, and a fresh clone still runs on the
 code-drawn placeholder pack.
 
-This is not currently intended to be published. If that changes, re-read the
-licence — the obligations at the time of writing were to credit *Krishna
-Palacio* in the credits and send them a link on completion — and note that a
-public `gh-pages` branch would be a directory listing of PNGs, which reads far
-more like redistribution than a built bundle does.
+It is published now. M7 puts a build on itch.io so a stranger can play it, which
+is squarely the licensed use, and the obligations come with it: *Krishna
+Palacio* is credited on the start card, and a link goes to them once the page is
+up. What stays true is the shape of the risk — a public `gh-pages` branch would
+be a directory listing of PNGs, which reads far more like redistribution than a
+built bundle does.
 
 *(A reading of the licence text, not legal advice.)*
+
+### Three things the shareable build changed about this
+
+**The raw art moved out of `public/`.** Vite copies `public/` into `dist/` whole
+and asks no questions, so for as long as the packs sat under it, every `npm run
+build` produced a `dist/` containing 1852 raw PNGs. Nothing had gone wrong yet
+because nothing had been shipped; the first time it was, it would have shipped
+them. The packs now live in `art/`, and a dev-server route serves them at the
+same URLs, so `minifantasy.sheets.ts` did not change a line.
+
+**What ships is baked into one file.** `minifantasy.tspk` is a 512×256 atlas and
+a manifest, 70 kB against the packs' 14 MB, holding only the 796 distinct
+textures the game actually draws. Anything a browser can draw can be read back
+out of a canvas, so this is not a lock: it stops "save image as", not a
+determined person. The point is that the raw pack folders never leave this
+machine, and that what reaches a player is a built game rather than a copy of
+the assets.
+
+**A built bundle carries no path back to the art either.** Moving the files was
+not enough on its own: the first build still had every sheet path and every tile
+coordinate in its JavaScript, because `atlas.ts` imported the raw loader whether
+or not it would be used. That is not a licence breach — no pixels — but it is a
+recipe, and it made the guarantee a runtime `if` rather than an absence.
+`atlas.ts` now reaches the loader through a dynamic import behind
+`import.meta.env.DEV`, which Rollup folds away, and the module goes with it.
+`grep -o Minifantasy_ dist/assets/*.js` finds nothing, which is a check worth
+keeping.
 
 ## Tiling
 
@@ -492,6 +520,53 @@ to be recognisable from across the barrier it is behind, which rules out anythin
 in the same green as the ground: the crafting pack's hemp and ramie are exactly
 that, so the vine is its agave, whose teal reads at a distance against the mud it
 grows in, and the stick is the pale birch pickup from the logging sheet.
+
+## The shareable build
+
+The next tester is a stranger on itch.io. Four sessions have been played with me
+in the room, and the notes that came out of them are half observation and half
+what I saw them do; the fifth has nobody watching. That is the constraint M7 was
+built to, and three decisions follow from it.
+
+**The game has to be its own observer.** `sim/trace.ts` samples the player's
+tile, terrain and bars once a second — 300 samples a summer, which draws a route
+with every turn in it and still compresses small. The digest in `playtestLog.ts`
+then computes exactly the things I wrote down by hand in the earlier entries:
+seconds to the first cut, whether they crossed, whether they pressed "Next
+summer", and where they stood still for longer than any hold in the game takes.
+A sample is a tile, not a position; three decimal places of where inside one is
+noise in a pasted record.
+
+**Logs are pasted, not uploaded.** The alternative is a server, which means an
+endpoint, a privacy question and something to keep running for a test that is
+meant to last a fortnight. A summer deflates to a couple of kilobytes of base64,
+which fits in an itch.io comment, and nothing about the tester leaves their
+machine unless they choose to paste it. The record is also written to
+`localStorage` after every summer, so a closed tab loses nothing, and the box
+holds every summer played rather than the last one — a tester who plays three
+and copies what is in front of them should be sending all three.
+
+There is no download link, deliberately. An itch iframe may block both the
+clipboard and downloads; a `readonly` textarea that selects itself on focus
+works everywhere, and the Copy button is the convenience on top rather than the
+mechanism.
+
+**Hostname decides, and only one file asks.** `src/env.ts` is the only place
+that reads `location.hostname`. Five things differ between this machine and a
+stranger's — the pack order, the default map, whether the debug overlay is
+constructed, whether there is a start card, and whether a record is kept — and
+with the test in five places one of them would eventually disagree with the
+others. The failure that matters is specific: a tester handed the seed stepper
+and click-to-teleport is a tester shown the whole of the map they were given to
+discover, and the discovery is the entire experiment. `?public=1` forces the
+public answer on localhost so a `vite preview` can be checked; there is no
+override the other way, because a public host must never be talked into dev
+mode.
+
+**The start card holds the clock.** It came out of the obvious failure mode:
+four lines of controls in front of a five-minute timer that has already started.
+Nothing steps until a movement key is pressed, and that same key takes the card
+away, so there is nothing to click and nothing to read twice.
 
 ## Method
 

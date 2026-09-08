@@ -5,5 +5,10 @@ dist/
 
 # Minifantasy art is a paid license that forbids redistribution.
 # Buy the packs on itch.io and unzip them here; they must never be committed.
-public/assets/minifantasy/
+# Out of public/ on purpose: Vite copies public/ into dist/ whole, so raw art
+# under it would ship in every build.
+art/
+
+# The baked art file: built from art/ by /bake.html, and licensed art too.
+public/assets/baked/
 .idea

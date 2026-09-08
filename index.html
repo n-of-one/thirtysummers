@@ -3,10 +3,27 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>2D World Prototype</title>
+    <title>Thirty Summers</title>
   </head>
   <body>
     <div id="stage"></div>
+
+    <!-- What the tester sees before anything else. The first movement key
+         clears it, so there is nothing to click and nothing to read twice. -->
+    <div id="start" hidden>
+      <div class="start-card">
+        <h1>Thirty Summers</h1>
+        <p class="start-blurb">Gather what the summer will give you. Five minutes, then the summer ends.</p>
+        <ul class="start-keys">
+          <li><b>WASD</b> or <b>arrows</b> to move, <b>Shift</b> to sprint</li>
+          <li><b>E</b> to gather, cut, build and bank ore</li>
+          <li><b>F</b> to eat fruit, <b>R</b> to drink water</li>
+          <li>What you change to the land stays changed next summer</li>
+        </ul>
+        <p class="start-credit">art by Krishna Palacio</p>
+        <p class="start-go">press a movement key to begin</p>
+      </div>
+    </div>
     <div id="grid" hidden></div>
 
     <div id="hud">
@@ -51,7 +68,17 @@
       <div class="summary-card">
         <h1 id="summary-title">Summer over</h1>
         <dl id="summary-stats"></dl>
+
+        <!-- The tester is on their own, so the game hands them its own notes to
+             paste back. Hidden on the dev machine, where I am the observer. -->
+        <div id="summary-share" hidden>
+          <label for="summary-log">Copy this into your comment</label>
+          <textarea id="summary-log" readonly rows="3" spellcheck="false"></textarea>
+          <button id="summary-copy" type="button">Copy</button>
+        </div>
+
         <button id="summary-restart">Next summer</button>
+        <p id="summary-build"></p>
       </div>
     </div>
 

@@ -268,3 +268,71 @@ button:hover { background: #363d27; }
   padding: 3px 6px;
 }
 #debug button { padding: 3px 10px; }
+
+/* --- the record the tester pastes ---------------------------------------- */
+
+#summary-share { margin: 0 0 20px; }
+#summary-share[hidden] { display: none; }
+#summary-share label {
+  display: block;
+  margin-bottom: 6px;
+  color: var(--ink-dim);
+  font-size: 12px;
+}
+#summary-log {
+  display: block;
+  width: 100%;
+  font: 11px/1.4 ui-monospace, monospace;
+  color: var(--ink-dim);
+  background: #0d0f0c;
+  border: 1px solid var(--edge);
+  border-radius: var(--radius);
+  padding: 6px 8px;
+  /* Wraps rather than scrolls sideways: a select-all has to be obviously the
+     whole thing, and a one-line box that runs off the edge does not look it. */
+  resize: vertical;
+  white-space: pre-wrap;
+  word-break: break-all;
+}
+#summary-copy { margin-top: 8px; padding: 5px 14px; font-size: 12px; }
+#summary-build {
+  margin: 16px 0 0;
+  color: var(--ink-dim);
+  font-size: 11px;
+  letter-spacing: 0.04em;
+}
+#summary-build:empty { display: none; }
+
+/* --- the start card ------------------------------------------------------ */
+
+#start {
+  position: fixed;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  background: rgba(8, 10, 8, 0.86);
+  z-index: 2;
+}
+#start[hidden] { display: none; }
+
+.start-card {
+  max-width: 420px;
+  padding: 30px 36px;
+  background: #15180f;
+  border: 1px solid var(--edge);
+  border-radius: 10px;
+  text-align: center;
+}
+.start-card h1 { margin: 0 0 14px; font-size: 26px; letter-spacing: 0.08em; }
+.start-blurb { margin: 0 0 20px; color: var(--ink-dim); }
+.start-keys {
+  margin: 0 0 20px;
+  padding: 0;
+  list-style: none;
+  text-align: left;
+  line-height: 1.9;
+}
+.start-credit { margin: 0 0 6px; color: var(--ink-dim); font-size: 12px; }
+/* Slow enough to read as breathing rather than as a warning. */
+.start-go { margin: 0; color: var(--gold); font-size: 12px; animation: pulse 2.2s ease-in-out infinite; }
+@keyframes pulse { 0%, 100% { opacity: 0.45; } 50% { opacity: 1; } }

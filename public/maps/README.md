@@ -18,6 +18,11 @@ fords, so what a map feels like to walk across is still the generator's.
 | d | 555 |
 | e | 808 |
 
+**`d` is the one that ships.** `npm run build:itch` prunes every other map out
+of the build, and `SHIPPED_MAP` in `src/config.ts` is where that is decided. `e`
+stays unshipped on purpose: it is being kept unspoiled for a session I can sit
+and watch, once the itch.io testers have had theirs.
+
 `npm run map:check public/maps/*.txt` re-verifies the chain on all of them. It
 is the thing to run after editing one by hand.
 

@@ -1,6 +1,7 @@
 import "./ui/hud.css";
 import * as C from "./config.ts";
 import { DebugOverlay, formatReadout } from "./debug/overlay.ts";
+import { isDevHost } from "./env.ts";
 import { FrameClock } from "./frameClock.ts";
 import { Keyboard } from "./input/keyboard.ts";
 import { createApp } from "./render/app.ts";
@@ -10,9 +11,11 @@ import { PropLayer } from "./render/propLayer.ts";
 import { TargetMarker, targetTile } from "./render/targetMarker.ts";
 import { TileLayer } from "./render/tileLayer.ts";
 import { parseMap } from "./sim/mapfile.ts";
+import { newLog, type PlaytestLog } from "./sim/playtestLog.ts";
 import { summarise } from "./sim/summary.ts";
 import { World } from "./sim/world.ts";
 import { Hud, hudModel } from "./ui/hud.ts";
+import { encodeLog, saveLog } from "./ui/logExport.ts";
 
 /**
  * Surface startup failures on the page. A module with top-level await that
@@ -32,6 +35,13 @@ addEventListener("error", (e) => showFatal(e.error ?? e.message));
 addEventListener("unhandledrejection", (e) => showFatal(e.reason));
 
 const params = new URLSearchParams(location.search);
+
+/**
+ * Which machine this is, asked once. Everything that differs between the
+ * version I develop on and the version a stranger plays hangs off it: the pack
+ * order, the map, the debug overlay, the start card and the pasteable record.
+ */
+const dev = isDevHost();
 // `?seed=` with nothing usable after it falls back to the default rather than
 // generating from NaN, which silently produces a map unrelated to any seed.
 const requestedSeed = Number(params.get("seed"));
@@ -44,12 +54,15 @@ let seed = params.get("seed") && Number.isFinite(requestedSeed) ? requestedSeed 
  * hold the chain of barriers, played by someone who has not opened the file.
  * Without the parameter nothing changes and seeds work exactly as before.
  */
-const mapName = params.get("map");
+const mapName = params.get("map") ?? (dev ? null : C.SHIPPED_MAP);
 let world = mapName ? await loadMap(mapName) : World.fromSeed(seed);
 
 async function loadMap(name: string): Promise<World> {
-  const res = await fetch(`/maps/${encodeURIComponent(name)}.txt`);
-  if (!res.ok) throw new Error(`no map "${name}" (/maps/${name}.txt: ${res.status})`);
+  // Relative to the page: itch.io serves the game from a subdirectory, so a
+  // path rooted at / would look for the map at the top of itch's own domain.
+  const url = new URL(`maps/${encodeURIComponent(name)}.txt`, document.baseURI);
+  const res = await fetch(url);
+  if (!res.ok) throw new Error(`no map "${name}" (${url.pathname}: ${res.status})`);
   return new World(parseMap(await res.text()));
 }
 
@@ -88,6 +101,31 @@ const hud = new Hud();
 /** How far through `world.events` the renderer has got. */
 let seenEvents = 0;
 let summaryShown = false;
+
+/**
+ * The record this session is building, on the public build only.
+ *
+ * It is filled in from the world at the end of each summer rather than kept up
+ * to date as it goes: the event log and the trace are already the running
+ * totals, and copying them once per summer costs nothing.
+ */
+let log: PlaytestLog | null = dev
+  ? null
+  : newLog({
+      build: __BUILD_ID__,
+      map: mapName ?? `seed ${seed}`,
+      pack: pack.id,
+      startedAt: new Date().toISOString(),
+    });
+
+/**
+ * The start card holds the clock as well as the screen.
+ *
+ * A tester reading four lines of controls should not be spending the summer
+ * they are reading about, so nothing steps until they press a movement key.
+ */
+let waitingToStart = log !== null;
+if (waitingToStart) hud.showStart();
 
 /**
  * Throw the world away and generate a new one on `nextSeed`.
@@ -143,26 +181,49 @@ function nextSummer(): void {
 }
 
 /**
- * The debug panel is always built, and starts down unless `?debug=1` asked for
- * it. Backtick brings it up. It costs a hidden div and a keydown listener, and
- * having it a keystroke away beats reloading with a query string on to find out
- * where you are standing.
+ * What the public build has instead of a debug overlay.
+ *
+ * The frame loop reads the time scale and the freeze every frame and hands the
+ * readout to `update`, and none of that is worth an `if` per frame or an
+ * optional chain per call site. The stand-in answers "real time, nothing
+ * frozen, nothing to draw" and the loop never knows the difference.
  */
-const overlay = new DebugOverlay({
-  seed,
-  regenerate,
-  teleport: (screenX, screenY) => {
-    const target = camera.toWorld({ x: screenX, y: screenY });
-    if (!world.teleport(target.x, target.y)) return false;
-    // Cut to the new position rather than gliding: a camera easing across
-    // half the map hides the very thing the teleport was for.
-    camera.centreOn(world.player);
-    camera.clampTo(world.map.width, world.map.height);
-    return true;
-  },
-  clickTarget: stage,
-  open: params.has("debug"),
-});
+const NO_OVERLAY = {
+  timeScale: C.TIME_SCALE_MIN,
+  frozen: false,
+  setSeed(_seed: number) {},
+  update(_camera: Camera, _readout: () => string) {},
+};
+
+/**
+ * The debug panel, on this machine only.
+ *
+ * It starts down unless `?debug=1` asked for it, and backtick brings it up: it
+ * costs a hidden div and a keydown listener, and having it a keystroke away
+ * beats reloading with a query string on to find out where you are standing.
+ *
+ * On the public build it is not constructed at all, and `NO_OVERLAY` stands in
+ * for it. Seed stepping and click-to-teleport would show a tester the whole of
+ * the map they were handed to discover, which is the one thing the test is
+ * asking them to do for themselves.
+ */
+const overlay = dev
+  ? new DebugOverlay({
+      seed,
+      regenerate,
+      teleport: (screenX, screenY) => {
+        const target = camera.toWorld({ x: screenX, y: screenY });
+        if (!world.teleport(target.x, target.y)) return false;
+        // Cut to the new position rather than gliding: a camera easing across
+        // half the map hides the very thing the teleport was for.
+        camera.centreOn(world.player);
+        camera.clampTo(world.map.width, world.map.height);
+        return true;
+      },
+      clickTarget: stage,
+      open: params.has("debug"),
+    })
+  : NO_OVERLAY;
 
 /** Handle for measuring from the console or a devtools driver. */
 function exposeGame(): void {
@@ -177,6 +238,21 @@ function exposeGame(): void {
   };
 }
 exposeGame();
+
+/**
+ * Copy the summer just played into the record, hand it to the summary card and
+ * keep a copy where a reload can find it.
+ *
+ * Every summer so far, not the last one: a tester who plays three and pastes
+ * the box in front of them should be pasting all three.
+ */
+async function publishLog(record: PlaytestLog): Promise<void> {
+  record.events = world.events;
+  record.samples = world.trace.samples;
+  const text = await encodeLog(record);
+  saveLog(text);
+  hud.setShare({ text, build: record.build });
+}
 
 /** Which walk frame to draw, chosen by distance travelled rather than by time. */
 function playerTexture() {
@@ -220,6 +296,17 @@ app.ticker.add(({ deltaMS }) => {
   const { frameSec, steps } = clock.tick(deltaMS / 1000);
   const input = keyboard.state();
 
+  // Any direction key takes the start card down. Reading the card costs no
+  // summer: until it is gone, nothing below steps the world.
+  if (waitingToStart) {
+    if (input.moveX === 0 && input.moveY === 0) return;
+    waitingToStart = false;
+    hud.dismissStart();
+    // The card may have been up for a minute. Throw that away rather than
+    // spending it on the first frame of the summer.
+    clock.tick(0);
+  }
+
   // When the light goes the world stops: the clock is the whole constraint, and
   // a summer you can keep playing past the end is not one.
   if (!world.dayOver) {
@@ -230,7 +317,8 @@ app.ticker.add(({ deltaMS }) => {
     // That persistence is the whole question the discovery test asks, so the
     // button in front of the player is the one that keeps it; a fresh map is
     // the debug overlay's job.
-    hud.showSummary(summarise(world), nextSummer);
+    hud.showSummary(summarise(world), nextSummer, log ? { text: "", build: log.build } : undefined);
+    if (log) void publishLog(log);
   }
 
   // Neither layer rebuilds unless the camera crosses a tile boundary, so
@@ -264,7 +352,8 @@ app.ticker.add(({ deltaMS }) => {
 console.log(
   `${mapName ? `map "${mapName}"` : `seed ${seed}`} | pack "${pack.id}" @${pack.tileSize}px | ` +
     `${world.map.width}x${world.map.height} | ${world.nodes.length} nodes | ` +
-    `renderer ${app.renderer.name} | WASD move, Shift sprint, ` +
-    `E/Space gather, cut, bridge and bank ore, F eat fruit, R drink water, ` +
-    `\` debug panel`,
+    `renderer ${app.renderer.name} | ${dev ? "dev" : "public"} build ${__BUILD_ID__} | ` +
+    `WASD move, Shift sprint, ` +
+    `E/Space gather, cut, bridge and bank ore, F eat fruit, R drink water` +
+    (dev ? ", \` debug panel" : ""),
 );

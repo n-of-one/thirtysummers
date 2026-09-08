@@ -10,6 +10,7 @@ import {
   type Player,
 } from "./player.ts";
 import { Stats, type Effort } from "./stats.ts";
+import { Trace, type TraceSample } from "./trace.ts";
 import type { TileMap } from "./tilemap.ts";
 import type { TerrainDef } from "./terrain.ts";
 import type {
@@ -71,6 +72,8 @@ export class World {
   readonly player: Player;
   readonly stats = new Stats();
   readonly inventory = new Inventory();
+  /** Where the player went, once a second, for a tester nobody is watching. */
+  readonly trace = new Trace();
 
   /** Seconds of the summer already spent. Stops at SUMMER_LENGTH_SEC. */
   elapsedSec = 0;
@@ -154,6 +157,7 @@ export class World {
     // camp when this happens, so there is no frame to jump.
     this.player.distanceWalked = 0;
     this.stopHarvesting();
+    this.trace.restart();
     // A press held across the end of a summer is spent; the new one starts on
     // a fresh press, not mid-cut.
     this.interactSpent = true;
@@ -253,7 +257,25 @@ export class World {
     this.consume(input);
     this.stats.step(dt, this.effort());
     this.elapsedSec = Math.min(this.elapsedSec + dt, C.SUMMER_LENGTH_SEC);
+    this.trace.step(dt, () => this.sample());
     this.held = { interact: input.interact, eat: input.eat, drink: input.drink };
+  }
+
+  /** This instant, as the trace records it. Only called on a sampling tick. */
+  private sample(): TraceSample {
+    const { x, y } = this.player;
+    return {
+      year: this.year,
+      at: Math.round(this.elapsedSec),
+      // The tile, not the position: a route is which tiles were walked, and
+      // three decimal places of where inside one is noise in a pasted log.
+      x: Math.floor(x),
+      y: Math.floor(y),
+      terrain: this.groundUnderPlayer().kind,
+      stamina: Math.round(this.stats.stamina),
+      hydration: Math.round(this.stats.hydration),
+      sprinting: this.player.sprinting,
+    };
   }
 
   private record(event: WorldEventPayload): void {

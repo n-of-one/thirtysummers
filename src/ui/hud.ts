@@ -245,6 +245,11 @@ export class Hud {
   private readonly summaryTitle: HTMLElement;
   private readonly summaryStats: HTMLElement;
   private readonly restart: HTMLButtonElement;
+  private readonly share: HTMLElement;
+  private readonly shareText: HTMLTextAreaElement;
+  private readonly shareCopy: HTMLButtonElement;
+  private readonly buildLine: HTMLElement;
+  private readonly start: HTMLElement;
 
   /** How far through `world.events` the toasts have got. */
   private seenEvents = 0;
@@ -283,6 +288,17 @@ export class Hud {
     this.summaryTitle = need(root, "#summary-title");
     this.summaryStats = need(root, "#summary-stats");
     this.restart = need(root, "#summary-restart");
+    this.share = need(root, "#summary-share");
+    this.shareText = need(root, "#summary-log");
+    this.shareCopy = need(root, "#summary-copy");
+    this.buildLine = need(root, "#summary-build");
+    this.start = need(root, "#start");
+
+    // Selected on focus, so a tester who does not trust a Copy button -- or
+    // whose browser refuses the clipboard inside itch's iframe -- can still
+    // reach the whole record with one ctrl-C.
+    this.shareText.addEventListener("focus", () => this.shareText.select());
+    this.shareCopy.addEventListener("click", () => void this.copyShare());
 
     setText(need(root, "#backpack-cap"), String(C.BACKPACK_CAPACITY));
   }
@@ -385,8 +401,67 @@ export class Hud {
     this.anchorContent = "";
   }
 
-  /** Show the end-of-summer card. `onRestart` is wired to the button. */
-  showSummary(day: DaySummary, onRestart: () => void): void {
+  /**
+   * Put the start card up, and take it down again on the first movement key.
+   *
+   * Only the public build shows it: on this machine I already know the
+   * controls, and a card in front of every reload would be in the way of the
+   * measuring the whole debug overlay exists for.
+   */
+  showStart(): void {
+    this.start.hidden = false;
+  }
+
+  dismissStart(): void {
+    this.start.hidden = true;
+  }
+
+  /**
+   * Put the pasteable record in the box.
+   *
+   * Separate from showing the card because encoding it is asynchronous, and a
+   * summary that waited for a compression stream before appearing would show up
+   * a frame or two after the summer ended for no reason a player can see. The
+   * card goes up at once and the box fills in behind it.
+   */
+  setShare(share: { text: string; build: string }): void {
+    this.share.hidden = false;
+    // Only written when it changes: assigning to a textarea's value throws away
+    // a selection the tester may be part way through making.
+    if (this.shareText.value !== share.text) this.shareText.value = share.text;
+    setText(this.shareCopy, "Copy");
+    setText(this.buildLine, `build ${share.build}`);
+  }
+
+  /**
+   * Copy the record to the clipboard, and say what happened on the button.
+   *
+   * `navigator.clipboard` is not available on every browser inside an itch
+   * iframe, so a refusal falls back to selecting the textarea and telling the
+   * tester to press the keys themselves.
+   */
+  private async copyShare(): Promise<void> {
+    try {
+      await navigator.clipboard.writeText(this.shareText.value);
+      setText(this.shareCopy, "Copied");
+    } catch {
+      this.shareText.focus();
+      this.shareText.select();
+      setText(this.shareCopy, "Press Ctrl-C");
+    }
+  }
+
+  /**
+   * Show the end-of-summer card. `onRestart` is wired to the button.
+   *
+   * `share` is the pasteable record and the build that produced it. It is
+   * absent on the dev machine, where the card stays exactly as it was.
+   */
+  showSummary(
+    day: DaySummary,
+    onRestart: () => void,
+    share?: { text: string; build: string },
+  ): void {
     const rows: [string, string, boolean][] = [
       ["Gold", String(day.gold), true],
       ["Fruit picked", String(day.harvested.fruit), false],
@@ -413,6 +488,9 @@ export class Hud {
       if (isGold) dd.className = "gold";
       this.summaryStats.append(dt, dd);
     }
+
+    this.share.hidden = !share;
+    if (share) this.setShare(share);
 
     this.restart.onclick = onRestart;
     this.summary.hidden = false;

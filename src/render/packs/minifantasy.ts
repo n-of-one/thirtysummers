@@ -1,8 +1,9 @@
 import { ImageSource, Rectangle, Texture } from "pixi.js";
 import { RESOURCE_KINDS } from "../../sim/types.ts";
 import type { Facing, ResourceKind, TerrainKind } from "../../sim/types.ts";
-import { autotileIndex, E, FILL, N, S, TILE_COUNT, W } from "./autotile.ts";
-import type { AssetPack, AssetPackSource, Bounds, PropSprite } from "./pack.ts";
+import { FILL, TILE_COUNT } from "./autotile.ts";
+import type { AssetPackSource, Bounds, PropSprite } from "./pack.ts";
+import { TablePack, type TextureTable } from "./table.ts";
 import {
   BLOCK,
   BLOCK_TILES,
@@ -21,8 +22,11 @@ import {
 } from "./minifantasy.sheets.ts";
 
 /**
- * Loads the Minifantasy art into an AssetPack: cutting tiles out of the sheets,
- * and building the ones the sheets do not draw.
+ * Cuts the Minifantasy art into a TextureTable: tiles out of the sheets, and
+ * the ones the sheets do not draw built from the pieces that are there.
+ *
+ * Which texture a given tile gets is not decided here -- that is TablePack's
+ * job, shared with the baked pack, so the two draw the same picture.
  *
  * When the files are absent this pack reports itself unavailable and the
  * code-drawn placeholder is used instead, so a fresh clone still runs. Where
@@ -41,14 +45,19 @@ export const minifantasyPackSource: AssetPackSource = {
     }
   },
   async load() {
-    const names = Object.keys(SHEETS) as SheetName[];
-    const loaded = await Promise.all(names.map((name) => loadSheet(SHEETS[name])));
-    const sheets = Object.fromEntries(
-      names.map((name, i) => [name, loaded[i]!]),
-    ) as Record<SheetName, Sheet>;
-    return new MinifantasyPack(sheets);
+    return new TablePack("minifantasy", await buildTable());
   },
 };
+
+/** Load every sheet and cut the whole table out of them. */
+export async function buildTable(): Promise<TextureTable> {
+  const names = Object.keys(SHEETS) as SheetName[];
+  const loaded = await Promise.all(names.map((name) => loadSheet(SHEETS[name])));
+  const sheets = Object.fromEntries(
+    names.map((name, i) => [name, loaded[i]!]),
+  ) as Record<SheetName, Sheet>;
+  return new MinifantasyTable(sheets);
+}
 
 /** A loaded sheet: the texture source, plus its pixels for measuring content. */
 interface Sheet {
@@ -118,9 +127,9 @@ function contentBox(
   return x1 < 0 ? null : { x0, y0, x1, y1 };
 }
 
-class MinifantasyPack implements AssetPack {
-  readonly id = "minifantasy";
+class MinifantasyTable implements TextureTable {
   readonly tileSize = T;
+  readonly ground: Record<TerrainKind, readonly (readonly Texture[])[]>;
 
   private readonly made: Texture[] = [];
   private readonly grass: Texture[];
@@ -132,10 +141,10 @@ class MinifantasyPack implements AssetPack {
   private readonly water: Texture[][];
   /** The two plank decks, [horizontal, vertical]. See BRIDGE_PLANK. */
   private readonly bridge: Texture[];
-  private readonly trees: PropSprite[];
-  private readonly bushes: PropSprite[];
-  private readonly resources: Record<ResourceKind, PropSprite>;
-  private readonly walks: Record<Facing, Texture[]>;
+  readonly trees: PropSprite[];
+  readonly bushes: PropSprite[];
+  readonly resources: Record<ResourceKind, PropSprite>;
+  readonly walks: Record<Facing, Texture[]>;
   readonly camp: PropSprite;
 
   /**
@@ -148,7 +157,10 @@ class MinifantasyPack implements AssetPack {
   readonly playerBounds: Bounds;
 
   constructor(private readonly sheets: Record<SheetName, Sheet>) {
-    this.grass = this.block("tiles", ...BLOCK.grass);
+    // Only the 15 drawn tiles: open grass meets everything else and has no
+    // edges of its own, so the narrow shapes a block is padded out with would
+    // just be duplicate variants.
+    this.grass = this.block("tiles", ...BLOCK.grass).slice(0, BLOCK_TILES);
     // One undergrowth block per grass variant, so undergrowth keeps the same
     // variety of speckle the open grass has.
     this.brush = Array.from({ length: BLOCK_TILES }, (_, v) => this.brushBlock(v));
@@ -221,6 +233,19 @@ class MinifantasyPack implements AssetPack {
     const anchorPxY = union ? union.y1 + 1 : 32;
     this.playerAnchor = { x: anchorPxX / 32, y: anchorPxY / 32 };
     this.playerBounds = boundsFrom(union, anchorPxX, anchorPxY, 32, 32);
+
+    // Undergrowth and the trees standing in it draw the same ground, so they
+    // share the same blocks rather than each getting a copy.
+    this.ground = {
+      grass: [this.grass],
+      underbrush: this.brush,
+      tree: this.brush,
+      thicket: this.thicket,
+      mud: [this.dirt],
+      rock: [this.stone],
+      bridge: [this.bridge],
+      stream: this.water,
+    };
   }
 
   private sub(sheet: SheetName, x: number, y: number, w: number, h: number): Texture {
@@ -380,69 +405,6 @@ class MinifantasyPack implements AssetPack {
       anchorY: anchorPxY / h,
       bounds: boundsFrom(box, anchorPxX, anchorPxY, w, h),
     };
-  }
-
-  ground(kind: TerrainKind, mask: number, variant: number, frame: number): Texture {
-    switch (kind) {
-      case "grass":
-        return this.grass[variant % BLOCK_TILES]!;
-      // A wood is a floor of undergrowth with trunks standing on it, so both
-      // draw the same ground and autotile as one surface. Thicket joins them:
-      // it is the same undergrowth, grown too dense to walk through, and a wall
-      // of it should meet the wood around it without a seam.
-      case "underbrush":
-      case "tree":
-        return this.brush[variant % BLOCK_TILES]![autotileIndex(mask)]!;
-      case "thicket":
-        return this.thicket[variant % BLOCK_TILES]![autotileIndex(mask)]!;
-      case "mud":
-        return this.dirt[autotileIndex(mask)]!;
-      // Timbers running the way the bridge does. The mask counts neighbouring
-      // bridge tiles, so the run is known from the tiles already laid.
-      case "bridge": {
-        const northSouth = (mask & (N | S)) !== 0 && (mask & (E | W)) === 0;
-        return this.bridge[northSouth ? 1 : 0]!;
-      }
-      case "rock":
-        return this.stone[autotileIndex(mask)]!;
-      case "stream": {
-        const frames = this.water[frame % this.water.length]!;
-        return frames[autotileIndex(mask)]!;
-      }
-    }
-  }
-
-  prop(kind: TerrainKind, variant: number): PropSprite | null {
-    if (kind === "tree") return this.trees[variant % this.trees.length]!;
-    // A shrub on every single tile, with no gaps: the 45% of bare ground below
-    // is exactly what makes underbrush read as something you can walk through,
-    // so a thicket has to be the version without it.
-    if (kind === "thicket") return this.bushes[variant % this.bushes.length]!;
-    if (kind === "underbrush") {
-      // A shrub on every single tile reads as a hedge and costs a lot of
-      // overdraw; the darker ground tint carries the terrain, the shrubs just
-      // break it up.
-      if (variant % 100 < 45) return null;
-      return this.bushes[variant % this.bushes.length]!;
-    }
-    return null;
-  }
-
-  /** Every terrain is drawn in its own colours; nothing needs tinting. */
-  groundTint(_kind: TerrainKind): number {
-    return 0xffffff;
-  }
-
-  resource(kind: ResourceKind): PropSprite {
-    return this.resources[kind];
-  }
-
-  walk(facing: Facing): readonly Texture[] {
-    return this.walks[facing];
-  }
-
-  idle(facing: Facing): Texture {
-    return this.walks[facing][0]!;
   }
 
   destroy(): void {
