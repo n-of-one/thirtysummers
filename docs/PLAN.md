@@ -3,10 +3,11 @@
 How the game in [DESIGN.md](DESIGN.md) gets built. Why the choices below were
 made is in [RATIONALE.md](RATIONALE.md); this document is only what to do.
 
-**Status: the discovery test is built and has been played four times, by the
-designer. The next tester is a stranger on itch.io, and M7 below is the build
-that makes that possible. The fruit and stamina tuning the log asks for is a
-separate step after it.**
+**Status: the discovery test has its verdict, decided 8 Sep 2026: the idea
+works. The shareable build (M7) is abandoned; its half-finished work is on
+branch `itch-publish-1`. The design is being rewritten one aspect at a time
+into [design/](design/README.md), and M8 to M11 below build the first five
+summers of a life from it.**
 
 Scope so far: the summer phase only. One flat map, one 5-minute summer, walk
 around collecting while stamina and hydration drain, cut a thicket, bridge a
@@ -308,197 +309,196 @@ Everything below was run, and the numbers are what it reported.
 the first `PLAYTEST.md` entry. That entry is the milestone's output, and the
 verdict on it decides what the next milestone is.
 
-## M7: the shareable build
+## The first five summers
 
-Not started. Planned 6 Sep 2026 from the third entry in
-[PLAYTEST.md](PLAYTEST.md): the next tester is someone on itch.io who plays
-alone, so the game has to be its own observer, and the licensed art has to
-leave this machine as a game rather than as files.
+Planned 9 Sep 2026 from three design documents: [design/summer.md](design/summer.md),
+[design/winter.md](design/winter.md) and [design/map-arc.md](design/map-arc.md).
+What is being tested: five summers on one map, each opening one thing and
+gaining one key, with a winter between them where gold is spent. The
+question for the log is whether summers 2 to 5 stay interesting, which is
+what the discovery test's summers 2 and 3 did not.
 
-What it delivers: `npm run build:itch` writes a zip that plays one map on
-itch.io, draws from a single baked art file that holds only the pixels the game
-uses, records where the tester went, and puts that record on the summary card
-for them to paste into a comment. `npm run log:read` turns a pasted record back
-into a path drawn on the map. The dev loop is untouched: on localhost the game
-still cuts its textures from the raw Minifantasy folders exactly as it does now.
+The unit of play is five summers of four minutes on one hand-edited map,
+about twenty-five minutes with the winters. `SUMMER_LENGTH_SEC` becomes a
+per-year table so the age curve can arrive later without touching logic.
 
-Why it is needed and not just `npm run build`: Vite copies `public/` into
-`dist/` whole, and the `dist/` on disk today contains all 1852 raw art PNGs.
+Four milestones, each playable on its own, each stopped at for review. The
+order is what each one needs from the one before: the body first, because
+every barrier is priced in it; the map second, because winter sells what
+the map yields; winter third; the cart last, because it is the experiment
+most likely to be cut.
 
-Decisions taken in planning. Overturn them in this section before starting,
-not while building.
+Every number below is a `[GUESS]` in `config.ts` unless the design document
+gives it. The design documents give: max stamina 60 to 80 over summers 1
+to 5, two meals of 10, ten off max stamina for missed upkeep, a bridge tile
+lost every other winter. Everything else is set to play sensibly and tuned
+in the log.
 
-- **The public build plays map `d`.** `e` stays unshipped and unspoiled for a
-  watched session later. Which map ships is one constant.
-- **The baked art is one binary file, not a PNG.** Anything a browser can draw
-  can be read back from a canvas, so this stops "save image as", not a
-  determined person. The point is licence hygiene: the raw pack folders never
-  leave the machine, and what ships is the built game, which is the licensed
-  use.
-- **The raw art moves out of `public/`.** A dev-only server route serves it
-  from its new home, so nothing under `public/` is licensed and no build step
-  can leak it by accident.
-- **Logs are pasted, not uploaded.** No server, no account, no privacy
-  question. A summer compresses to a few kilobytes of text.
-- **The debug overlay does not exist on the public build.** Seed stepping and
-  teleport would show a tester the map they are meant to discover.
-- **Hostname decides.** `localhost`, `127.0.0.1` and `[::1]` are the dev
-  machine; everything else is public. `?public=1` forces the public behaviour
-  on localhost so `vite preview` can be checked.
+### Chores before M8
 
-Work, in order. Each item names its files and what proves it.
+Done in one commit, so the tree is clean before anything is built on it.
 
-1. **One answer to "is this the dev machine".** `src/env.ts` exports
-   `isDevHost(): boolean` from `location.hostname` and the `?public=1`
-   override. It is the only file that reads the hostname. `main.ts` uses it
-   three times: pack order, the default map when `?map=` is absent, and
-   whether to construct the debug overlay at all. Test: the classification of
-   a table of hostnames and the override.
+- The seventeen untracked M7 files (`src/env.ts`, `src/sim/trace.ts`,
+  `src/sim/playtestLog.ts`, the bake, the baked pack, `table.ts`, the log
+  export, `scripts/itch.ts`, `scripts/readlog.ts`, their tests, `bake.html`,
+  `dev/bake.ts`, `src/build.d.ts`) belong on `itch-publish-1`, which was
+  committed without them. Commit them there, then remove them from main.
+  Exception: `trace.ts` and its test stay on main if M8's verification
+  wants a per-second sample; decide when M8 is planned in detail.
+- The art moved to `art/minifantasy/` for M7 and main's loader still reads
+  `public/assets/minifantasy/`, so main runs on placeholders. Move it back
+  and confirm `npm run dev` logs pack "minifantasy".
+- Commit `docs/PLAYTEST.md`, `docs/DESIGN-RAW.md`, the design folder, and
+  the brainstorm and plan edits.
+- The "day" vocabulary goes now, alongside M8, as BRAINSTORM.md said it
+  would when winter was built: `dayOver`, `DaySummary`, `summarise`'s
+  comments, the `[DOC]` notes that cite the day.
 
-2. **The raw art leaves `public/`.** `public/assets/minifantasy/` becomes
-   `art/minifantasy/`, gitignored at the new path. A plugin in
-   `vite.config.ts` uses `configureServer` to serve `/assets/minifantasy/*`
-   from that folder during `npm run dev` only, so `minifantasy.sheets.ts` and
-   `textures.html` keep working with the same URLs. `public/assets/README.md`
-   says where to unzip now. Proof: `npm run dev` still logs pack
-   "minifantasy"; `npm run build` produces a `dist/` with zero `.png` files.
+### M8: the body
 
-3. **The texture table.** `MinifantasyPack` does two jobs: building every
-   texture from the sheets, and answering `ground`, `prop`, `resource`,
-   `walk`, `idle` from arrays. Split them. `src/render/packs/table.ts` holds a
-   `TextureTable` interface with those arrays and the measured
-   `playerAnchor`/`playerBounds`, and a `TablePack implements AssetPack` that
-   answers from a table; the `ground` switch with its variant, autotile and
-   bridge-orientation logic moves there unchanged. `minifantasy.ts` shrinks to
-   `buildTable(sheets): TextureTable` plus the source. Behaviour must not
-   change. Proof: the screenshot diff in verification below, taken before and
-   after this item, is zero.
+Summer as the design document describes it, on the existing maps. No new
+terrain, no winter. Playable as one summer, then next summer, as now.
 
-4. **Baking.** `src/render/packs/bake.ts`, in three pure parts.
-   - `packRects(sizes)` is a shelf packer returning an atlas size and one rect
-     per input, deterministic. Textures are 8, 16, 24 and 32 pixels on a side,
-     so shelves by height are enough.
-   - `bakeTable(table)` walks every texture reachable from the table, once per
-     distinct texture (a block's narrow slots reuse its fill texture and must
-     not be drawn seven times), draws each into one canvas and returns the
-     pixels plus a manifest: format version, atlas size, `tileSize`,
-     `playerAnchor`, `playerBounds`, and for every slot a rect, with anchor
-     and bounds for props. Slot names are the table's own field names and
-     indices, so the manifest reads as the table flattened.
-   - `encodePack(pixels, manifest)` and `decodePack(bytes)`: the ASCII tag
-     `TSPK`, a u32 manifest length, the manifest as UTF-8 JSON, then the RGBA
-     bytes through `deflate-raw`. Both `CompressionStream` and
-     `DecompressionStream` exist in the browser and in Node 22, so the script
-     in item 7 decodes without a dependency.
-   The bake runs in a browser, because the raw pack is built from canvases.
-   `dev/bake.html` and `dev/bake.ts` load the raw pack on localhost, bake it,
-   and POST the bytes to a second route on the same Vite plugin, which writes
-   `public/assets/baked/minifantasy.tspk` and answers with the size. The
-   folder is gitignored. The page prints the atlas dimensions, the file size
-   and the slot count. Document it as `npm run dev`, then open
-   `http://localhost:5173/bake.html`. Tests: the packer never overlaps and
-   never exceeds the atlas; `encodePack` then `decodePack` on synthetic
-   pixels and a manifest is the identity.
+1. **No sprint.** Remove the sprint input, `SPRINT_MULTIPLIER`,
+   `STAMINA_SPRINT`, `SPRINT_MIN_STAMINA` and the `sprinting` flag; raise
+   `WALK_SPEED` a little, tuned in play. The walk animation loses nothing.
+2. **Stamina as a budget.** `Stats` stops recovering. `STAMINA_ROUGH_TILE`
+   is charged when the player's tile changes to a difficult one, read off
+   the tick's move rather than off the keys, and `STAMINA_CUT`,
+   `STAMINA_BUILD` when a hold completes. Max stamina comes from a per-year
+   table `MAX_STAMINA_BY_YEAR` (60, 65, 70, 75, 80). At zero the interact
+   query refuses cut and build with a new `BlockedReason` `exhausted`, and
+   the move code refuses to enter a difficult tile, which is a new refusal
+   the prompt has to say. Eating still works.
+3. **Meals.** `MEALS_BY_YEAR` (2 for years 1 to 5), `MEAL_STAMINA` 10, no
+   cooldown. `FULL_STOMACH_SEC` goes. The HUD shows meals left.
+4. **Hydration as a leash.** Water is no longer a resource: the `water`
+   kind and its glyph go, and a drinking spot is a tile property instead:
+   any tile adjacent to stream, plus spring tiles (new terrain `spring`,
+   glyph `o`, passable, easy). Drinking is a short hold on the interact
+   key when in reach of one, to full. Below `HYDRATION_FOG_THRESHOLD` the
+   renderer draws a fog vignette whose radius shrinks with hydration; at
+   zero the view is a few tiles. Fog is the only consequence.
+5. **The end of a summer.** What is carried when the clock stops is
+   banked. `world.awayAtEnd` records whether the player was out of reach of
+   camp, for winter. A button at camp ends the summer early.
+6. **The stamina bar under the player.** Drawn by the prop layer or the
+   marker as a thin bar at the feet, and the cost of the tile ahead or the
+   hold in reach shown on the prompt ("wade, 2 stamina").
+7. **Config and docs.** Every new number marked, `DESIGN.md`'s stat rules
+   struck through with a pointer to `design/summer.md`.
 
-5. **The baked pack.** `src/render/packs/baked.ts`: `bakedPackSource` with
-   `available()` as a HEAD on the `.tspk`, `load()` as fetch, decode,
-   `ImageData` into a canvas, one `ImageSource` with nearest scaling, then a
-   `TextureTable` built from the manifest and handed to `TablePack`. It
-   imports nothing from `minifantasy.ts` or `minifantasy.sheets.ts`; the
-   manifest is the only thing it knows. `atlas.ts` orders sources by
-   `isDevHost()`: dev is minifantasy, baked, placeholder; public is baked,
-   placeholder. `?pack=baked` still forces it on localhost for comparison,
-   and `textures.html` shows it.
+Verification: stamina over a simulated summer matches the per-tile and
+per-action sums exactly; a full bar is refused nothing and an empty one is
+refused rough ground and tools with the right reason; two meals then a
+refusal; hydration reaches zero at the drain rate and the fog radius
+follows it; drinking at a bank and at a spring fills the bar; a summer
+ended away from camp banks the pack and flags the world; and one summer
+played on `?map=b` over the protocol, walked not teleported, with the
+numbers read back.
 
-6. **The trace.** `src/sim/trace.ts`: a `Trace` the `World` owns and samples
-   from `step` every `TRACE_SAMPLE_SEC` of simulated time (a `[GUESS]` in
-   config, 1 second): summer, elapsed second, tile x and y, terrain kind
-   under the player, stamina, hydration, sprinting. Three hundred samples a
-   summer, append-only across summers like the event log. Pure, no DOM.
-   `src/sim/playtestLog.ts` builds the `PlaytestLog` record: format version,
-   build id, map name, pack id, wall-clock start, the events, the samples.
-   `digest(log)` computes what an observer would have written down, per
-   summer: gold, seconds to first cut, first bridge tile, first ore banked,
-   whether "Next summer" was pressed, tiles walked, and idle spots (the same
-   tile for longer than `TRACE_IDLE_SEC`, with its terrain). Tests: a
-   synthetic trace with known answers; `nextSummer` keeps earlier samples.
+### M9: the map
 
-7. **Getting the log out and reading it back.** `src/ui/logExport.ts` (DOM)
-   encodes the record as `deflate-raw` then base64 with a `TS1.` prefix, so a
-   summer is a few kilobytes of pasteable text. The summary card gains a
-   textarea holding it, labelled "Copy this into your comment", selected on
-   focus, with a Copy button that tries `navigator.clipboard` and falls back
-   to the selection. No download link: an itch iframe may block both clipboard
-   and downloads, and a selected textarea works everywhere. The record is also
-   written to `localStorage` after every summer, so a closed tab loses
-   nothing, and the textarea holds every summer played so far, not the last
-   one. `scripts/readlog.ts` as `npm run log:read <file>` decodes a pasted
-   record, prints the digest, then prints the map from `public/maps/` with
-   the path density overlaid on the dump's own glyphs. It is the substitute
-   for the observer's notes and is for use after a tester has played, so the
-   blind-play rule is not in its way.
+The barriers, resources and improvements the five-summer table needs, and
+five new maps that hold it. Playable as five summers back to back, with no
+winter yet: the axe and the well are given at the start of the summer whose
+table row needs them, so the map can be tested before the shop exists.
 
-8. **What the tester sees.** A start card in `index.html`: title, four lines
-   of controls, "art by Krishna Palacio", "5 minutes, then the summer ends".
-   The first movement key dismisses it. The build id (git short hash and
-   date, injected with Vite `define`) sits small on the summary card and in
-   the log, so a pasted record can be matched to a build. On the public build
-   the overlay is not constructed and backtick does nothing. Nothing about
-   fruit, stamina or sprint changes here.
+1. **Terrain.** `sapling` (impassable, felled by the axe, glyph `t`),
+   `spring` from M8, and the well as a placed spring. `TERRAIN_ORDER` is
+   appended, never reordered.
+2. **Resources.** `feather`, `log`, `shell` join `stick`, `vine`, `ore`,
+   `fruit`. One table in `sim/resources.ts` gives each kind its glyph,
+   ground, slots (log takes two), price, and whether it comes back every
+   winter, slowly, or never. `RESOURCE_KINDS` and `NODE_GROUND` move into
+   it. The inventory counts slots, not items.
+3. **Tools.** `world.tools` is a set: knife from the start, axe and cart
+   granted by the map's year table for now. Felling is a hold on a sapling
+   tile with the axe, leaves grass and one log in the pack, and costs
+   `STAMINA_FELL`.
+4. **Improvements.** The well: a hold on a grass tile far from water with
+   `WELL_LOGS` and `WELL_STICKS` in the pack, leaves a `spring` tile. The
+   cache: a hold on grass with `CACHE_STICKS`, leaves a `cache` prop the
+   player can bank into and fetch from with the same key; contents are a
+   second inventory with no limit. Bridge unchanged.
+5. **Thickness.** The five maps are cut from generated dumps as before and
+   edited to the five-summer table: the half-circle stream around camp with
+   drinking banks; the thin thicket and the mud pocket inside it; the ore
+   field and a sapling copse across the stream; a dry pocket with shells
+   past any water; and a thicket twelve deep into the last pocket.
+   `map:check` grows a check per row: what is reachable on foot, once cut,
+   once bridged, once felled, and how far each pocket is from water.
+6. **Placeholder art** for the new terrain and kinds; Minifantasy sprites
+   picked for contrast, as the vine and stick were.
 
-9. **The zip.** `scripts/itch.ts` as `npm run build:itch`: runs `vite build`
-   with a relative `base` (itch serves from a subpath), prunes `dist/maps/`
-   to the shipped map, refuses if `dist/` contains any `.png` or anything
-   under `assets/minifantasy`, refuses if the `.tspk` is missing, and zips
-   `dist/` with `index.html` at the root to `dist/thirtysummers-<build>.zip`
-   using the `zip` already on the machine. Prints the zip size, the `.tspk`
-   size and the file list.
+Verification: the resource table round-trips through the map file; slots
+count; felling needs the axe and pays stamina; the well makes a drinking
+spot and refuses near water; the cache holds and returns; `map:check` passes
+all five maps on every row; five summers on one map over the protocol with
+the year table granting tools, reading back that each summer's row opens.
 
-10. **Docs.** `public/assets/README.md` for the new art location and the bake
-    step; `public/maps/README.md` says which map ships; `docs/PLAYTEST.md`
-    gains a remote-tester variant of the entry with "log pasted by", the
-    build id, and the questions to put on the itch page; `CLAUDE.md` lists
-    the new commands; `RATIONALE.md` records the format choice, paste over
-    upload, and hostname switching. This section moves to "What is built"
-    with the numbers verification produced.
+### M10: winter
 
-### Verification
+The screen between summers, upkeep, the shop, the family. After this the
+five-summer unit is complete and the log can say whether summers 2 to 5
+held.
 
-All of it measured, none of it asserted, on the pattern of the discovery
-test's list above.
+1. **The store.** Banking moves everything into `world.store`, a second
+   inventory with no limit, valued at the ladder's prices. The HUD's gold
+   readout becomes the store's worth plus gold in hand. "Winter needs N
+   fruit, store has M" sits beside it all summer.
+2. **The winter screen**, in `index.html` and `ui/winter.ts`, with a model
+   in `sim/winter.ts` that is pure: keep-or-sell per kind with the default
+   as sell, the sum and breakdown; upkeep in fruit and gold with the
+   auto-buy and auto-sell of fruit and the away-from-camp charge; the shop
+   as a list from `SHOP_BY_YEAR` (axe in winter 1, cart in winter 2, the
+   well's recipe as knowledge not a purchase, boots as a candidate) with
+   prices and greying; and the family, a surplus total against
+   `FAMILY_LEVELS`. Next summer starts from the screen.
+3. **Between summers**, in `world.nextSummer`: replenishment by the table
+   (inner ring always, ore and shells by `REPLENISH_SLOW` share, seeded);
+   thicket creep with `THICKET_CREEP_CHANCE` on cut tiles touching thicket;
+   saplings back after `SAPLING_RETURN_YEARS`; one bridge tile lost every
+   other winter, the tile chosen deterministically; trails with
+   `TRAIL_CHANCE` on underbrush tiles the trace crossed more than
+   `TRAIL_CROSSINGS` times (this is where `trace.ts` earns its keep on
+   main); max stamina ten lower after missed upkeep.
+4. **The start of a summer**: a small notice with the length and the
+   upkeep, dismissed by the first movement key.
+5. **The year table's tool grants** from M9 go, since the shop now sells
+   them; the maps are checked again with the shop's prices against the
+   ladder, so winter 1 can afford the axe from a summer-1 haul.
 
-- `npm run typecheck`, `npm run test` clean. New tests are named in the items.
-- **The baked pack draws the same picture.** Over the DevTools protocol on
-  localhost: `?map=d&pack=minifantasy` and `?map=d&pack=baked`, the camera at
-  the same place, the water frame pinned, one screenshot each, pixel diff
-  zero. Non-vacuous: shift one rect in the manifest by a pixel and watch the
-  diff go non-zero, then restore it.
-- **The refactor in item 3 changed nothing.** The same diff, raw pack against
-  itself, before and after the split.
-- **The zip is clean.** Unzip it into a scratch folder: zero `.png`, no
-  `assets/minifantasy` path, one map file, the `.tspk` present. Report the
-  sizes.
-- **The public build behaves as public.** `vite preview` with `?public=1`:
-  the console logs pack "baked" and map "d" with no `?map=`, backtick opens
-  nothing, the start card shows and the first key clears it.
-- **A log round-trips.** Play one summer over the protocol on the preview
-  build, cut a thicket at a known second, press "Next summer", take the
-  textarea text, run `npm run log:read` on it: the path lands on the tiles
-  walked, and the first-cut second matches the `cut` event.
-- 60fps unchanged on the baked pack.
+Verification: the winter model over a synthetic store gives the right gold,
+the right fruit bought and sold, the right surplus and level; upkeep missed
+lowers next year's max stamina and only for one year; replenishment,
+creep, sapling return, bridge loss and trails each over five simulated
+winters on a small map with a seed, with the counts read back; five summers
+and four winters on `?map=f` over the protocol.
 
-**What is left is the same as last time**: a stranger plays it and pastes a
-log. That entry is the milestone's output.
+### M11: the cart
 
-## Beyond the discovery test
+The logistics experiment, last because it is the one most likely to be cut
+by the log.
 
-Parked in `BRAINSTORM.md` until the discovery test has a verdict: **winter**
-(selling, buying, the UI), collectibles as an economy, the flask, gravel and
-the cache, tool costs, hazards, the age curve for summer length, and a
-generator structure pass that builds the chain per seed (the edited maps are
-its fixtures). Further out and unchanged: **the meta loop** (ageing, spending
-on stats in winter, the next generation) and **z-levels**, which is what
-`STAMINA_DIFFICULT`'s "or up a slope" is waiting for.
+1. A `cart` entity in `sim/`: a position, pushed by walking into it, moves
+   only onto grass and bridge, holds any amount. Banking into it and out of
+   it with the interact key when in reach. Bought in winter 2 for logs.
+2. Rendering as a prop that moves, depth-sorted with the player.
+3. A map whose summer-3 row needs it: a cache across the stream and a route
+   that has to be cut wide enough.
+
+Verification: the cart refuses mud and underbrush and thicket, follows a
+push, keeps its contents across the summer, and one summer over the
+protocol hauling a cache home.
+
+### After the log
+
+Parked until the five-summer log has been written: the map under snow, the
+grave and its +1, the age curve past summer 5, gear (boots, clothes, the
+bigger backpack), structures and the mine, the lineage, hazards, z-levels,
+and a generator pass that builds the five-summer table per seed with the
+edited maps as its fixtures.
 
 ## Standing verification
 
@@ -516,9 +516,11 @@ What must keep passing, whatever is being built.
   holds.
 - `npm run map:check public/maps/*.txt` — the chain still holds on every
   shipped map. Run it after editing one by hand.
-- `npm run dev` — play a summer on a seed: walk, sprint until stamina empties,
-  eat fruit and hit the 60s cooldown, drink water, fill the backpack, bank ore
-  at camp, watch the timer run out and the summary appear.
+- `npm run dev` — play a summer on a seed: walk, wade until stamina empties
+  and see rough ground refused, eat both meals and see the third refused,
+  drink at a bank, fill the backpack, bank ore at camp, watch the timer run
+  out and the summary appear. (Sprint and the stomach cooldown are gone
+  from M8 on.)
 - `npm run dev` on `?map=a` — the discovery test itself: through the cut path,
   wade to the vines, cut into the stand, lay a bridge, bank gold across the
   water, and take the next summer to see it all still there.

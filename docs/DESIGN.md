@@ -2,6 +2,10 @@
 
 > The source of truth for what the game is. [PLAN.md](PLAN.md) is downstream of
 > it, and where the two disagree, this one wins.
+>
+> Since 9 Sep 2026 the design is being rewritten one aspect at a time into
+> [design/](design/README.md). A document there is newer than this file and
+> wins over it; what has no document there yet is still described here.
 
 A top down 2d game where you collect resources from the map. It's a browser game,
 for pc. It will have multiple levels of terrain (z-levels) but we will start with

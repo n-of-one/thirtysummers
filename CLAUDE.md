@@ -3,8 +3,11 @@
 Browser prototype of a top-down resource game: collect in summer, process in
 winter, 30-summer generations, an ageing character.
 
-- **[docs/DESIGN.md](docs/DESIGN.md)** — what the game is. Where it and the plan
-  disagree, it wins.
+- **[docs/design/](docs/design/README.md)** — what the game is, one document
+  per aspect. Newer than DESIGN.md and wins over it.
+- **[docs/DESIGN.md](docs/DESIGN.md)** — the original design doc, still the
+  word on anything without a document in `docs/design/` yet. Where it and the
+  plan disagree, it wins.
 - **[docs/PLAN.md](docs/PLAN.md)** — how it gets built: milestone status, stack,
   rules to build to. **Read this before starting work.**
 - **[docs/RATIONALE.md](docs/RATIONALE.md)** — why those choices, and what was
@@ -40,7 +43,8 @@ generated world — `a` through `e` are the discovery test's maps), `?seed=<n>`,
 overlay already open).
 
 Controls: WASD or arrows to move, Shift to sprint, E or Space to gather, cut,
-build and bank ore, F to eat, R to drink.
+build and bank ore, F to eat, R to drink. (Sprint and R go with M8; see
+PLAN.md.)
 
 ## Architecture rules
 

@@ -235,3 +235,314 @@ The cost half of terrain improvement, split off from the test above.
   can learn the terrain rules by watching it.
 - More fruit near the starting area, so a new player finds it, eats it and
   sees what it does.
+
+---
+
+## 8 Sep 2026: the verdict, and reopening the design
+
+**The verdict.** Four sessions by the designer, on maps a and b. Breaking
+through felt like something every time; the bridge was the best barrier and
+the mud the weakest. Decided: the idea works. No outside testers until the
+concept is fleshed out further. The itch.io build (M7) is abandoned; its
+half-finished work is on branch `itch-publish-1`.
+
+**What the log says the game needs next.** Summers 2 and 3 on the same map
+turned into a routing exercise: nothing changed but the resources, and gold
+had nothing to buy. The fruit cooldown and the small refill were the only
+real irritation. Sprint was fun and probably too strong.
+
+**Leanings from this session.** Provisional until the brainstorm closes;
+each one overturns something above, and that is deliberate.
+
+- *Winter is the next phase.* Selling, buying, a price ladder paced over 30
+  summers so that each winter affords one meaningful thing and shows the
+  next. A gold floor per winter as upkeep, about a third of a summer's
+  income; missing it costs years, not the game. No stat purchases yet.
+- *No sprint.* A held key that makes you faster is a key held all the time.
+  Speed comes from changing the map: paths, bridges, gravel. Base walk speed
+  goes up a little to compensate.
+- *Hydration is a leash to a place.* Water is not carried. It is drunk at
+  springs, few per map, none on the far bank at first. It drains regardless
+  of what you do, and when low it slows you, never stops you. A well or
+  cistern is a later purchase that extends the leash.
+- *Stamina is the summer's budget.* Spent per tile of rough ground and per
+  tool action, not per second. Refilled only by fruit, no cooldown. At zero
+  you can still walk easy ground but not rough ground or tools. The budget
+  follows the age curve: small at 1, peak at 10 to 20, falling after.
+- *Resources form a price ladder tied to barriers.* Near camp sells for
+  nothing or one, each barrier out roughly doubles it. Gold is currency, not
+  a thing in the ground. Some kinds have a use that competes with their
+  price (sticks, logs); some are pure sellables behind hard barriers. One
+  table in `sim/` describes every kind: price, slots, ground, glyph. Bulky
+  kinds take two slots.
+- *Stats: two is right, a third waits.* The third should react to place,
+  not time or effort: health once hazards exist, or a spirit meter once
+  spirits do.
+- *Test unit: 5 summers of 4 minutes*, on hand-edited maps.
+
+### Topic 1: the arc of a map (round one, 8 and 9 Sep 2026)
+
+What makes summer 17 worth playing: reaping what was built and working
+toward a bigger goal, the way Factorio's projects grow. Summers 1 to 10
+build the basics, 10 to 25 build the monument (choosing it, then preparing
+the map and the economy for it), 20 to 30 prepare the heir. A map holds a
+few generations, then the lineage moves on, so no map goes stale.
+
+The purpose of a generation: the same map replayed by a level-one character
+who knows it and has shaped it. A puzzle: prepare the map so the child
+thrives young, then "I am young again, low stamina, adjust the plan". The
+second youth must be faster than the first and feel like a power trip
+("stage X in 3 years, not 8"), never a chore that delays the new parts.
+
+**Decided, rounds one and two (9 Sep 2026).**
+
+- A *structure* is built by performing tasks. Implicit ones (survey the
+  map to choose where the mine goes, perhaps from a few sites) and explicit
+  ones (build a sub-structure, such as the rails for the mine carts). Each
+  task is a different job, which is what keeps a years-long build from
+  being a chore. One such task is testable in years 10 to 15, later in
+  prototyping. Finishing a structure unlocks new resources or play, never
+  a multiplier. Examples: a *mine* worked by people you never see, whose
+  ore unlocks the tools that break the next barriers; a *shrine* or a made
+  clearing that pleases a found spirit, whose blessed goods a church buys
+  and pays for in skills and tools. Low fantasy: blessed pineapples, not
+  fireballs.
+- Changes to the land (drain the mud, dam the stream, cut the rock) are
+  tasks inside a structure or parts of the road, not structures.
+- *The camp is the entry to the town.* Camp sits at a map edge with the
+  town behind it. The town does the farming and makes the tools you buy in
+  winter. Building up the town with what it needs is part of the game.
+- *A map's goal* is a road to the next map, and a town strong enough to
+  found an outpost there that supports you in the next map's winters.
+  Perhaps a better town makes a stronger outpost with better benefits;
+  decided later. The quest line across all domains must be finished before
+  moving on. There is no walking out on foot, and an heir cannot refuse:
+  they are on the map until it is done.
+- *No cap on generations.* The game is relaxed overall so new players
+  learn at their own pace. Challenge maps with a known time limit may come
+  later, never on the first map.
+- *The map reacts softly.* Taking too much fruit lowers next year's fruit,
+  never to a level that blocks play. To flesh out in the topic on what
+  happens between summers.
+- *Wear* is per winter and depends on build quality, perhaps on how harsh
+  the year was. No list of what broke: the player meets the damage in
+  play. Autumn and spring as visible seasons are for a later visual round.
+- *The camp puzzle.* Around year 25 the child offers three places they
+  walked, deeper into the map. The parent picks one; the site names what it
+  lacks (no spring in reach, no fruit, the stream in the way, thicket on
+  three sides), and the last summers are spent fixing that list. What is
+  not fixed is the heir's first handicap. Whether the old camp stays useful
+  is decided later; it may if resources sit near it.
+- *The grave.* For the years 1 to 5 prototype, pre-place a grave on the
+  map and experiment with the benefit of visiting it. Burial and where the
+  grave goes are not designed yet.
+- The heir starts with almost nothing: no gold, minimal tools, perhaps one
+  inherited thing. Otherwise there is no starting over.
+- Ages: start at 15, die at 45, the child born at 30. A short sequence in
+  the spring of year 30 brings the child to their camp.
+
+- *Two strengths, kept apart.* Town strength grows only through
+  structures. Family strength grows from gold to spare after the floor:
+  the heir's starting stats or tools, or more from visiting the grave.
+  Missing the floor adds no family strength and carries a disadvantage
+  into the next summer, enough to make the floor a priority, never enough
+  to end a run.
+
+**Leaning, to explore in the winter topic.**
+
+- Gold and resources cannot be stockpiled across winters. The floor rises
+  as structures are built (supplying the works), which forces more
+  efficient income and new logistics puzzles, so play changes over a life.
+
+The standalone read of all this is [design/map-arc.md](design/map-arc.md).
+
+**Open.**
+
+- The word for the character. Not hero, not main character.
+- The one structure per domain that keys the next map still has no word of
+  its own. Offered and not taken: landmark, keystone, capstone.
+- The old camp's use after the heir moves.
+- How town strength carries into the next map's outpost.
+
+**Parked.**
+
+- The second youth: what it re-experiences and what it skips.
+- The grave as the first shrine, the parent as the first spirit.
+- A calling from the church or a spirit as a reason to move on.
+- The chest (inheritance as a set of objects): the camp puzzle replaces it.
+- Generations overlapping with two characters on the map: too distracting
+  during a summer. The spring walk keeps the good part.
+- The monument is the grave: park as its own idea.
+- The exit as a final exam behind every barrier: the road is enough.
+- Stacked maps as z-levels: clashes with biomes.
+- The structure chosen by the map's spirit: keep open, not decided.
+- A high-fantasy setting, to see what it offers over the current one.
+- Naming places: one name a year, in autumn or winter, never in summer.
+- The lineage: ghosts, ancestors as spirits, calling their aid, winter acts
+  that make a stronger ancestor. Topic 4.
+
+**Rejected.** Wealth as a structure. A map that ends because it is spent.
+Reaching the far edge on foot as an exit. An heir who refuses the map. A
+generation cap.
+
+**Tangent: phases (9 Sep 2026).** The designer wants phases the way Oxygen
+Not Included has them: a project that takes hours and opens a new domain of
+rules to master. A phase is a domain, not a step; a chain of dependent
+monuments (mine, mill, road) is steps, and steps alone make every generation
+feel the same. Options written up: one domain per generation with one chain
+per map (plant and mineral, then animal, then spirit, the road needing all
+three); chain only with variety from biome; one domain per monument with
+generation count falling out of play; domains sequenced by what the next
+town asks for. The animal domain is the first that needs moving entities
+and probably a third stat, so it is a generation-2 concern by construction.
+Phases must be visible: one line on the summary card naming the year's job.
+
+Decided 9 Sep 2026, from the tangent:
+
+- *Structures are not tied to generations.* A structure's benefit flows the
+  moment it is complete. The player is not required to understand the
+  system within one life or fail; new players learn and experiment at
+  their own pace.
+- *Domains, not enforced phases.* Natural, animal and spiritual are the
+  domains and that order is the natural one, but nothing enforces it. The
+  spiritual domain needs specific resources from the natural and animal
+  domains, and how the player sequences the work is theirs to decide.
+- *Words.* A **domain** is the area of play (natural, animal, spiritual). A
+  **phase** is one project that yields a new resource. A **structure** is
+  what a phase produces, named for the result and not the process: a mine
+  is a structure, and so is a made clearing with the right plants that
+  pleases a spirit. "Monument" is retired. "Works", "landmark" and "trade"
+  from the naming pass are not adopted.
+
+Winter under snow is wanted for its look and for watching the map regrow
+and react. How selling and spending fit it is not yet clear, and there may
+be little real planning to do in winter unless the game grows more complex.
+
+### Topic 2: summer (round one, 9 Sep 2026)
+
+Most of this is decided as a first guess to playtest, not as a verdict.
+
+**Decided.**
+
+- *Where you drink:* springs and streams, marked as drinking spots, many on
+  both banks of a stream, one drink speed. So the map must have few
+  streams further out: the first barrier is a stream in a half circle
+  around camp, where hydration is no problem; beyond it, distance from
+  water matters; a stream in a far area is a relief.
+- *What being dry does:* fog, the view narrowing. Try it alone first; add
+  slowness only if fog is not punishing enough.
+- *How it drains:* constant. No weather or seasons for now.
+- *Stamina spending:* per rough tile and per tool action. No bulk cost.
+  Try the bar drawn under the player as a constant reminder of what the
+  summer can still do, and experiment with showing costs.
+- *Zero stamina:* no stamina-costing action is allowed. Walking easy
+  ground and refilling still work.
+- *The clock:* hard stop, as now. What is carried at the stop is banked
+  as if brought home, so the last minute is not wasted; ending away from
+  camp costs extra gold in winter. A summer can be ended early from camp
+  with a button.
+- *Length:* by age.
+- *Start and end:* clean slate at camp, no cards naming the year for now.
+- *Refilling stamina:* fruit only, no cooldown. Fruit is also winter
+  food: the floor is partly paid in fruit, food not gathered is bought
+  with gold, and every fruit eaten in summer is one not in the store. The
+  HUD says what winter needs and what is in the store from the first
+  summer. Camp does not refill stamina. The grave gives max stamina +1 on
+  a visit (your resolve strengthens), no stamina itself. Fruit may be
+  stored in a cache but does not survive winter there. To playtest.
+- *Eating is capped.* Uncapped eating is an exchange rate: fruit buys
+  stamina, stamina buys cuts, cuts buy sellables, sellables buy food, and
+  a thick wall becomes "how much fruit did I bring", which also erases the
+  age curve. Options weighed: prices alone, a meal count per summer,
+  diminishing returns per fruit, eating costing clock time, a separate
+  rarer refill. Decided: a meal count per summer that follows the age
+  curve, on top of the winter cost. In summers 1 to 5, two meals, each
+  restoring 10. Diminishing returns is the fallback if a count feels like
+  a rule that must be told.
+
+**Decided, round two (resources, tools, logistics).**
+
+- *A rung is distance behind barriers.* No rarity for now, to keep it
+  simple; it may be mixed in later depending on how resources respawn.
+- *Pure sellables exist* and need not be exotic: feathers, shells, common
+  natural things with no use in play. Perhaps one per barrier run.
+- *How many kinds* follows from how many barriers five summers need.
+- *Tools are bought in winter* from the town. Some may need specific
+  resources brought back so the town can make them: a small quest where
+  gold is not the whole answer.
+- *One tool tier, no wear.* Instead, gear that changes costs: clothes or
+  boots that lower the stamina cost of a terrain; a bigger backpack that
+  lowers max stamina but adds slots.
+- *Improvements for the first prototype:* cut thicket, plank bridge, well,
+  cache. No gravel yet.
+- *Repair:* no health on built things. Wear removes one tile of a bridge,
+  so repair is half the work of building.
+- *Logistics:* the backpack is the limit; the store at camp is unlimited.
+  The cart is the important experiment: does making a road so a cart can
+  run from a cache to camp feel like play, or does hauling become a
+  chore? Cart and caches hold unlimited amounts for now. Fruit cannot go
+  in a cache: it rots over winter, so bank it or eat it. A full backpack
+  slowing the walk is a cheap experiment worth running.
+
+- *Barriers for five summers:* a barrier is short in one of four
+  currencies (budget, tool, materials, leash) and thickness is the main
+  dial, since cuts persist across summers. Four types beyond mud: thicket,
+  stream, saplings (young trees the axe fells; full-grown trees stay a
+  wall), and distance from water (the well). No boulders or pick; the
+  well and the cart fill those summers. The five-summer table in
+  [design/summer.md](design/summer.md) is the spec for the test maps.
+- Six kinds of thing: fruit, feather, stick, vine, ore, log, shell.
+
+**Open.**
+
+- Whether a rarer second refill (honey, nuts) deep in the map is needed
+  so a far field still has a body reason. Only if fruit alone leaves it
+  with none.
+
+Names decided: trees are the wall, saplings the fellable kind. The
+standalone read is [design/summer.md](design/summer.md).
+
+**Parked.**
+
+- Old characters drink less and tire more, young ones the reverse. For the
+  arc, once stats are settled.
+- Weather years, dusk with a dropped pack, the summer as a bag of stamina
+  rather than a clock, the card naming the year's job.
+
+### Topic 3: between summers (9 Sep 2026)
+
+**Decided.**
+
+- *Resources:* kinds differ. The inner ring inside the first stream
+  always comes back, so there is always a safe way to pay upkeep. Things
+  that only sell for gold come back slower, driving the player outward.
+- *Barriers:* thicket creeps back at the edges of cuts; felled saplings
+  return after some winters.
+- *Built things:* bridges lose a tile every other winter, so repair is
+  not a chore. Wells never decay.
+- *Trails:* desire lines, but gradual and with some randomness, not every
+  underbrush tile walked on.
+- *Winter is a screen*, not the map under snow, to start with.
+- *Winter mechanics:* choose what to keep for tools and improvements, the
+  rest auto-sells. Food short of upkeep is auto-bought; food over it
+  auto-sells. Surplus gold goes to the family. The family has levels;
+  each next level needs more accumulated surplus. A level does nothing
+  yet (may unlock tools later), and never raises upkeep.
+- *Upkeep* rises only with structures. Wells and bridges are not
+  structures, so it is flat in the first five summers.
+- *Missing upkeep:* next summer starts with max stamina ten lower.
+- *Spring* is not named. A small pop-up at the start of summer says how
+  long it is and what the upkeep is.
+
+**Terms.** In-game words over game-goal words: *upkeep*, not floor;
+*stamina*, not budget; *hydration*, not leash; *shop*, not shelf. The
+design documents were rewritten to match.
+
+The standalone read is [design/winter.md](design/winter.md).
+
+**Chores for the build step, not for now.** `itch-publish-1` was committed
+without its new files (`src/env.ts`, `src/sim/trace.ts`, the bake, the log
+export); they sit untracked on main and belong on the branch. The art moved
+to `art/` and main's loader expects `public/assets/minifantasy/`, so main
+runs on placeholders until it is moved back. `docs/PLAYTEST.md` and
+`docs/DESIGN-RAW.md` have never been committed.
