@@ -2,7 +2,10 @@
  * Every tunable number in the prototype lives here so feel can be tweaked
  * without reading any logic.
  *
- * Values marked [DOC] come straight from the design document.
+ * Values marked [DOC] come from docs/design/ or docs/current/five-summers.md.
+ * The stamina, hydration and fruit rates below are older: they are marked
+ * [DOC] after the original design doc, and M8 replaces them (the model is in
+ * docs/archive/decided-against.md).
  * Values marked [GUESS] were not specified and were chosen to make the day
  * play sensibly -- these are the ones worth arguing about.
  */

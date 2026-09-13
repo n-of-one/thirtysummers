@@ -1,87 +1,68 @@
 # thirtysummers
 
-Browser prototype of a top-down resource game: collect in summer, process in
-winter, 30-summer generations, an ageing character.
+Browser prototype of a top-down resource game: collect in summer, sell and
+buy in winter, a character who ages through thirty summers. Everything about
+the game and the code is in `docs/`, indexed by
+[docs/README.md](docs/README.md). This file is how to work on it.
 
-- **[docs/design/](docs/design/README.md)** — what the game is, one document
-  per aspect. Newer than DESIGN.md and wins over it.
-- **[docs/DESIGN.md](docs/DESIGN.md)** — the original design doc, still the
-  word on anything without a document in `docs/design/` yet. Where it and the
-  plan disagree, it wins.
-- **[docs/PLAN.md](docs/PLAN.md)** — how it gets built: milestone status, stack,
-  rules to build to. **Read this before starting work.**
-- **[docs/RATIONALE.md](docs/RATIONALE.md)** — why those choices, and what was
-  learned making them. Not needed to execute the plan; read it before revisiting
-  a decision, or when something in the art or the renderer looks arbitrary.
-- **[docs/BRAINSTORM.md](docs/BRAINSTORM.md)** — what the project is for, the
-  hypothesis being tested, what is decided and what is parked. Read it before
-  proposing a new system.
-- **[docs/PLAYTEST.md](docs/PLAYTEST.md)** — one entry per play session. The
-  discovery test's verdict comes from here, and nothing beyond it gets planned
-  until there is one.
+## Read before
 
-## Commands
+- Starting work: [docs/current/PLAN.md](docs/current/PLAN.md), then the file
+  of the milestone being built.
+- Changing code: [docs/architecture.md](docs/architecture.md). Its rules hold
+  for every change.
+- Running, testing, debugging or measuring the game:
+  [docs/development.md](docs/development.md).
+- Proposing or changing a mechanic: [docs/design/](docs/design/README.md) and
+  [docs/archive/decided-against.md](docs/archive/decided-against.md), so a
+  dropped idea does not come back as new.
+- Revisiting a technical choice, or when something in the art or the
+  renderer looks arbitrary:
+  [docs/rationale/technical.md](docs/rationale/technical.md).
 
-```
-npm run dev         # Vite dev server on :5173
-npm run test        # vitest run
-npm run typecheck   # tsc --noEmit
-npm run build
-npm run map         # ASCII dump of a generated map, for eyeballing worldgen
-npm run map -- 42 > public/maps/x.txt   # ...and the same dump as a playable map
-npm run map:check public/maps/*.txt     # does each edited map still hold the chain?
-```
+## Keeping the docs
 
-Press `` ` `` in the running game for the debug overlay: seed and regenerate
-(`[` and `]` step it), a 1x–10x time scale, a tile grid, a stat freeze,
-click-to-teleport, and a fixed-width readout. `window.__game` is always there to
-measure from.
-
-Useful URL params: `?map=<name>` (play `public/maps/<name>.txt` instead of a
-generated world — `a` through `e` are the discovery test's maps), `?seed=<n>`,
-`?pack=placeholder` (run without the paid art), `?debug=1` (start with the
-overlay already open).
-
-Controls: WASD or arrows to move, Shift to sprint, E or Space to gather, cut,
-build and bank ore, F to eat, R to drink. (Sprint and R go with M8; see
-PLAN.md.)
-
-## Architecture rules
-
-- **Nothing under `src/sim/` imports Pixi or touches the DOM.** That is what
-  keeps the simulation unit-testable and lets the renderer change underneath it.
-  Rendering only ever reads simulation state; it never writes to it.
-- **Relative imports carry an explicit `.ts` extension.** The same source then
-  runs under Vite, Vitest and bare `node --experimental-strip-types`.
-- **`src/config.ts` holds every tunable number**, each marked `[DOC]` (from the
-  design doc) or `[GUESS]` (mine, tune freely). Numbers do not belong in logic.
-- The simulation runs on a **fixed 1/60s timestep** so per-second rates do not
-  drift with frame rate. Anything that asks "is this moving" must read a flag the
-  tick wrote, not diff positions between draws.
+- `docs/design/` holds settled mechanics, `docs/design/ideas.md` what is not
+  decided, `docs/rationale/` the reasons, `docs/archive/` what was dropped
+  with one line of why, and `docs/current/` the step being built.
+- Docs hold the current state. No dated minutes and no history of ideas. Git
+  has the history.
+- When a milestone is accepted, delete its file and mark it done in the
+  plan's table. What was learned building it goes into
+  `docs/rationale/technical.md`.
+- When a step ends, what it settled moves into design/, rationale/ or
+  archive/, and `docs/current/` is rewritten for the next step.
 
 ## Working agreement
 
-- **Stop at the end of each milestone** so it can be verified before the next
+- Stop at the end of each milestone so it can be verified before the next
   one starts.
-- **Do not install non-npm dependencies.** Ask instead — things like Node are
+- Plan mode is for building a milestone once it is written into its file.
+- Do not install non-npm dependencies. Ask instead. Things like Node are
   installed by hand. `npm install` for project libraries is fine.
-- Claims about how the game looks or behaves should be **measured, not asserted**
-  — drive the running game over the Chrome DevTools Protocol and read numbers
-  back, and check a fix is non-vacuous by reverting it and watching the check
-  fail.
+- Measure claims about how the game looks or behaves; do not assert them.
+  Drive the running game over the Chrome DevTools Protocol, read numbers
+  back, and prove a check is non-vacuous by reverting the fix and watching
+  it fail. `docs/development.md` says how.
+- Never commit the Minifantasy art. It is a paid licence, and
+  `public/assets/minifantasy/` is gitignored.
+- `public/maps/*.txt` are played blind. Do not read a map file to someone
+  who is about to play it, and do not describe its layout.
+  `public/maps/README.md` is the safe half: which seed each came from, not
+  what is in it.
 
-## Playing the discovery test
+## Brainstorms
 
-`public/maps/*.txt` are played blind: **do not read a map file to someone who is
-about to play it**, and do not describe its layout. `public/maps/README.md` is
-the safe half — it says which seed each came from, not what is in it.
+In design work Erik wants a co-creator, not an option-picker.
 
-## Art licence
-
-The Minifantasy art is a paid licence and **must not be committed**.
-`public/assets/minifantasy/` is gitignored; `public/assets/README.md` says where
-to buy the packs and where to unzip them. The repo stays runnable without them
-via the code-drawn placeholder pack.
-
-This is not going to be a published project. If that changes, re-read the licence
-agreement and fulfil its requirements — see RATIONALE.md for what they were.
+- Run brainstorms outside plan mode, and touch only `docs/`.
+- Open each round with a spread of ideas: ordinary ones in full, wild ones
+  as one-liners at the bottom.
+- Lay the options out neutrally. Your own lean goes in one list at the very
+  end, never inline, and nothing is labelled "(Recommended)".
+- Ask in prose. No AskUserQuestion in a brainstorm; it turns design
+  questions into implementation questions.
+- The design docs are the floor, not the ceiling. Decided items can be
+  reopened.
+- Take topics in dependency order, and close each one at "enough to build
+  from". Then write the result into the docs as "Keeping the docs" says.

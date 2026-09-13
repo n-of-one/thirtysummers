@@ -31,9 +31,9 @@ by. The three phases of a life are:
 - **Peak, summers 10 to 20.** Building structures. Choosing which, then
   preparing the map and the economy for it, then the tasks themselves.
 - **Decline, summers 20 to 30.** Finishing tasks and preparing the heir.
-  The child is born when the character is 30 (summer 25), 
-  and the last summers are spent making a place for them. Starting summer 20
-  the summers become shorter again, making logistics more important.
+  The child is born when the character is 30 (summer 16), and the last
+  summers are spent making a place for them. From summer 20 the summers
+  become shorter again, which makes logistics matter more.
 
 A phase is not enforced. It is what the years are naturally for.
 
@@ -127,9 +127,9 @@ one inherited thing. That is what makes it a new life and not a
 continuation.
 
 Somewhere on the map is the parent's grave. Visiting it in a summer gives
-something worth the walk. How the grave is placed and how the burial works
-are not designed yet; for the first prototype a grave is pre-placed on the
-map so the benefit can be tried.
+something worth the walk: max stamina one higher, as
+[summer.md](summer.md) says. How the grave is placed and how the burial
+works are not designed yet.
 
 The second youth is meant to be faster than the first, and to feel like a
 power trip rather than a chore: the map is known, the roads are half
