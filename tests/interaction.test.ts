@@ -276,7 +276,7 @@ describe("eating and drinking", () => {
   });
 });
 
-describe("a day played end to end", () => {
+describe("a summer played end to end", () => {
   it("picks, eats, drinks, banks, and totals up", () => {
     const world = worldWith([
       node("ore", 9.5, 8.5),
@@ -299,25 +299,25 @@ describe("a day played end to end", () => {
     world.player.y = 1.5;
     tap(world, INTERACT);
 
-    const day = summarise(world);
-    expect(day.gold).toBe(2);
-    expect(day.harvested).toEqual({ ore: 2, fruit: 1, water: 1, vine: 0, stick: 0 });
-    expect(day.fruitEaten).toBe(1);
-    expect(day.waterDrunk).toBe(1);
-    expect(day.oreUnbanked).toBe(0);
+    const summer = summarise(world);
+    expect(summer.gold).toBe(2);
+    expect(summer.harvested).toEqual({ ore: 2, fruit: 1, water: 1, vine: 0, stick: 0 });
+    expect(summer.fruitEaten).toBe(1);
+    expect(summer.waterDrunk).toBe(1);
+    expect(summer.oreUnbanked).toBe(0);
     expect(world.inventory.carried).toBe(0);
   });
 
-  it("counts ore still in the pack at nightfall as unbanked", () => {
+  it("counts ore still in the pack when the summer ends as unbanked", () => {
     const world = worldWith([]);
     world.inventory.add("ore", 3);
     expect(summarise(world).oreUnbanked).toBe(3);
     expect(summarise(world).gold).toBe(0);
   });
 
-  it("reports an untouched day as all zeroes", () => {
-    const day = summarise(worldWith([]));
-    expect(day).toEqual({
+  it("reports an untouched summer as all zeroes", () => {
+    const summer = summarise(worldWith([]));
+    expect(summer).toEqual({
       year: 1,
       gold: 0,
       harvested: { fruit: 0, water: 0, ore: 0, vine: 0, stick: 0 },

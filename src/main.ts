@@ -222,7 +222,7 @@ app.ticker.add(({ deltaMS }) => {
 
   // When the light goes the world stops: the clock is the whole constraint, and
   // a summer you can keep playing past the end is not one.
-  if (!world.dayOver) {
+  if (!world.summerOver) {
     for (let i = 0; i < steps; i++) world.step(C.TICK_SEC, input);
   } else if (!summaryShown) {
     summaryShown = true;

@@ -35,7 +35,7 @@ export class FrameClock {
 
   /**
    * Simulated seconds per real second. The debug overlay turns this up to run a
-   * 15-minute day out in a minute and a half.
+   * 15-minute summer out in a minute and a half.
    *
    * It multiplies the frame *after* the clamp, not before, so the clamp keeps
    * meaning what it says: at most `maxFrameSec` of real time is ever accounted

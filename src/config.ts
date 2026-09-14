@@ -6,8 +6,8 @@
  * The stamina, hydration and fruit rates below are older: they are marked
  * [DOC] after the original design doc, and M8 replaces them (the model is in
  * docs/archive/decided-against.md).
- * Values marked [GUESS] were not specified and were chosen to make the day
- * play sensibly -- these are the ones worth arguing about.
+ * Values marked [GUESS] were not specified and were chosen to make the
+ * summer play sensibly -- these are the ones worth arguing about.
  */
 
 // ---------------------------------------------------------------- world ----

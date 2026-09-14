@@ -4,13 +4,13 @@ What is being built is in [five-summers.md](five-summers.md). This page is
 the status and the order. Each milestone has its own file, deleted once it is
 done.
 
-**Status, 13 Sep 2026.** The discovery test's verdict, on 8 Sep, was that
-the idea works. None of the milestones below has started. The chores come
-first.
+**Status, 14 Sep 2026.** The discovery test's verdict, on 8 Sep, was that
+the idea works. None of the milestones below has started. The chores are
+done apart from reviewing the rename of "day" to "summer".
 
 | Milestone | What it adds | Status |
 |---|---|---|
-| Chores | a clean tree to build on | to do |
+| Chores | a clean tree to build on | rename to review |
 | [M8: the body](m8-body.md) | stamina as a budget, meals, hydration and fog, no sprint | not started |
 | [M9: the map](m9-map.md) | saplings, springs, wells, caches, seven resources, five new maps | not started |
 | [M10: winter](m10-winter.md) | the store, the winter screen, upkeep, the shop, the map between summers | not started |
@@ -24,21 +24,12 @@ is a `[GUESS]` in `config.ts` unless five-summers.md gives it.
 
 ## Chores before M8
 
-Done in one commit, so the tree is clean before anything is built on it.
-
-- The seventeen untracked M7 files (`src/env.ts`, `src/sim/trace.ts`,
-  `src/sim/playtestLog.ts`, the bake, the baked pack, `table.ts`, the log
-  export, `scripts/itch.ts`, `scripts/readlog.ts`, their tests, `bake.html`,
-  `dev/bake.ts`, `src/build.d.ts`) belong on `itch-publish-1`, which was
-  committed without them. Commit them there, then remove them from main.
-  Exception: `trace.ts` and its test stay on main if M8's verification
-  wants a per-second sample, and M10's trails need it anyway.
-- The art moved to `art/minifantasy/` for M7 and main's loader reads
-  `public/assets/minifantasy/`. Make sure it is back there and that
-  `npm run dev` logs pack "minifantasy".
-- Commit the docs restructure.
-- The "day" vocabulary goes, alongside M8: `dayOver`, `DaySummary`,
-  `summarise`'s comments, the `[DOC]` notes that cite the day.
+- The "day" vocabulary is gone from the working tree: `dayOver` is
+  `summerOver`, `DaySummary` is `SummerSummary`, and the comments, test
+  names and [../rationale/technical.md](../rationale/technical.md) follow.
+  It needs reviewing and committing.
+- `src/sim/trace.ts` and its test live only on `itch-publish-1`. M10's
+  trails bring them back to main.
 
 ## At the end of each milestone
 

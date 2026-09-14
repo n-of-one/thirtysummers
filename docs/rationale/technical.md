@@ -222,13 +222,13 @@ that way is what makes the interesting half testable without a DOM, and it also
 makes the one-way rule structural: the HUD has no reference it could write back
 through.
 
-## The day loop
+## The summer loop
 
 **An append-only event log, not a callback.** The simulation records what it did
 (`harvested`, `ate`, `deposited`, `blocked`) and never removes anything. The
-HUD, the end-of-day count and the prop layer each walk the list with their own
+HUD, the end-of-summer count and the prop layer each walk the list with their own
 cursor. That keeps the one-way rule intact, since reading with a cursor takes
-nothing out of the world, and it means the summary counts the day from the same
+nothing out of the world, and it means the summary counts the summer from the same
 record the toasts came from rather than from a second set of totals that could
 drift.
 
@@ -261,13 +261,13 @@ every tick inside a frame sees the same input object.
 two nodes would otherwise pick a different one each tick, reset the progress
 every time, and make the hold impossible to finish.
 
-**"New day" reseeds in place.** It reloaded the page until M6. Rebuilding means
+**A new seed is built in place.** Until M6 it reloaded the page. Rebuilding means
 new render layers, because each one holds the map it was built with, and that is
 what the debug overlay needed anyway; the layers are cheap to build and
 destroying them releases their sprite pools. What made the reload tempting was
 the bookkeeping around it rather than the layers: the HUD and the renderer both
 hold cursors into `world.events`, and a fresh log with a stale cursor swallows
-the new day silently.
+the new world silently.
 
 ## The debug overlay
 
@@ -283,7 +283,7 @@ around inside a view that cannot keep up.
 
 **Freeze is a flag on `Stats`, pushed every frame.** It could as easily have been
 a rate the overlay zeroed, but then "the numbers stopped" would live in the
-renderer, and `sim/` would no longer be the whole account of what the day does.
+renderer, and `sim/` would no longer be the whole account of what the summer does.
 Pushing it every frame rather than on change is what makes it survive a
 regenerate: a new `World` gets the checkbox applied on its first tick, where a
 one-shot callback would have left it thawed.
@@ -311,7 +311,7 @@ or a button.
 **Teleport refuses what collision would.** `moveWithCollision` only ever moves
 from a legal position to a legal position, so a player set down inside a rock is
 stuck there for good. Refusing the click and saying so costs one call to
-`canStand` and removes the only way the overlay could break a day.
+`canStand` and removes the only way the overlay could break a summer.
 
 ## Where the HUD says things
 
@@ -326,7 +326,7 @@ measured only when its contents change: a prompt that changed text, or a toast
 arriving or fading out. Writing a style and reading a box back in the same frame
 forces layout, and this runs every frame.
 
-The corners keep what is true all day and is read by glancing: the bars, the
+The corners keep what is true all summer and is read by glancing: the bars, the
 clock, the pack, the gold. The bottom right, freed up by the move, now carries
 the two lines the player needs exactly once, which key eats fruit and which key
 drinks water, shown only while carrying some.
@@ -374,7 +374,7 @@ that world's log really is new.
 
 That leaves gold as the one number in the summary that is not a record of the
 summer: it is the score, it carries, and counting only what was banked since
-sunrise would be a different question.
+the summer began would be a different question.
 
 **The target tile marks itself.** Cutting and building act on the nearest tile
 of the right kind, and the prompt says what will happen but not where. The first

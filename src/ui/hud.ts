@@ -1,5 +1,5 @@
 import * as C from "../config.ts";
-import type { DaySummary } from "../sim/summary.ts";
+import type { SummerSummary } from "../sim/summary.ts";
 import type { Inventory } from "../sim/inventory.ts";
 import {
   RESOURCE_KINDS,
@@ -386,23 +386,23 @@ export class Hud {
   }
 
   /** Show the end-of-summer card. `onRestart` is wired to the button. */
-  showSummary(day: DaySummary, onRestart: () => void): void {
+  showSummary(summer: SummerSummary, onRestart: () => void): void {
     const rows: [string, string, boolean][] = [
-      ["Gold", String(day.gold), true],
-      ["Fruit picked", String(day.harvested.fruit), false],
-      ["Water drawn", String(day.harvested.water), false],
-      ["Ore mined", String(day.harvested.ore), false],
-      ["Vines cut", String(day.harvested.vine), false],
-      ["Sticks gathered", String(day.harvested.stick), false],
-      ["Ore left unbanked", String(day.oreUnbanked), false],
-      ["Fruit eaten", String(day.fruitEaten), false],
-      ["Water drunk", String(day.waterDrunk), false],
-      ["Paths cut", String(day.tilesCut), false],
-      ["Bridge tiles laid", String(day.bridgesBuilt), false],
-      ["Distance walked", `${day.distanceWalked.toFixed(0)} tiles`, false],
+      ["Gold", String(summer.gold), true],
+      ["Fruit picked", String(summer.harvested.fruit), false],
+      ["Water drawn", String(summer.harvested.water), false],
+      ["Ore mined", String(summer.harvested.ore), false],
+      ["Vines cut", String(summer.harvested.vine), false],
+      ["Sticks gathered", String(summer.harvested.stick), false],
+      ["Ore left unbanked", String(summer.oreUnbanked), false],
+      ["Fruit eaten", String(summer.fruitEaten), false],
+      ["Water drunk", String(summer.waterDrunk), false],
+      ["Paths cut", String(summer.tilesCut), false],
+      ["Bridge tiles laid", String(summer.bridgesBuilt), false],
+      ["Distance walked", `${summer.distanceWalked.toFixed(0)} tiles`, false],
     ];
 
-    setText(this.summaryTitle, `Summer ${day.year} over`);
+    setText(this.summaryTitle, `Summer ${summer.year} over`);
 
     this.summaryStats.replaceChildren();
     for (const [label, value, isGold] of rows) {

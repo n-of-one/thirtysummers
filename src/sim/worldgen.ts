@@ -24,7 +24,7 @@ export interface GeneratedWorld {
 }
 
 /**
- * A seed in, a day's world out.
+ * A seed in, a world out.
  *
  * The order matters and each step depends on the last: the stream has to be
  * wide enough to draw before the camp is placed, because the camp needs solid

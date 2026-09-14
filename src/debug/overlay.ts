@@ -59,7 +59,7 @@ export interface Readout {
  *
  * Every one is the longest that field can ever be: three digits for a
  * coordinate on a 128-tile map, `underbrush` for a terrain name, `900.0` for a
- * day. Numbers are padded on the left and words on the right, so each field
+ * summer. Numbers are padded on the left and words on the right, so each field
  * keeps its column and the line stays exactly as long from one frame to the
  * next. Without that, the panel resizes under the cursor every time a
  * coordinate passes 80.0 on its way to 80.01.
@@ -115,7 +115,7 @@ export function formatReadout(r: Readout): string {
 export interface DebugOptions {
   /** Seed the world on screen was built from. Fills the seed box. */
   seed: number;
-  /** Throw the day away and build a new one on this seed. */
+  /** Throw the summer away and build a new one on this seed. */
   regenerate(seed: number): void;
   /**
    * Put the player at this point on the canvas, in CSS pixels from its
@@ -142,7 +142,7 @@ export interface DebugOptions {
  *
  * The panel is always built and starts hidden unless `?debug=1` asked for it;
  * a backtick opens and closes it. Nothing in the game reads the overlay, so a
- * day plays exactly the same whether it has ever been opened.
+ * summer plays exactly the same whether it has ever been opened.
  */
 export class DebugOverlay {
   /** Simulated seconds per real second. The frame loop reads this. */
@@ -218,7 +218,7 @@ export class DebugOverlay {
    *
    * The readout comes as a thunk rather than a string: with the panel closed
    * nobody can see it, and building the line every frame for nobody is the one
-   * cost the overlay would otherwise charge a normal day.
+   * cost the overlay would otherwise charge a normal summer.
    */
   update(camera: Camera, readout: () => string): void {
     if (!this.grid.hidden) {
@@ -245,7 +245,7 @@ export class DebugOverlay {
    * The panel's shortcuts.
    *
    * Only the toggle works while the panel is down -- a stray bracket in the
-   * middle of a day should not rebuild the world you are standing in. Keys
+   * middle of a summer should not rebuild the world you are standing in. Keys
    * aimed at the seed box are left alone, so it can be typed into and stepped
    * with its own arrows.
    */
@@ -313,7 +313,7 @@ export class DebugOverlay {
     if (document.activeElement instanceof HTMLElement) document.activeElement.blur();
   }
 
-  /** Both what the slider is set to and what it costs: a day at that speed. */
+  /** Both what the slider is set to and what it costs: a summer at that speed. */
   private showSpeed(): void {
     this.speedValue.textContent =
       `x${this.timeScale.toFixed(1)} ${formatClock(C.SUMMER_LENGTH_SEC / this.timeScale)}`;

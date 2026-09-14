@@ -29,7 +29,7 @@ describe("formatClock", () => {
     expect(formatClock(9)).toBe("0:09");
   });
 
-  it("rounds up, so it only shows 0:00 when the day is actually over", () => {
+  it("rounds up, so it only shows 0:00 when the summer is actually over", () => {
     expect(formatClock(899.99)).toBe("15:00");
     expect(formatClock(0.01)).toBe("0:01");
     expect(formatClock(0)).toBe("0:00");
@@ -41,7 +41,7 @@ describe("formatClock", () => {
 });
 
 describe("hudModel", () => {
-  it("reports a fresh day at full", () => {
+  it("reports a fresh summer at full", () => {
     const model = hudModel(world());
     expect(model).toEqual({
       stamina: 100,

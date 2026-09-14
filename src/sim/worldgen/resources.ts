@@ -16,7 +16,7 @@ function touches(map: TileMap, x: number, y: number, kind: TerrainKind): boolean
 }
 
 /**
- * Scatter the day's resources over ground the player can actually walk to.
+ * Scatter the resources over ground the player can actually walk to.
  *
  * Each kind draws from its own pool of candidate tiles, so where a resource
  * grows says something about the terrain: fruit at the forest edge, water at

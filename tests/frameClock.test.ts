@@ -67,7 +67,7 @@ describe("FrameClock", () => {
     expect(clock.tick(C.TICK_SEC).steps).toBe(1);
   });
 
-  it("runs the day faster at a higher time scale, and still in whole ticks", () => {
+  it("runs the summer faster at a higher time scale, and still in whole ticks", () => {
     const clock = new FrameClock();
     clock.timeScale = 10;
     const frame = clock.tick(1 / 60);

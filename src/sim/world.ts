@@ -60,7 +60,7 @@ const HOLD_TIME: Record<Action["type"], number> = {
 
 /**
  * The whole simulation. Owns the map and everything on it, and advances by
- * fixed steps. Nothing here touches Pixi or the DOM, so a day can be played out
+ * fixed steps. Nothing here touches Pixi or the DOM, so a summer can be played out
  * headlessly in a test.
  */
 export class World {
@@ -118,12 +118,12 @@ export class World {
     return new World(generateWorld(seed));
   }
 
-  /** Seconds left before the day ends. Never negative. */
+  /** Seconds left before the summer ends. Never negative. */
   get remainingSec(): number {
     return C.SUMMER_LENGTH_SEC - this.elapsedSec;
   }
 
-  get dayOver(): boolean {
+  get summerOver(): boolean {
     return this.remainingSec <= 0;
   }
 
@@ -198,7 +198,7 @@ export class World {
    * inside a rock cannot walk out of one: collision only lets a move happen
    * from a legal position to a legal position.
    *
-   * The distance is not walked, so it does not count towards the day's total,
+   * The distance is not walked, so it does not count towards the summer's total,
    * and any harvest in progress is dropped. Only the debug overlay calls this.
    */
   teleport(x: number, y: number): boolean {
@@ -241,7 +241,7 @@ export class World {
    * Advance by exactly `dt` seconds. Call at a fixed rate.
    *
    * Every part of a tick goes here, in order. Standing still is a tick like any
-   * other: hydration drains whether or not you are walking, and the day runs
+   * other: hydration drains whether or not you are walking, and the summer runs
    * down whether or not you are doing anything with it. Nothing in this method
    * may return early on "no input", which is why movement -- the one part that
    * genuinely has nothing to do then -- keeps its own early return one level

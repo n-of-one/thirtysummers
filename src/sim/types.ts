@@ -56,9 +56,9 @@ export type BlockedReason =
  * Something the simulation did this tick, worth telling the player about.
  *
  * The world appends and never removes. A reader keeps its own cursor into the
- * list, which is what lets the HUD show toasts and the end-of-day summary count
- * the day up without either of them writing back into simulation state. A whole
- * day produces a few hundred of these, so keeping them all costs nothing.
+ * list, which is what lets the HUD show toasts and the end-of-summer summary
+ * count the summer up without either of them writing back into simulation
+ * state. A whole summer produces a few hundred of these, so keeping them all costs nothing.
  */
 export type WorldEventPayload =
   | { type: "harvested"; kind: ResourceKind }
@@ -72,5 +72,5 @@ export type WorldEventPayload =
   /** A new summer began on the same map. Everything the player changed is kept. */
   | { type: "summerStarted"; year: number };
 
-/** A payload, stamped with the second of the day it happened at. */
+/** A payload, stamped with the second of the summer it happened at. */
 export type WorldEvent = WorldEventPayload & { at: number };

@@ -38,7 +38,7 @@ const clamp = (v: number): number => Math.min(Math.max(v, 0), C.STAT_MAX);
  * Stamina, hydration, and the full-stomach cooldown.
  *
  * Everything here is a percentage in [0, 100] moving at a per-second rate, and
- * every rate lives in config.ts. No DOM, no renderer: a whole day can be
+ * every rate lives in config.ts. No DOM, no renderer: a whole summer can be
  * simulated in a test and the numbers checked exactly.
  */
 export class Stats {

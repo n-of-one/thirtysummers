@@ -1,14 +1,8 @@
 import { RESOURCE_KINDS, type ResourceKind, type WorldEvent } from "./types.ts";
 import type { World } from "./world.ts";
 
-/**
- * What the summer came to.
- *
- * Still called a day summary in the code: the identifiers change when winter is
- * built and the whole vocabulary moves at once. Nothing the player reads says
- * "day".
- */
-export interface DaySummary {
+/** What the summer came to. */
+export interface SummerSummary {
   /** Which summer this was, counting from 1. */
   year: number;
   /** The score: gold banked at camp, across every summer so far. */
@@ -50,9 +44,9 @@ export function summerStartsAt(events: readonly WorldEvent[]): number {
  *
  * Gold is the exception and is read from the inventory: it is the score, it
  * carries across summers, and the log would only ever say how much of it was
- * earned since the last sunrise.
+ * earned since the summer began.
  */
-export function summarise(world: World): DaySummary {
+export function summarise(world: World): SummerSummary {
   const harvested = Object.fromEntries(RESOURCE_KINDS.map((k) => [k, 0])) as Record<
     ResourceKind,
     number

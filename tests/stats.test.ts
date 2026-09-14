@@ -250,11 +250,11 @@ describe("World — which stamina rule a tick uses", () => {
   });
 });
 
-describe("World — the day clock", () => {
+describe("World — the summer clock", () => {
   it("counts down in real seconds and stops at zero", () => {
     const world = worldOn("grass");
     expect(world.remainingSec).toBe(C.SUMMER_LENGTH_SEC);
-    expect(world.dayOver).toBe(false);
+    expect(world.summerOver).toBe(false);
 
     for (let i = 0; i < 60 * 60; i++) world.step(C.TICK_SEC, still);
     expect(world.remainingSec).toBeCloseTo(C.SUMMER_LENGTH_SEC - 60, 6);
@@ -263,6 +263,6 @@ describe("World — the day clock", () => {
     for (let i = 0; i < ticks; i++) world.step(C.TICK_SEC, still);
     expect(world.elapsedSec).toBe(C.SUMMER_LENGTH_SEC);
     expect(world.remainingSec).toBe(0);
-    expect(world.dayOver).toBe(true);
+    expect(world.summerOver).toBe(true);
   });
 });

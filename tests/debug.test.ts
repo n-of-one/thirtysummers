@@ -144,7 +144,7 @@ describe("stat freeze", () => {
     expect(stats.hydration).toBe(10 + C.WATER_HYDRATION);
   });
 
-  it("freezes the stats without stopping the day or the player", () => {
+  it("freezes the stats without stopping the summer or the player", () => {
     const w = world();
     w.stats.frozen = true;
     for (let i = 0; i < 60; i++) w.step(C.TICK_SEC, { ...NO_INPUT, moveX: 1 });

@@ -242,7 +242,7 @@ describe("the next summer", () => {
     expect(world.stats.stomachCooldownSec).toBe(0);
     expect(world.elapsedSec).toBe(0);
     expect(world.remainingSec).toBe(C.SUMMER_LENGTH_SEC);
-    expect(world.dayOver).toBe(false);
+    expect(world.summerOver).toBe(false);
   });
 
   it("puts the player back at camp and counts the year up", () => {
@@ -273,7 +273,7 @@ describe("the next summer", () => {
     expect(summer.harvested.ore).toBe(0);
     expect(summer.tilesCut).toBe(0);
     // Gold is the score, so it carries: it is the one number that is not a
-    // record of what happened between this sunrise and this sunset.
+    // record of what happened between this summer's start and its end.
     expect(summer.gold).toBe(1);
   });
 
