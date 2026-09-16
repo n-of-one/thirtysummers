@@ -24,10 +24,11 @@ the history.
 
 - [current/PLAN.md](current/PLAN.md) is the status and order of the
   milestones, the chores, and what happens at the end of each milestone.
-- [current/m8-body.md](current/m8-body.md),
+- [current/qol.md](current/qol.md),
   [current/m9-map.md](current/m9-map.md),
-  [current/m10-winter.md](current/m10-winter.md) and
-  [current/m11-cart.md](current/m11-cart.md) are the milestones.
+  [current/m10-winter.md](current/m10-winter.md),
+  [current/m11-cart.md](current/m11-cart.md) and
+  [current/m12-fruit.md](current/m12-fruit.md) are the milestones.
 - [current/five-summers.md](current/five-summers.md) is what the first five
   summers are: the numbers, the barriers and resources, the table the maps
   are edited to.

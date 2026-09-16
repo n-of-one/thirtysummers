@@ -12,8 +12,9 @@ five minutes at 15, fifteen at the physical peak from summer 10 to 20, back
 down toward five by the end of a life. Whatever is carried when the clock
 stops is banked as if brought home, so the last minute is never wasted and a
 final trip out is fine. Ending away from camp costs extra gold in winter, to
-pay for the fetching. A summer can also be ended early from camp, with a
-button, once there is nothing left worth doing.
+pay for the fetching. The last minute is drawn as dusk, and away from camp
+it says so and points the way home. A summer can also be ended early from
+camp, with a button, once there is nothing left worth doing.
 
 Speed improvements come from altering the map: a cut path, a bridge, a route
 the cart can run.
@@ -31,10 +32,11 @@ one the player could not read. The age curve is the length of the summer.
 
 **Hydration** answers *where*: how far from water the character dares to
 work. It drains at a constant rate whatever the character does, and it is
-refilled only at springs, one-tile pools drunk from beside, all at one speed.
-They stand near the streams, many on both sides, but never touch one: the
-stream is for bridging, so the key at the water never means two things.
-Water is never carried. When hydration is low the view narrows into fog.
+refilled only at springs, drinking spots on the bank marked by reeds, drunk
+from beside with a short hold, all at one speed. They sit along the
+streams, many on both sides. At a spring the key drinks while there is
+thirst to quench and lays a bridge otherwise. Water is never carried. When
+hydration is low the view narrows into fog.
 Near camp, inside the half circle of the first stream, it is no concern.
 Beyond, distance from water is a barrier in its own right, so a map has few
 streams further out, and a stream in a far part of it is a relief.

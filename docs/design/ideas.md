@@ -33,7 +33,6 @@ one up means refining it into a design document first. Rejected ideas are in
   has reached is visible. Cards naming the year at the start and end of a
   summer.
 - **Weather.** Weather years, and harsh years that wear things faster.
-- **Dusk with a dropped pack.** The last minute drawn as evening.
 - **Gravel on mud**, the third improvement, once repeat trips through the mud
   have taught what a road is worth.
 - **Rarity**, once respawning is designed.

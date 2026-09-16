@@ -4,16 +4,18 @@ What is being built is in [five-summers.md](five-summers.md). This page is
 the status and the order. Each milestone has its own file, deleted once it is
 done.
 
-**Status, 15 Sep 2026.** The discovery test's verdict, on 8 Sep, was that
-the idea works. The chores are done. M8 was built with stamina as a budget
-and meals, and its first playtest dropped both. It has been stripped back
-to hydration and the end of a summer, and is waiting for review.
+**Status, 16 Sep 2026.** The discovery test's verdict, on 8 Sep, was that
+the idea works. M8 is done: it was built with stamina as a budget and
+meals, its first playtest dropped both, and what stayed is hydration, the
+fog and the end of a summer. Before the map comes a QoL milestone for what
+that playtest tripped on, the screen first.
 
 | Milestone | What it adds | Status |
 |---|---|---|
 | Chores | a clean tree to build on | done |
-| [M8: the body](m8-body.md) | hydration and fog, springs, the end of a summer, no sprint, no stamina | in review |
-| [M9: the map](m9-map.md) | saplings, springs, wells, caches, seven resources, five new maps | not started |
+| M8: the body | hydration and fog, springs, the end of a summer, no sprint, no stamina | done |
+| [QoL](qol.md) | a fixed view, aimed tools, the last minute with dusk, springs in the reeds, banking fruit, pause | not started |
+| [M9: the map](m9-map.md) | saplings, wells, caches, seven resources, five new maps | not started |
 | [M10: winter](m10-winter.md) | the store, the winter screen, upkeep, the shop, the map between summers | not started |
 | [M11: the cart](m11-cart.md) | the logistics experiment | not started |
 | [M12: fruit](m12-fruit.md) | eating a fruit for a burst of speed, in place of meals | not started |
@@ -25,12 +27,8 @@ most likely to be cut. Fruit is last, because it needs a winter for eating
 one to cost anything. Each milestone is playable on its own. Every number is
 a `[GUESS]` in `config.ts` unless five-summers.md gives it.
 
-## Chores before M8
+## Chores
 
-- The "day" vocabulary is gone from the working tree: `dayOver` is
-  `summerOver`, `DaySummary` is `SummerSummary`, and the comments, test
-  names and [../rationale/technical.md](../rationale/technical.md) follow.
-  It needs reviewing and committing.
 - `src/sim/trace.ts` and its test live only on `itch-publish-1`. M10's
   trails bring them back to main.
 

@@ -31,8 +31,12 @@ chosen instead.
   fallback if the fruit burst shows that.
 - **A full-stomach cooldown after eating.** It was the one real irritation
   of the discovery test.
-- **Drinking at a stream bank.** It put the drink and the bridge on one key
-  at the same water. Springs near the stream, never touching it, replaced it.
+- **Springs as pools apart from the stream.** One-tile pools two tiles from
+  the water, so the drink and the bridge never shared a key. They looked
+  artificial and read as a thing beside the stream rather than part of it.
+  Drinking at the bank, at spots marked by reeds, came back on purpose: the
+  hydration threshold that was the objection to it had been in the game
+  since M8 anyway, for a spring beside a thicket.
 - **Carried water**, as a node in the backpack or in a flask. Hydration's job
   is to tie the character to a place, and carried water cuts that tie.
 - **Hydration as gates**, where low hydration slowed or stopped something

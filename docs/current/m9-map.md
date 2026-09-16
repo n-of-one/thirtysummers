@@ -5,12 +5,13 @@ five new maps that hold it. Playable as five summers back to back, with no
 winter yet. The axe and the well are given at the start of the summer whose
 table row needs them, so the map can be tested before the shop exists.
 
-**Depends on** M8: the `spring` terrain and drinking spots.
+**Depends on** QoL: springs as drinking spots in `world.springs`, and the
+fixed view the maps are sized against.
 
 ## Steps
 
-1. **Terrain.** `sapling` (impassable, felled by the axe, glyph `t`),
-   `spring` from M8, and the well as a placed spring.
+1. **Terrain.** `sapling` (impassable, felled by the axe, glyph `t`). The
+   well is a placed spring with its own sprite, far from any stream.
 2. **Resources.** `feather`, `log`, `shell` join `stick`, `vine`, `ore`,
    `fruit`. One table in `sim/resources.ts` gives each kind its glyph,
    ground, slots (log takes two), price, and whether it comes back every
@@ -21,7 +22,7 @@ table row needs them, so the map can be tested before the shop exists.
    `FELL_TIME` on a sapling tile with the axe. It leaves grass and one log
    in the pack.
 4. **Improvements.** The well is a hold on a grass tile far from water with
-   `WELL_LOGS` and `WELL_STICKS` in the pack, and leaves a `spring` tile.
+   `WELL_LOGS` and `WELL_STICKS` in the pack, and adds a spring there.
    The cache is a hold on grass with `CACHE_STICKS`, and leaves a `cache`
    prop the player can bank into and fetch from with the same key. Its
    contents are a second inventory with no limit. The bridge is unchanged.
