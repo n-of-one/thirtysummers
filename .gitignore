@@ -8,3 +8,4 @@ dist/
 public/assets/minifantasy/
 .idea
 tmp/
+.claude/
