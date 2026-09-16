@@ -12,6 +12,7 @@ import {
   REGIONS,
   RESOURCE_CELL,
   SHEETS,
+  SPRING_CELL,
   SYNTH_NARROW,
   T,
   THICKET_TINT,
@@ -130,8 +131,6 @@ class MinifantasyPack implements AssetPack {
   private readonly dirt: Texture[];
   private readonly stone: Texture[];
   private readonly water: Texture[][];
-  /** A spring's pool, one per ripple frame of the water. See {@link pool}. */
-  private readonly springs: Texture[];
   /** The two plank decks, [horizontal, vertical]. See BRIDGE_PLANK. */
   private readonly bridge: Texture[];
   private readonly trees: PropSprite[];
@@ -139,6 +138,7 @@ class MinifantasyPack implements AssetPack {
   private readonly resources: Record<ResourceKind, PropSprite>;
   private readonly walks: Record<Facing, Texture[]>;
   readonly camp: PropSprite;
+  readonly spring: PropSprite;
 
   /**
    * Measured from the walk frames at load time rather than hard-coded: the
@@ -170,7 +170,6 @@ class MinifantasyPack implements AssetPack {
       this.block("tiles", ...BLOCK.waterFrame0, this.synth("tiles", ...BLOCK.waterFrame0)),
       this.block("tiles", ...BLOCK.waterFrame1, this.synth("tiles", ...BLOCK.waterFrame1)),
     ];
-    this.springs = [this.pool(...BLOCK.waterFrame0), this.pool(...BLOCK.waterFrame1)];
 
     this.bridge = [
       this.deck(...BRIDGE_PLANK.horizontal),
@@ -194,6 +193,7 @@ class MinifantasyPack implements AssetPack {
       }),
     ) as Record<ResourceKind, PropSprite>;
     this.camp = this.prop24("farmProps", 15, 5, 2, 1);
+    this.spring = this.prop24(SPRING_CELL[0], SPRING_CELL[1], SPRING_CELL[2], 1, 1);
 
     this.walks = {} as Record<Facing, Texture[]>;
     for (const facing of Object.keys(WALK_ROWS) as Facing[]) {
@@ -264,39 +264,6 @@ class MinifantasyPack implements AssetPack {
     const fy = (by + Math.floor(FILL / 3)) * T;
     ctx.drawImage(this.sheets.tiles.pixels.canvas, fx, fy, T, T, 0, 0, T, T);
     ctx.drawImage(this.sheets.farmTiles.pixels.canvas, px * T, py * T, T, T, 0, 0, T, T);
-    return this.fromCanvas(canvas);
-  }
-
-  /**
-   * A spring: the water block's fill cut round and set in grass, with a dark
-   * rim, for the water block at (bx, by).
-   *
-   * The block's own isolated shape is built from its corners and comes out as a
-   * sliver at this size, which nobody would stop to drink from. A spring has to
-   * read from across a field as a pool, and as apart from the stream.
-   */
-  private pool(bx: number, by: number): Texture {
-    const canvas = document.createElement("canvas");
-    canvas.width = T;
-    canvas.height = T;
-    const ctx = canvas.getContext("2d")!;
-    const tiles = this.sheets.tiles.pixels;
-    ctx.drawImage(tiles.canvas, BLOCK.grass[0] * T, BLOCK.grass[1] * T, T, T, 0, 0, T, T);
-
-    const water = tiles.getImageData((bx + (FILL % 3)) * T, (by + Math.floor(FILL / 3)) * T, T, T);
-    const out = ctx.getImageData(0, 0, T, T);
-    const centre = (T - 1) / 2;
-    for (let y = 0; y < T; y++) {
-      for (let x = 0; x < T; x++) {
-        const d = Math.hypot(x - centre, y - centre);
-        const at = (y * T + x) * 4;
-        for (let c = 0; c < 3; c++) {
-          if (d <= T * 0.36) out.data[at + c] = water.data[at + c]!;
-          else if (d <= T * 0.48) out.data[at + c] = Math.round(out.data[at + c]! * 0.45);
-        }
-      }
-    }
-    ctx.putImageData(out, 0, 0);
     return this.fromCanvas(canvas);
   }
 
@@ -445,8 +412,6 @@ class MinifantasyPack implements AssetPack {
         const frames = this.water[frame % this.water.length]!;
         return frames[autotileIndex(mask)]!;
       }
-      case "spring":
-        return this.springs[frame % this.springs.length]!;
     }
   }
 

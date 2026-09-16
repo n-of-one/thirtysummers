@@ -39,10 +39,6 @@ export const TERRAIN: Record<TerrainKind, TerrainDef> = {
   // Planks laid over the stream, one tile at a time. Easy ground, because the
   // whole point of building one is that the crossing stops costing anything.
   bridge: def("bridge", true, false, "-"),
-  // The drinking spot: a pool fed from below, drunk from beside it. Solid, like
-  // the stream, but apart from it, so the water you drink from and the water
-  // you bridge are never the same tile.
-  spring: def("spring", false, false, "o"),
 };
 
 /** Stable id order -- the tile grid stores these indices, so do not reorder. */
@@ -55,7 +51,6 @@ export const TERRAIN_ORDER: readonly TerrainKind[] = [
   "rock",
   "thicket",
   "bridge",
-  "spring",
 ];
 
 export const TERRAIN_ID: Record<TerrainKind, number> = Object.fromEntries(

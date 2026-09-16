@@ -174,11 +174,12 @@ export class PropLayer {
     player: Vec2 | null = null,
     playerTexture: Texture | null = null,
     dt = 0,
+    springs: readonly Vec2[] = [],
   ): void {
     const scrolled = this.window.moveTo(camera.leftPx, camera.topPx);
     if (scrolled || this.dirty) {
       this.dirty = false;
-      this.rebuild(camp, nodes);
+      this.rebuild(camp, nodes, springs);
     }
 
     this.container.x = this.window.offsetX;
@@ -252,7 +253,7 @@ export class PropLayer {
     }
   }
 
-  private rebuild(camp: Vec2, nodes: readonly ResourceNode[]): void {
+  private rebuild(camp: Vec2, nodes: readonly ResourceNode[], springs: readonly Vec2[]): void {
     this.used = 0;
     for (const placement of placementsIn(
       this.map,
@@ -260,6 +261,7 @@ export class PropLayer {
       this.window,
       camp,
       nodes,
+      springs,
       this.z,
     )) {
       this.draw(placement);

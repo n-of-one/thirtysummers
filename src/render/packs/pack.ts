@@ -52,6 +52,8 @@ export interface AssetPack {
 
   resource(kind: ResourceKind): PropSprite;
   readonly camp: PropSprite;
+  /** A spring on the bank, where the player drinks. */
+  readonly spring: PropSprite;
 
   walk(facing: Facing): readonly Texture[];
   idle(facing: Facing): Texture;

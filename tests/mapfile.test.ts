@@ -15,7 +15,8 @@ describe("the terrain table", () => {
   it("ends with the kinds added since the generator, in the order they came", () => {
     // The grid stores indices into this order, so anything inserted rather
     // than appended silently rewrites every map file ever dumped.
-    expect(TERRAIN_ORDER.slice(-3)).toEqual(["thicket", "bridge", "spring"]);
+    // The spring was the last, and removing the last entry moves no index.
+    expect(TERRAIN_ORDER.slice(-2)).toEqual(["thicket", "bridge"]);
   });
 
   it("gives every terrain a distinct glyph, or the format is ambiguous", () => {
@@ -70,12 +71,30 @@ describe("parseMap / formatMap", () => {
     expect(world.camp).toEqual({ x: 3.5, y: 1.5 });
   });
 
-  it("reads a spring back, solid, and no longer knows the old water glyph", () => {
-    const world = parseMap(["#####", "#Co.#", "#####"].join("\n"));
-    expect(world.map.get(2, 1)).toBe("spring");
-    expect(world.map.isPassable(2, 1)).toBe(false);
-    expect(formatMap(world)).toContain("#Co.#");
+  it("no longer knows the spring glyph or the old water glyph", () => {
+    expect(() => parseMap(["#####", "#Co.#", "#####"].join("\n"))).toThrow(/unknown glyph "o"/);
     expect(() => parseMap(["###", "#Cw", "###"].join("\n"))).toThrow(/unknown glyph "w"/);
+  });
+
+  it("places springs on the bank itself, the same ones every load, and writes none", () => {
+    const text = [
+      "############",
+      "#C.........#",
+      "#..........#",
+      "#..........#",
+      "#.....====.#",
+      "#.....====.#",
+      "#..........#",
+      "############",
+    ].join("\n");
+    const a = parseMap(text);
+    const b = parseMap(text);
+    expect(a.springs.length).toBeGreaterThan(0);
+    expect(a.springs).toEqual(b.springs);
+    for (const s of a.springs) {
+      expect(s.y === 3 || s.y === 6 || s.x === 5 || s.x === 10).toBe(true);
+    }
+    expect(formatMap(a)).toBe(`${text}\n`);
   });
 
   it("reads the new terrain back", () => {

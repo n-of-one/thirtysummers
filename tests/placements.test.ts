@@ -101,6 +101,19 @@ describe("placementsIn", () => {
     expect(out.map((p) => p.worldX)).toEqual([33.5, 34.5, 36.5]);
   });
 
+  it("stands a spring at its tile's centre, with the spring art, inside the window only", () => {
+    const map = arena(64, "grass");
+    const pack = new StubPack();
+    const w = windowAt();
+    const out = collect(map, pack, w, NOWHERE, NO_NODES, [
+      { x: 32, y: 22 },
+      { x: w.originX + w.cols + 3, y: 22 },
+    ]);
+    expect(out).toHaveLength(1);
+    expect(out[0]).toMatchObject({ worldX: 32.5, worldY: 22.5, jitter: 0, occludes: false });
+    expect(out[0]!.art).toBe(pack.spring);
+  });
+
   it("leaves out anything outside the window", () => {
     const map = arena(64, "grass");
     const w = windowAt();

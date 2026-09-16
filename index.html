@@ -3,10 +3,13 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>2D World Prototype</title>
+    <title>thirtysummers</title>
   </head>
   <body>
+    <!-- The fixed view: everything the player sees, scaled together to fit the window. -->
+    <div id="view">
     <div id="stage"></div>
+    <div id="dusk"></div>
     <div id="grid" hidden></div>
     <div id="fog"></div>
 
@@ -22,22 +25,25 @@
       <div class="hud-corner hud-tr">
         <div class="clock"><span id="clock-time">5:00</span><small>left in summer</small></div>
         <div class="pill" id="year-pill">Year <b id="year-count">1</b></div>
+        <button id="fullscreen">Full screen</button>
       </div>
 
       <div class="hud-corner hud-bl">
         <div class="pill">Backpack <b id="backpack-count">0</b>/<span id="backpack-cap">10</span>
           <span class="pill-note" id="backpack-contents">empty</span></div>
-        <div class="pill">Gold <b id="gold-count">0</b></div>
+        <div class="pill">Gold <b id="gold-count">0</b>
+          <span class="pill-note">fruit stored</span> <b id="store-fruit">0</b></div>
       </div>
 
-      <div class="hud-corner hud-br">
-        <button id="end-summer" hidden>End summer</button>
-      </div>
+      <div id="camp-arrow" hidden></div>
 
-      <!-- Follows the player: what is in reach, and what just happened. -->
+      <!-- Follows the player, below them: what is in reach, what just happened,
+           and at camp the button that ends the summer. -->
       <div id="player-anchor">
         <div class="prompt" id="action-prompt" hidden></div>
+        <button id="end-summer" hidden>End summer <kbd>Q</kbd></button>
         <div class="notice" id="thirsty-notice" hidden>Thirsty, find some water to drink</div>
+        <div class="notice notice-homeward" id="homeward-notice" hidden></div>
         <div id="toasts"></div>
       </div>
     </div>
@@ -47,6 +53,13 @@
         <h1 id="summary-title">Summer over</h1>
         <dl id="summary-stats"></dl>
         <button id="summary-restart">Next summer</button>
+      </div>
+    </div>
+
+    <div id="paused" hidden>
+      <div class="summary-card">
+        <h1>Paused</h1>
+        <p>Press any key to carry on</p>
       </div>
     </div>
 
@@ -60,6 +73,7 @@
         <span class="debug-hint">click the map to teleport &middot; [ ] steps the seed &middot; ` or Esc closes</span>
       </div>
       <div id="debug-readout"></div>
+    </div>
     </div>
 
     <script type="module" src="/src/main.ts"></script>

@@ -173,36 +173,121 @@ Related: the walk cycle bobs the head one pixel on alternate frames while the
 feet stay planted, and stopping returns to frame 0. At 8× with a black outline,
 that alone reads as a snap.
 
+## The view
+
+**The game is drawn in a fixed logical view, not the window.** Until the
+QoL milestone the canvas followed the window, so a laptop saw fewer tiles
+than a full HD screen, the fog was sized for full HD, and a playtest on one
+screen said nothing about another. Now the game is drawn at `VIEW_W × VIEW_H`
+logical pixels at `TILE 64`, and one wrapper holds the canvas, the grid, the
+dusk, the fog, the HUD, the cards and the debug panel, so one CSS transform
+scales them all to fit, with black bars where the window's shape differs.
+The transform also makes the wrapper the containing block of the
+`position: fixed` layers inside it, so they needed no rewriting. Everything
+that read the window reads the view: the camera and the sprite pools, the
+fog, the prompt clamp, the arrow, and the teleport click, which divides by
+the scale. The size was chosen in play: 1280×720 came first, and full HD,
+30 tiles across, was kept. `?view=` still tries another.
+
+**The scale moves in eighths.** An art pixel is 8 logical pixels, so a scale
+that is a multiple of 1/8, in device pixels per logical pixel, puts every art
+pixel on a whole number of screen pixels: 1 on full HD, 1.25 on 1440p, 2 on
+4K, and below 1 in a window smaller than the view. Pixi is given the view
+size once, and its resolution follows the scale, so the backing store is one
+device pixel per screen pixel and the browser never resamples the canvas.
+The wrapper is placed on whole device pixels for the same reason. Measured:
+at 1920×1080 the canvas is 1920×1080 at scale 1 with no bars; at 1366×768 it
+is scale 0.625, a 1200×675 backing store, with 83 and 47 pixel bars of pure
+black.
+
+**Full screen is a button.** A full HD view in a browser window on a full HD
+screen is scaled down to fit under the browser's own bars, to 0.875 or less.
+The Full screen button in the top right corner gives the page every pixel of
+the screen, and its label follows the state, including leaving by Esc.
+
 ## Stats
 
-**Drinking is at springs, apart from the stream.** The first version made every
-stream bank a drinking spot, which put the drink and the bridge on one key at
-the same water and needed a hydration threshold to choose between them. Springs
-stand two tiles from a stream. The bank tile between a spring and the stream
-can reach both, and there the key is the bridge, never the drink; the spring
-is drunk from any of its other sides, one step round. That keeps the key at
-the water meaning one thing. Three tiles kept the two reaches apart without the
-rule, but put the springs further from the water than they read as belonging
-to it. A spring is solid and drawn as its own banked pool, never
-autotiled into the stream. Drinking still waits for the bar to drop below
-`DRINK_OFFER_BELOW`, so a spring beside a thicket or a node does not take the
-key from them while the bar is nearly full.
+**Springs are reeds on the bank, not terrain.** M8 made them solid pools two
+tiles from the stream, so the key at the water only ever meant the bridge.
+In play that put the drink one detour away from where the player already
+was, and a pool the player walks round reads as an obstacle. A spring is
+now a position on a walkable tile touching the stream, drawn as a prop like
+a node, and the player drinks standing on or beside it. On that tile the
+key drinks while the bar is below `DRINK_OFFER_BELOW` and lays a bridge
+otherwise. The threshold that was the objection to drinking at the bank had
+been in the game since M8 anyway, for a spring beside a thicket, so the
+same rule now also chooses between the drink and the bridge. The `spring`
+terrain was the last entry in `TERRAIN_ORDER`, so removing it moved no
+index in any map dump.
 
-**Springs are placed in reading order, not at random.** The same pass runs in
-worldgen and over the hand-edited maps, so it has to give the same springs
-every time on the same map. It only uses open grass whose eight neighbours are
-all walkable, which is what keeps a solid pool from ever closing a path.
+**Springs are shuffled by the seed and spaced, and never written to a
+file.** Candidates are every walkable non-bridge tile touching the stream on
+any of its eight sides, outside the camp's clearing and off node tiles. They
+are shuffled from the seed on their own stream of numbers, so springs never
+move a resource, and taken with `SPRING_SPACING_TILES` between them, so they
+sit along the water the way the discovery test's water nodes did. A
+hand-edited map has no seed, so the same pass
+runs over it with `MAP_SPRING_SEED` and gives the same springs every load.
+The map format carries none.
 
 **Fog is CSS, not Pixi, and it moves without repainting.** It is a layer
-between the canvas and the HUD, twice the window each way, with a radial
+between the canvas and the HUD, twice the view each way, with a radial
 gradient at its centre: clear inside the radius, then deeper in steps to black.
-The HUD already knows where the player is on screen, for the prompt, and puts
+The HUD already knows where the player is in the view, for the prompt, and puts
 the layer there with a transform, which the compositor moves without painting.
 The first version moved the gradient's centre instead, which repainted a
 full-screen gradient every frame. Now the gradient is repainted only when the
 radius crosses a 4px step, which happens only while hydration is below the
-threshold. The view is ringed from the start, sized so the dark begins just
-inside a full HD screen's side edges.
+threshold. The view is ringed from the start. The widest ring is
+`FOG_MAX_RADIUS_SHARE` of the view's half width, so the dark begins just
+inside the side edges at any view size; measured at 13.06 tiles from the
+player in a full HD view, at both window sizes tried.
+
+The edge is being tried darker, and its shape is in config: `FOG_COLOR` and
+`FOG_STOPS`, a list of [multiple of the radius, opacity] pairs that the HUD
+writes into the gradient once, against `--fog-r`. The original ramp was a
+near-black `rgb(8, 10, 7)` spread over 0.6 of the radius, half dark at the
+side edges of the view, and read as dark green there. The first darker try
+narrowed it to 0.35, which took the mean green at the side edge from 64 to 26
+and in a corner from 48 to 13, and still read as green. The current try is
+pure black, opaque by 1.12 of the radius, which is inside the side edges at
+about 1.15: measured, the side edge, the corner and the bar beside the view
+are all 0, 0, 0, and the middle of the view is unchanged.
+
+**Dusk is a second CSS layer, told apart from the fog by colour.** The last
+`HOMEWARD_SEC` are drawn as the evening: a full-view layer between the canvas
+and the fog, a warm colour under `mix-blend-mode: multiply`, its opacity
+rising from nothing to `DUSK_MAX_ALPHA` at the end. The fog is a black ring
+that closes in, and the dusk is an even tint over everything, so the two
+cannot be mistaken for one another, and the HUD sits above both. The opacity
+is rounded to `DUSK_ALPHA_STEP`, like the fog's radius, so the style is
+written 80 times over the stretch rather than every frame. It shows at camp
+too, since it is the time of day and not a warning.
+
+The first version peaked at 0.6, which play found too faint; it is 0.8 now.
+A dawn at the start of a summer, the same effect in reverse, was tried and
+dropped in review: the evening is the one that means something. Measured over
+the middle of the view with hydration held full: mean luminance 119 at
+midday, 101 halfway through the dusk and 82 at the end, red over blue 2.32,
+3.06 and 4.81. With the layer hidden, screenshots from the end and from a
+minute earlier are identical.
+
+**The last minute says where camp is.** Away from camp a standing notice
+joins the thirst one, with the clock's own seconds in it, and while camp is
+off screen an arrow at the edge of the view points at it. The arrow's place
+is where the line from the player to camp leaves the view,
+`EDGE_ARROW_MARGIN_PX` in, which is `edgeArrow`, a pure function tested
+like `anchorPosition`. At camp the End summer button under the player already
+says it, so neither shows.
+
+**The store is an inventory with no capacity.** `world.store` is
+`new Inventory(Infinity)` rather than a second class, because winter will
+need counts, removal and costs from it, which is what `Inventory` already
+does. Banking moves fruit into it and ore into gold in one press, and so
+does the end of a summer. Sticks and vines stay in the pack: until winter
+can sell them, banking them is losing them, and a bridge gets rid of them.
+The stored fruit carries across summers like the gold, so the summary reads
+it from the store rather than counting the log.
 
 **The backpack says what is in it.** The count alone (`6/10`) does not tell you
 whether you are carrying the fruit or the bridge materials you need. The pill
@@ -232,10 +317,10 @@ Harvesting deliberately does not spend it, so one continuous hold still clears a
 patch of ore without tapping once per node. A test covers both halves, because
 they pull in opposite directions.
 
-**Banking wins at camp, but only while carrying ore.** Making the camp always
-take the interact key would make a node growing next to it unharvestable. The
-three-way choice (bank with ore, else harvest what is in reach, else say there
-is nothing to bank) is one query, `availableAction`, which the HUD prompt and
+**Banking wins at camp, but only while carrying something to bank.** Making
+the camp always take the interact key would make a node growing next to it
+unharvestable. The three-way choice (bank with ore or fruit, else harvest
+what is in reach, else say there is nothing to bank) is one query, `availableAction`, which the HUD prompt and
 the keypress both read. They cannot disagree about what E does, because they ask
 the same question.
 
@@ -322,9 +407,12 @@ arriving or fading out. Writing a style and reading a box back in the same frame
 forces layout, and this runs every frame.
 
 The corners keep what is true all summer and is read by glancing: the
-hydration bar, the clock, the pack, the gold. The bottom right, freed up by the
-move, holds the one control that takes the mouse, the "End summer" button, shown
-only at camp.
+hydration bar, the clock, the pack, the gold. The End summer button started in
+the bottom right corner, which was one more place to look away to. Hung over
+the chest, it covered a player standing on the far side of it. It is now in
+the stack under the player, after the prompt, shown while at camp, so it can
+never be drawn over them; measured from all four sides of the chest, its top
+is 81 pixels below the drawn feet. Q does the same.
 
 ## The discovery test
 
@@ -341,12 +429,28 @@ A node id and a tile index are both small integers and would otherwise collide,
 which would let walking from a node onto a thicket tile of the same number
 inherit the node's progress.
 
-**Tools aim at the nearest tile, not at the tile in front.** Every facing in this
-art is diagonal, so "the tile in front of you" falls between two tiles and names
-neither. Cutting and building therefore pick the nearest tile of the right kind
-within the same radius harvesting uses, ties breaking on the lower tile index,
-the same rule and for the same reason: a tie that resolves differently each tick
-resets the hold every tick, and the cut can never finish.
+**Tools act only on the tile ahead.** Every facing in this art is diagonal,
+so the sprite's facing cannot name a tile. `player.heading` is the last
+direction the input asked for, eight ways, kept while standing still, and set
+even when a wall stops the step, since pressing into the water is how a player
+says which tile they mean. Tools act on one tile: the neighbour of the tile
+the player stands on, in that direction. Before the first step there is none.
+
+Two versions came before it. The first took the nearest tile of the right
+kind, and the M8 playtest found where that fails: in the middle of a bridge
+tile, the next stream tile along and the ones beside the bridge are all one
+tile away, so the target flipped as the player crossed the tile's centre and
+the hold restarted. The second chose among the tiles in reach the one nearest
+a point a tile ahead, which fixed the centre, but reach is measured from the
+player: walking onto the last bridge tile, the tile ahead only came into reach
+0.4 of the way across, and until then the marker sat on the stream beside the
+bridge, a direction the player was not walking. The neighbour of the player's
+own tile never changes while they cross it. Measured walking east with real
+keys onto the last bridge tile: all 92 stops, from 0 to 0.67 of the way
+across, marked the tile ahead.
+
+Harvesting and drinking stay nearest to the player. Nodes and springs are
+sparse, and one is picked by standing at it.
 
 **Picking beats cutting when both are in reach.** A vine growing against the
 thicket that walls it in is still a vine, and a player holding E next to one
@@ -371,18 +475,18 @@ That leaves gold as the one number in the summary that is not a record of the
 summer: it is the score, it carries, and counting only what was banked since
 the summer began would be a different question.
 
-**The target tile marks itself.** Cutting and building act on the nearest tile
-of the right kind, and the prompt says what will happen but not where. The first
-playtest laid a bridge tile on the wrong tile and paid for it, which is exactly
-the failure that costs materials rather than time. There is now an outline on the
-tile the key would act on, drawn above the props, since a marker a bush can hide is
-no use on the one terrain made of bushes. It is red rather than pale when the
-action is right here but cannot be paid for.
+**The target tile marks itself.** The prompt says what will happen but not
+where. The first playtest laid a bridge tile on the wrong tile and paid for
+it, which is exactly the failure that costs materials rather than time. There
+is an outline on the tile the key would act on, drawn above the props, since a
+marker a bush can hide is no use on the one terrain made of bushes. It is red
+rather than pale when the action is right here but cannot be paid for.
 
-Progress is a bar along the bottom edge of that tile rather than a fill over the
-whole of it. The fill was tried first: pale enough to see the ground through, it
-lightens a thicket until the tile reads as ground already cut, which is the one
-thing the marker must never say.
+The outline carries no progress. A fill over the tile was tried first and
+lightened a thicket until it read as already cut; a bar along the tile's
+bottom edge replaced it, and was then dropped in review, because the prompt
+under the player already fills as the hold runs and two progress bars for one
+hold is one too many.
 
 Harvesting is deliberately not marked. A node is a sprite standing where it is
 and the prompt already names it, so an outline would be a second answer to a

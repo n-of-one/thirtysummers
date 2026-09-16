@@ -128,29 +128,41 @@ describe("generateWorld", () => {
     }
   });
 
-  it("puts springs near the streams, never touching one, and never shutting a path", () => {
+  it("puts springs on walkable bank tiles, spaced apart, clear of camp and nodes", () => {
     for (const seed of SEEDS) {
-      const { map } = generateWorld(seed);
-      let springs = 0;
-      for (let y = 0; y < map.height; y++) {
-        for (let x = 0; x < map.width; x++) {
-          if (map.get(x, y) !== "spring") continue;
-          springs++;
-          let nearStream = false;
-          for (let dy = -C.SPRING_STREAM_DISTANCE; dy <= C.SPRING_STREAM_DISTANCE; dy++) {
-            for (let dx = -C.SPRING_STREAM_DISTANCE; dx <= C.SPRING_STREAM_DISTANCE; dx++) {
-              const kind = map.get(x + dx, y + dy);
-              const ring = Math.max(Math.abs(dx), Math.abs(dy));
-              if (ring < C.SPRING_STREAM_DISTANCE) expect(kind).not.toBe("stream");
-              if (ring === 1) expect(map.isPassable(x + dx, y + dy)).toBe(true);
-              if (kind === "stream") nearStream = true;
-            }
+      const { map, camp, nodes, springs } = generateWorld(seed);
+      expect(springs.length).toBeGreaterThan(5);
+      const nodeTiles = new Set(nodes.map((n) => `${Math.floor(n.x)},${Math.floor(n.y)}`));
+      for (const s of springs) {
+        expect(map.isPassable(s.x, s.y)).toBe(true);
+        expect(map.get(s.x, s.y)).not.toBe("bridge");
+        let touches = false;
+        for (let dy = -1; dy <= 1; dy++) {
+          for (let dx = -1; dx <= 1; dx++) {
+            if (map.get(s.x + dx, s.y + dy) === "stream") touches = true;
           }
-          expect(nearStream).toBe(true);
+        }
+        expect(touches).toBe(true);
+        expect(nodeTiles.has(`${s.x},${s.y}`)).toBe(false);
+        const fromCamp = Math.max(Math.abs(s.x + 0.5 - camp.x), Math.abs(s.y + 0.5 - camp.y));
+        expect(fromCamp).toBeGreaterThanOrEqual(C.SPRING_CAMP_CLEARANCE);
+        for (const t of springs) {
+          if (t === s) continue;
+          expect(Math.max(Math.abs(t.x - s.x), Math.abs(t.y - s.y))).toBeGreaterThanOrEqual(
+            C.SPRING_SPACING_TILES,
+          );
         }
       }
-      expect(springs).toBeGreaterThan(5);
     }
+  });
+
+  it("places the same springs for the same seed, and others for another", () => {
+    expect(generateWorld(42).springs).toEqual(generateWorld(42).springs);
+    expect(generateWorld(42).springs).not.toEqual(generateWorld(43).springs);
+  });
+
+  it("leaves no spring terrain in the table", () => {
+    expect(Object.keys(TERRAIN)).not.toContain("spring");
   });
 
   it("generates a full map quickly enough to regenerate interactively", () => {

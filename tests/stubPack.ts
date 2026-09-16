@@ -46,6 +46,7 @@ export class StubPack implements AssetPack {
   private readonly resources = new Map<ResourceKind, PropSprite>();
   private readonly walks = new Map<Facing, Texture[]>();
   readonly camp = stubProp();
+  readonly spring = stubProp();
 
   readonly playerAnchor = { x: 0.5, y: 1 };
   readonly playerBounds: Bounds = { left: -0.4, top: -2, right: 0.4, bottom: 0 };

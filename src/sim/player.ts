@@ -7,6 +7,12 @@ export interface Player {
   y: number;
   z: number;
   facing: Facing;
+  /**
+   * The last direction the input asked for, one of eight, as a unit vector.
+   * Kept while standing still, and null until the first step. Tools aim along
+   * it; the sprite's facing cannot, since every pose in the art is diagonal.
+   */
+  heading: Vec2 | null;
   /** True while actually moving, not merely while a key is held. */
   moving: boolean;
   /**
@@ -23,6 +29,7 @@ export function createPlayer(spawn: Vec2, z = 0): Player {
     y: spawn.y,
     z,
     facing: "southEast",
+    heading: null,
     moving: false,
     distanceWalked: 0,
   };
@@ -61,6 +68,21 @@ export function moveWithCollision(map: TileMap, player: Player, dx: number, dy: 
   if (dx !== 0 && canStand(map, player.x + dx, player.y, player.z)) player.x += dx;
   if (dy !== 0 && canStand(map, player.x, player.y + dy, player.z)) player.y += dy;
   return Math.hypot(player.x - startX, player.y - startY);
+}
+
+/**
+ * The eight-way heading a movement input asks for, or null for no input.
+ *
+ * Built from the signs alone, so an analogue stick that is nearly straight
+ * still aims straight, and normalised, so a diagonal aims as far ahead as a
+ * straight line does.
+ */
+export function headingFor(dx: number, dy: number): Vec2 | null {
+  const x = Math.sign(dx);
+  const y = Math.sign(dy);
+  if (x === 0 && y === 0) return null;
+  const length = Math.hypot(x, y);
+  return { x: x / length, y: y / length };
 }
 
 /**

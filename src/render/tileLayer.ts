@@ -16,8 +16,7 @@ import { ScrollWindow } from "./scrollWindow.ts";
  * to pass, so comparing raw terrain would ring every tree and every bramble
  * with a transition back to open grass. Everything else is its own surface --
  * including a bridge, which is planks laid over the water and reads as its own
- * thing crossing it, and a spring, a pool that must never read as part of a
- * stream beside it. Exported so the placement tests can agree about what
+ * thing crossing it. Exported so the placement tests can agree about what
  * autotiles with what.
  */
 export function surfaceOf(kind: TerrainKind): TerrainKind {

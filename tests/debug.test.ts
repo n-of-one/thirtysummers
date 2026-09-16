@@ -16,6 +16,7 @@ function world(): World {
     map,
     camp: { x: 1.5, y: 1.5 },
     nodes: [],
+    springs: [],
     reachable: new Uint8Array(256),
   });
 }
@@ -129,7 +130,7 @@ describe("the freeze", () => {
 
   it("still lets the player walk and drink, so a held state can be poked at", () => {
     const w = world();
-    w.map.set(2, 1, "spring");
+    w.springs.push({ x: 2, y: 1 });
     w.stats.hydration = 10;
     w.frozen = true;
     const drinking = { ...NO_INPUT, interact: true };

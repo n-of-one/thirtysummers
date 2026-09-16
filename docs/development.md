@@ -25,6 +25,8 @@ tile. Its legend is in the dump's footer.
 - `?seed=<n>` picks the generated world.
 - `?pack=placeholder` runs without the paid art.
 - `?debug=1` starts with the debug overlay open.
+- `?view=1280x720` draws the game in a logical view of that size instead
+  of `VIEW_W × VIEW_H`, for trying view sizes in play.
 
 ## The art
 
@@ -36,9 +38,13 @@ gitignored. Without them the code-drawn placeholder pack draws everything.
 
 ## Controls
 
-WASD or arrows to move. E or Space to gather, cut, build and bank ore, and,
-held beside a spring, to drink. At camp an "End summer" button ends the
+WASD or arrows to move. E or Space to gather, cut, build and bank ore and
+fruit, and, held beside a spring, to drink. Cutting and building act on the
+tile next to the player's in the direction last walked, and only that tile.
+P pauses, and so does the window losing focus; any key resumes, and does
+nothing else. At camp an "End summer" button under the player, or Q, ends the
 summer early.
+The Full screen button in the top right gives the view the whole screen.
 
 ## The debug overlay
 
@@ -77,14 +83,25 @@ Headless runs at a handful of frames a second on software GL. That does not
 change what is measured: the simulation is fixed-step, and a frame slower
 than `MAX_FRAME_SEC` is the only thing that would lose time.
 
+The rig's window size does not change what is measured either. The game is
+drawn in a fixed logical view, so the camera, the fog and the HUD come out
+the same in logical pixels whatever the window; only the scale and the bars
+differ. `window.__game.view` has the scale, and
+`Emulation.setDeviceMetricsOverride` resizes the window when the scaling
+itself is what is being checked. A screenshot is in screen pixels, so divide
+by `view.cssScale` and subtract the view's offset to get back to logical
+ones.
 ## What must keep passing
 
 - `npm run typecheck` is clean, with no `any` in `sim/`.
 - `npm run test` passes. It covers worldgen determinism and shape, terrain
   distribution, the autotile table, collision, the camera, depth sorting,
-  pixel snapping, the fixed-step clock under a stall, the scroll window,
+  pixel snapping, the view's scale steps, the fixed-step clock under a
+  stall, the scroll window,
   both layers against the stub pack, the stat rules over simulated time, the
-  backpack, the HUD model, the map file round trip and every way it refuses
+  backpack and the store, the HUD model with the last minute's notice, dusk
+  and camp arrow, aiming, spring placement, the map file round trip and
+  every way it refuses
   a bad one, every action in the loop and every way it refuses, next summer,
   and the debug overlay's arithmetic.
 - `npm run map:check public/maps/*.txt` passes on every shipped map. Run it

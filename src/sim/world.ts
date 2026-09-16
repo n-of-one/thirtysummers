@@ -1,11 +1,17 @@
 import * as C from "../config.ts";
 import type { InputState } from "../input/keyboard.ts";
-import { nearestNodeWithin, nearestTileWithin, withinReach } from "./interaction.ts";
+import {
+  nearestNodeWithin,
+  nearestSpringWithin,
+  tileAhead,
+  withinReach,
+} from "./interaction.ts";
 import { Inventory } from "./inventory.ts";
 import {
   canStand,
   createPlayer,
   facingFor,
+  headingFor,
   moveWithCollision,
   type Player,
 } from "./player.ts";
@@ -27,11 +33,11 @@ import { generateWorld, type GeneratedWorld } from "./worldgen.ts";
  *
  * One query answers two questions -- what the HUD should prompt, and what a
  * press actually does -- so the two can never disagree. `blocked` says why the
- * action is the right one here but cannot be carried out: a full backpack, no
- * ore to hand over at camp, or nothing to build with. Null means it can.
+ * action is the right one here but cannot be carried out: a full backpack,
+ * nothing to bank at camp, or nothing to build with. Null means it can.
  */
 export type Action =
-  | { type: "deposit"; ore: number; blocked: BlockedReason | null }
+  | { type: "deposit"; ore: number; fruit: number; blocked: BlockedReason | null }
   | { type: "harvest"; node: ResourceNode; blocked: BlockedReason | null }
   | { type: "drink"; x: number; y: number; blocked: null }
   | { type: "cut"; x: number; y: number; blocked: null }
@@ -62,9 +68,17 @@ export class World {
   readonly map: TileMap;
   readonly camp: Vec2;
   readonly nodes: ResourceNode[];
+  /** Tiles with a spring on them, in integer tile coordinates. */
+  readonly springs: Vec2[];
   readonly player: Player;
   readonly stats = new Stats();
+  /** The backpack, and the gold banked at camp. */
   readonly inventory = new Inventory();
+  /**
+   * The store at camp, with no capacity. Fruit goes here when it is banked,
+   * and is winter's food once there is a winter.
+   */
+  readonly store = new Inventory(Infinity);
 
   /** Seconds of the summer already spent. Stops at SUMMER_LENGTH_SEC. */
   elapsedSec = 0;
@@ -123,6 +137,7 @@ export class World {
     this.map = generated.map;
     this.camp = generated.camp;
     this.nodes = generated.nodes;
+    this.springs = generated.springs;
     this.player = createPlayer(generated.camp);
   }
 
@@ -148,19 +163,32 @@ export class World {
    * End the summer where the player stands, by the clock or from camp.
    *
    * What is carried is banked as if brought home, so ore in the pack becomes
-   * gold here and a last trip out is never wasted. Fruit, sticks and vines stay
-   * in the pack: there is no store to put them in until winter is built. Ending
-   * out of reach of camp is remembered, because winter will charge for the
-   * fetching. Does nothing the second time.
+   * gold, fruit goes into the store, and a last trip out is never wasted.
+   * Sticks and vines stay in the pack, as they do at camp. Ending out of reach
+   * of camp is remembered, because winter will charge for the fetching. Does
+   * nothing the second time.
    */
   endSummer(): void {
     if (this.ended) return;
     this.ended = true;
     this.awayAtEnd = !this.atCamp;
     this.stopHarvesting();
+    const banked = this.bank();
+    this.record({ type: "summerEnded", away: this.awayAtEnd, ...banked });
+  }
+
+  /**
+   * Bank what the pack holds that camp can take: ore into gold, fruit into the
+   * store. Sticks and vines stay, because until winter can sell them banking
+   * them is losing them, and a bridge gets rid of them.
+   */
+  private bank(): { ore: number; fruit: number; gold: number } {
     const ore = this.inventory.count("ore");
+    const fruit = this.inventory.count("fruit");
     const gold = this.inventory.depositOre();
-    this.record({ type: "summerEnded", away: this.awayAtEnd, ore, gold });
+    this.inventory.remove("fruit", fruit);
+    this.store.add("fruit", fruit);
+    return { ore, fruit, gold };
   }
 
   /**
@@ -199,38 +227,35 @@ export class World {
     const { x, y, z } = this.player;
     const atCamp = withinReach(x, y, this.camp);
     const ore = this.inventory.count("ore");
-    // Dropping off wins at camp, but only when there is something to drop off,
-    // so a node next to the camp is still harvestable with an empty pack.
-    if (atCamp && ore > 0) return { type: "deposit", ore, blocked: null };
+    const fruit = this.inventory.count("fruit");
+    // Banking wins at camp, but only when there is something to bank, so a
+    // node next to the camp is still harvestable with an empty pack.
+    if (atCamp && ore + fruit > 0) return { type: "deposit", ore, fruit, blocked: null };
 
     const node = nearestNodeWithin(this.nodes, x, y);
     if (node) {
       return { type: "harvest", node, blocked: this.inventory.full ? "backpackFull" : null };
     }
 
-    // Drinking is at a spring, never at the stream. It comes before the tools,
-    // but only while there is thirst to quench, so a spring beside a thicket
-    // does not hide the cut; and never where the stream is in reach too, so the
-    // key at the water only ever means a bridge. A spring near the bank is
-    // drunk from its other sides.
+    // Drinking comes before the tools, but only while there is thirst to
+    // quench, so a spring beside a thicket does not hide the cut, and the key
+    // on a spring's bank lays a bridge when the bar is nearly full.
     if (this.stats.hydration < C.DRINK_OFFER_BELOW) {
-      const spring = nearestTileWithin(this.map, x, y, "spring", C.INTERACT_RADIUS, z);
-      const atStream = nearestTileWithin(this.map, x, y, "stream", C.INTERACT_RADIUS, z) !== null;
-      if (spring && !atStream) return { type: "drink", x: spring.x, y: spring.y, blocked: null };
+      const spring = nearestSpringWithin(this.springs, x, y);
+      if (spring) return { type: "drink", x: spring.x, y: spring.y, blocked: null };
     }
 
     // Tools come after picking, so a vine growing against the thicket that
-    // walls it in can still be picked up.
-    const thicket = nearestTileWithin(this.map, x, y, "thicket", C.INTERACT_RADIUS, z);
-    if (thicket) return { type: "cut", x: thicket.x, y: thicket.y, blocked: null };
-
-    const stream = nearestTileWithin(this.map, x, y, "stream", C.INTERACT_RADIUS, z);
-    if (stream) {
+    // walls it in can still be picked up. They act only on the tile ahead.
+    const ahead = tileAhead(this.map, x, y, this.player.heading, z);
+    const kind = ahead ? this.map.get(ahead.x, ahead.y, z) : null;
+    if (ahead && kind === "thicket") return { type: "cut", x: ahead.x, y: ahead.y, blocked: null };
+    if (ahead && kind === "stream") {
       const blocked = this.inventory.has(BRIDGE_COST) ? null : "noMaterials";
-      return { type: "build", x: stream.x, y: stream.y, blocked };
+      return { type: "build", x: ahead.x, y: ahead.y, blocked };
     }
 
-    if (atCamp) return { type: "deposit", ore: 0, blocked: "noOre" };
+    if (atCamp) return { type: "deposit", ore: 0, fruit: 0, blocked: "nothingToBank" };
     return null;
   }
 
@@ -332,7 +357,7 @@ export class World {
       if (!pressed) return;
       this.interactSpent = true;
       if (action.blocked) this.blocked(action.blocked);
-      else this.record({ type: "deposited", gold: this.inventory.depositOre() });
+      else this.record({ type: "deposited", ...this.bank() });
       return;
     }
 
@@ -414,6 +439,9 @@ export class World {
       player.moving = false;
       return;
     }
+    // What the input asked for, whether or not a wall let it happen: pressing
+    // into the stream is how a player says which tile they mean.
+    player.heading = headingFor(input.moveX, input.moveY);
 
     const distance = this.speed() * dt;
     const travelled = moveWithCollision(

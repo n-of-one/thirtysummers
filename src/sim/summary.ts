@@ -11,6 +11,8 @@ export interface SummerSummary {
   harvested: Record<ResourceKind, number>;
   /** Drinks at a spring. */
   drinks: number;
+  /** Fruit in the store at camp, across every summer so far. */
+  fruitStored: number;
   /** Ore still in the backpack when the summer ended, banked there and then. */
   oreBankedAtEnd: number;
   /** The summer ended out of reach of camp. Winter will charge for the fetching. */
@@ -44,9 +46,9 @@ export function summerStartsAt(events: readonly WorldEvent[]): number {
  * a harvest is recorded, and no second set of counters to drift out of step
  * with it.
  *
- * Gold is the exception and is read from the inventory: it is the score, it
- * carries across summers, and the log would only ever say how much of it was
- * earned since the summer began.
+ * Gold and the stored fruit are the exceptions, read from the inventory and the
+ * store: they carry across summers, and the log would only ever say how much
+ * was banked since the summer began.
  */
 export function summarise(world: World): SummerSummary {
   const harvested = Object.fromEntries(RESOURCE_KINDS.map((k) => [k, 0])) as Record<
@@ -75,6 +77,7 @@ export function summarise(world: World): SummerSummary {
   return {
     year: world.year,
     gold: world.inventory.gold,
+    fruitStored: world.store.count("fruit"),
     harvested,
     drinks,
     oreBankedAtEnd,

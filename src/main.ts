@@ -2,8 +2,9 @@ import "./ui/hud.css";
 import * as C from "./config.ts";
 import { DebugOverlay, formatReadout } from "./debug/overlay.ts";
 import { FrameClock } from "./frameClock.ts";
-import { Keyboard } from "./input/keyboard.ts";
-import { createApp } from "./render/app.ts";
+import { isTypingTarget, Keyboard } from "./input/keyboard.ts";
+import { Pause } from "./input/pause.ts";
+import { createApp, setResolution } from "./render/app.ts";
 import { loadAssetPack } from "./render/atlas.ts";
 import { Camera } from "./render/camera.ts";
 import { PropLayer } from "./render/propLayer.ts";
@@ -13,6 +14,7 @@ import { parseMap } from "./sim/mapfile.ts";
 import { summarise } from "./sim/summary.ts";
 import { World } from "./sim/world.ts";
 import { Hud, hudModel } from "./ui/hud.ts";
+import { bindFullscreenButton, FixedView, parseViewParam } from "./ui/view.ts";
 
 /**
  * Surface startup failures on the page. A module with top-level await that
@@ -54,7 +56,19 @@ async function loadMap(name: string): Promise<World> {
 }
 
 const stage = document.querySelector<HTMLDivElement>("#stage")!;
-const app = await createApp(stage);
+
+/**
+ * The fixed view: the game is drawn at one logical size, `?view=WxH` or the
+ * configured one, and scaled to fit the window. Nothing below reads the window;
+ * the camera, the sprite pools, the fog, the prompt and the teleport click all
+ * work in the view's logical pixels.
+ */
+const view = new FixedView(
+  parseViewParam(params.get("view")),
+  document.querySelector<HTMLDivElement>("#view")!,
+);
+const app = await createApp(stage, view.size.width, view.size.height, view.scale);
+view.onScale = (scale) => setResolution(app, scale);
 const pack = await loadAssetPack(app.renderer, params.get("pack") ?? undefined);
 
 const camera = new Camera();
@@ -67,25 +81,38 @@ app.stage.addChild(tiles.container, props.container, marker.container);
 
 camera.centreOn(world.player);
 
-/**
- * Drive the viewport off the renderer's own resize event, not the window's.
- * Pixi resizes itself from a window listener too, and if ours runs first we
- * read the previous canvas size -- which leaves the camera and the tile pool
- * sized for a viewport that no longer exists.
- */
-function applyViewport(width: number, height: number): void {
+/** Size the camera and the sprite pools to the view. The view never changes size. */
+function applyViewport(): void {
+  const { width, height } = view.size;
   camera.resize(width, height);
   tiles.resize(width, height);
   props.resize(width, height);
   camera.clampTo(world.map.width, world.map.height);
 }
-applyViewport(app.screen.width, app.screen.height);
-app.renderer.on("resize", applyViewport);
+applyViewport();
 
 const keyboard = new Keyboard();
-const hud = new Hud();
+const hud = new Hud(document, view.size);
+const pause = new Pause(
+  document.querySelector<HTMLDivElement>("#paused")!,
+  window,
+  // The summary card is already a stop, and a pause card over it would need a
+  // second key to get back to it.
+  () => !world.summerOver,
+);
+// A hidden tab loses focus too, but not always a blur with it.
+document.addEventListener("visibilitychange", () => {
+  if (document.hidden) pause.set(true);
+});
 // Reads `world` when clicked rather than now, because a regenerate replaces it.
 hud.onEndSummer(() => world.endSummer());
+// The same from the keyboard, on the same terms as the button: only at camp,
+// and not while paused, when the button is under the card.
+addEventListener("keydown", (e) => {
+  if (e.key.toLowerCase() !== C.END_SUMMER_KEY || e.repeat || isTypingTarget(e.target)) return;
+  if (!pause.paused && world.atCamp) world.endSummer();
+});
+bindFullscreenButton(document.querySelector<HTMLButtonElement>("#fullscreen")!);
 
 /** How far through `world.events` the renderer has got. */
 let seenEvents = 0;
@@ -109,7 +136,7 @@ function regenerate(nextSeed: number): void {
   tiles = new TileLayer(world.map, pack);
   props = new PropLayer(world.map, pack, app.renderer);
   app.stage.addChild(tiles.container, props.container, marker.container);
-  applyViewport(app.screen.width, app.screen.height);
+  applyViewport();
   camera.centreOn(world.player);
   camera.clampTo(world.map.width, world.map.height);
 
@@ -153,8 +180,10 @@ function nextSummer(): void {
 const overlay = new DebugOverlay({
   seed,
   regenerate,
+  // The click arrives in CSS pixels from the canvas's corner, which is scaled
+  // with the view, so it is divided back into logical pixels first.
   teleport: (screenX, screenY) => {
-    const target = camera.toWorld({ x: screenX, y: screenY });
+    const target = camera.toWorld({ x: screenX / view.cssScale, y: screenY / view.cssScale });
     if (!world.teleport(target.x, target.y)) return false;
     // Cut to the new position rather than gliding: a camera easing across
     // half the map hides the very thing the teleport was for.
@@ -170,6 +199,9 @@ const overlay = new DebugOverlay({
 function exposeGame(): void {
   (window as unknown as { __game?: unknown }).__game = {
     app,
+    view,
+    pause,
+    hud,
     world,
     camera,
     props,
@@ -216,7 +248,9 @@ app.ticker.add(({ deltaMS }) => {
   clock.timeScale = overlay.timeScale;
   world.frozen = overlay.frozen;
 
-  const { frameSec, steps } = clock.tick(deltaMS / 1000);
+  // Paused, no time passes at all: nothing steps, and the camera and the water,
+  // which run on the same seconds, hold where they are.
+  const { frameSec, steps } = clock.tick(pause.paused ? 0 : deltaMS / 1000);
   const input = keyboard.state();
 
   // When the light goes the world stops: the clock is the whole constraint, and
@@ -252,11 +286,25 @@ app.ticker.add(({ deltaMS }) => {
   elapsed += frameSec;
   tiles.setAnimationFrame(Math.floor(elapsed / C.WATER_FRAME_SEC));
   tiles.update(camera);
-  props.update(camera, world.camp, world.nodes, world.player, playerTexture(), frameSec);
-  marker.update(camera, targetTile(world.availableAction(), world.harvestProgress));
-  // The prompt and the toasts hang off the player, so the HUD needs the one
-  // thing the simulation cannot tell it: where that is on the canvas.
-  hud.update(hudModel(world), camera.toScreen(world.player), world.events);
+  props.update(
+    camera,
+    world.camp,
+    world.nodes,
+    world.player,
+    playerTexture(),
+    frameSec,
+    world.springs,
+  );
+  marker.update(camera, targetTile(world.availableAction()));
+  // The prompt and the toasts hang off the player, and the arrow points at
+  // camp, so the HUD needs the one thing the simulation cannot tell it: where
+  // those are in the view.
+  hud.update(
+    hudModel(world, view.size.width),
+    camera.toScreen(world.player),
+    world.events,
+    camera.toScreen(world.camp),
+  );
   overlay.update(camera, readout);
 });
 
@@ -264,6 +312,6 @@ console.log(
   `${mapName ? `map "${mapName}"` : `seed ${seed}`} | pack "${pack.id}" @${pack.tileSize}px | ` +
     `${world.map.width}x${world.map.height} | ${world.nodes.length} nodes | ` +
     `renderer ${app.renderer.name} | WASD move, ` +
-    `E/Space gather, drink, cut, bridge and bank ore, ` +
-    `\` debug panel`,
+    `E/Space gather, drink, cut, bridge and bank, P pause, ` +
+    `\` debug panel | view ${view.size.width}x${view.size.height} at x${view.scale}`,
 );

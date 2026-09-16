@@ -244,6 +244,17 @@ export const RESOURCE_CELL = {
   stick: ["logging", 23, 11],
 } as const satisfies Record<string, readonly [SheetName, number, number]>;
 
+/**
+ * A spring on the bank: the reeds the discovery test drew its water nodes with.
+ * Upright green against the grass and the blue beside it, so it reads as
+ * something standing at the water's edge rather than as more water.
+ */
+export const SPRING_CELL = ["farmCrops", 16, 7] as const satisfies readonly [
+  SheetName,
+  number,
+  number,
+];
+
 /** One tile on a sheet. */
 export type NarrowTile = readonly [x: number, y: number];
 

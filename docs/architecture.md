@@ -22,9 +22,12 @@ in [development.md](development.md).
 - **`src/config.ts` holds every tunable number**, each marked `[DOC]` (from
   `docs/design/` or `docs/current/five-summers.md`) or `[GUESS]` (tune
   freely). Numbers do not belong in logic.
-- **Tile rendering is bound to screen size, not map size.** A sprite pool
-  covers the viewport plus a margin, repositioned and re-textured as the
-  camera moves.
+- **Tile rendering is bound to view size, not map size.** A sprite pool
+  covers the view plus a margin, repositioned and re-textured as the camera
+  moves.
+- **Nothing reads the window but `ui/view.ts`.** The camera, the pools, the
+  fog, the prompt and the arrow work in the view's logical pixels; the
+  window only decides how far the view is scaled.
 - **Z-level ready without building it.** `TileMap` is z-indexed and the
   layers take a layer index. Worldgen only ever produces layer 0.
 - **Nothing outside `render/packs/` knows Minifantasy exists.** The art is
@@ -53,7 +56,8 @@ in [development.md](development.md).
 |---|---|
 | Projection | Top-down orthogonal. Z-levels, when they come, are discrete stacked layers viewed one at a time. |
 | Movement | Free and continuous, with a tile grid underneath for collision and terrain cost. |
-| Map | 128×128 tiles generated, 64×64 for hand-edited maps. `TILE = 64` screen px, 8px source art at 8× scale. |
+| Map | 128×128 tiles generated, 64×64 for hand-edited maps. `TILE = 64` logical px, 8px source art at 8× scale. |
+| View | A fixed logical view of `VIEW_W × VIEW_H`, 1920×1080, scaled to fit the window in steps of 1/8 with black bars. |
 | HUD | HTML/CSS overlay on top of the canvas. |
 | Art | Minifantasy, behind a swappable pack layer. |
 | Hosting | Localhost only. |
@@ -63,13 +67,14 @@ in [development.md](development.md).
 - **`src/sim/`** is the whole game with no renderer. `world.ts` owns
   everything: `world.step(dt, input)` and `nextSummer()`. Around it:
   `stats.ts`, `inventory.ts`, `player.ts` (collision, per-axis moving
-  flags), `interaction.ts` (what is in reach, and `availableAction`, the one
-  query that decides what the interact key does), `terrain.ts` and
+  flags, the heading), `interaction.ts` (what is in reach, the tile ahead,
+  and `availableAction`, the one query that decides what the interact key
+  does), `terrain.ts` and
   `tilemap.ts` (the terrain table and the grid), `mapfile.ts` (the text map
   format), `summary.ts` (a summer counted from the event log).
 - **`src/sim/worldgen/`** turns a seed into a map: noise into terrain and a
   camp, stream thickening and fords, a flood fill from camp, resources
-  scattered by terrain. `worldgen.ts` says what order the steps run in, and
+  scattered by terrain, springs on the bank. `worldgen.ts` says what order the steps run in, and
   why.
 - **`src/render/`** is Pixi only. `tileLayer.ts` is the culled, autotiled
   ground. `propLayer.ts` is the y-sorted props and player, with pixel
@@ -80,10 +85,13 @@ in [development.md](development.md).
 - **`src/render/packs/`** holds the `AssetPack` interface, the autotile
   masks, the code-drawn placeholder pack, and the Minifantasy loader with
   its sheet table.
-- **`src/ui/`** is the HUD. `hudModel(world)` turns state into plain numbers
-  and `Hud.update` writes them into the markup in `index.html`.
+- **`src/ui/`** is the HUD and the view. `hudModel(world)` turns state into
+  plain numbers and `Hud.update` writes them into the markup in
+  `index.html`; `edgeArrow` and `anchorPosition` are its geometry, pure.
+  `view.ts` scales the one wrapper that holds everything on screen.
 - **`src/input/`, `src/debug/`, `src/main.ts`, `src/frameClock.ts`** are the
-  keyboard, the debug overlay, the wiring, and the fixed-step clock.
+  keyboard and pause, the debug overlay, the wiring, and the fixed-step
+  clock.
 - **`scripts/`** are `npm run map` and `npm run map:check`.
 - **`tests/`** are Vitest. `stubPack.ts` is an `AssetPack` that draws
   nothing and records everything, so both layers run headless.

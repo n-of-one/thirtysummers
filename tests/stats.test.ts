@@ -54,6 +54,7 @@ function worldOn(fill: TerrainKind = "grass", paint: (map: TileMap) => void = ()
     map,
     camp: { x: 32.5, y: 32.5 },
     nodes: [],
+    springs: [],
     reachable: new Uint8Array(size * size),
   });
 }
@@ -128,22 +129,27 @@ describe("World — the end of a summer", () => {
     expect(world.summerOver).toBe(true);
   });
 
-  it("banks the ore carried when the clock stops, and flags ending away from camp", () => {
+  it("banks the ore and fruit carried when the clock stops, and flags ending away from camp", () => {
     const world = at(worldOn(), 8.5);
     world.inventory.add("ore", 3);
     world.inventory.add("fruit", 1);
+    world.inventory.add("stick", 1);
     world.elapsedSec = C.SUMMER_LENGTH_SEC - C.TICK_SEC / 2;
     world.step(C.TICK_SEC, still);
 
     expect(world.summerOver).toBe(true);
     expect(world.inventory.gold).toBe(3 * C.ORE_GOLD);
     expect(world.inventory.count("ore")).toBe(0);
-    expect(world.inventory.count("fruit")).toBe(1); // no store for it until winter
+    expect(world.inventory.count("fruit")).toBe(0);
+    expect(world.store.count("fruit")).toBe(1);
+    // Sticks stay: winter cannot sell them yet, and a bridge uses them.
+    expect(world.inventory.count("stick")).toBe(1);
     expect(world.awayAtEnd).toBe(true);
     expect(world.events[world.events.length - 1]).toEqual({
       type: "summerEnded",
       away: true,
       ore: 3,
+      fruit: 1,
       gold: 3 * C.ORE_GOLD,
       at: C.SUMMER_LENGTH_SEC,
     });

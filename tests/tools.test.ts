@@ -1,7 +1,8 @@
 import { describe, expect, it } from "vitest";
 import * as C from "../src/config.ts";
 import { NO_INPUT, type InputState } from "../src/input/keyboard.ts";
-import { nearestTileWithin } from "../src/sim/interaction.ts";
+import { tileAhead } from "../src/sim/interaction.ts";
+import { headingFor } from "../src/sim/player.ts";
 import { parseMap } from "../src/sim/mapfile.ts";
 import { summarise } from "../src/sim/summary.ts";
 import { TileMap } from "../src/sim/tilemap.ts";
@@ -29,7 +30,8 @@ const node = (kind: ResourceKind, x: number, y: number): ResourceNode => ({
 
 /**
  * A grass arena with the camp in a corner, whatever terrain the test paints,
- * and the player standing at (8.5, 8.5) unless it says otherwise.
+ * and the player standing at (8.5, 8.5), last walked east, unless it says
+ * otherwise.
  */
 function arena(paint: (map: TileMap) => void = () => {}, nodes: ResourceNode[] = []): World {
   const map = new TileMap(16, 16);
@@ -40,40 +42,111 @@ function arena(paint: (map: TileMap) => void = () => {}, nodes: ResourceNode[] =
     map,
     camp: { x: 1.5, y: 1.5 },
     nodes,
+    springs: [],
     reachable: new Uint8Array(16 * 16),
   });
   world.player.x = 8.5;
   world.player.y = 8.5;
+  world.player.heading = { x: 1, y: 0 };
   return world;
 }
 
 const types = (world: World) => world.events.map((e) => e.type);
 
-describe("nearestTileWithin", () => {
+describe("tileAhead", () => {
   const map = new TileMap(8, 8);
   for (let y = 0; y < 8; y++) for (let x = 0; x < 8; x++) map.set(x, y, "grass");
-  map.set(3, 4, "thicket");
-  map.set(5, 4, "thicket");
 
-  it("finds a tile of the kind inside the radius", () => {
-    expect(nearestTileWithin(map, 4.2, 4.5, "thicket")).toEqual({ x: 3, y: 4 });
+  it("is the neighbour of the player's tile along the heading, eight ways", () => {
+    expect(tileAhead(map, 4.5, 4.5, { x: 1, y: 0 })).toEqual({ x: 5, y: 4 });
+    expect(tileAhead(map, 4.5, 4.5, { x: 0, y: -1 })).toEqual({ x: 4, y: 3 });
+    expect(tileAhead(map, 4.5, 4.5, headingFor(-1, 1))).toEqual({ x: 3, y: 5 });
   });
 
-  it("ignores tiles beyond the radius", () => {
-    expect(nearestTileWithin(map, 4.5, 7.5, "thicket")).toBeNull();
+  it("is the same tile wherever the player stands inside their own", () => {
+    for (const x of [4.01, 4.3, 4.5, 4.7, 4.99]) {
+      for (const y of [4.01, 4.5, 4.99]) {
+        expect(tileAhead(map, x, y, { x: 1, y: 0 })).toEqual({ x: 5, y: 4 });
+      }
+    }
   });
 
-  it("ignores tiles of another kind", () => {
-    expect(nearestTileWithin(map, 4.2, 4.5, "stream")).toBeNull();
+  it("is nothing before the first step, and nothing off the map", () => {
+    expect(tileAhead(map, 4.5, 4.5, null)).toBeNull();
+    expect(tileAhead(map, 7.5, 4.5, { x: 1, y: 0 })).toBeNull();
+  });
+});
+
+describe("aiming a tool along the heading", () => {
+  /**
+   * A stream four tiles across, x 6 to 9, with the bridge laid over its first
+   * two, (6, 8) and (7, 8). The next tile to bridge is (8, 8), with stream
+   * above and below the player's own bridge tile as well.
+   */
+  function midBridge(): World {
+    const world = arena((map) => {
+      for (let y = 0; y < 16; y++) for (let x = 6; x <= 9; x++) map.set(x, y, "stream");
+      map.set(6, 8, "bridge");
+      map.set(7, 8, "bridge");
+    });
+    world.inventory.add("stick", 5);
+    world.inventory.add("vine", 5);
+    world.player.x = 6.5;
+    world.player.y = 8.5;
+    return world;
+  }
+
+  it("takes the next tile along from anywhere on the bridge tile, never one beside it", () => {
+    const world = midBridge();
+    // Walked east, as a player would, into the end of the bridge.
+    hold(world, { ...NO_INPUT, moveX: 1 }, 1);
+    // Collision stops a tick short of the stream, not flush against it.
+    expect(world.player.x).toBeGreaterThan(7.5);
+    expect(world.availableAction()).toMatchObject({ type: "build", x: 8, y: 8 });
+    expect(world.player.heading).toEqual({ x: 1, y: 0 });
+    for (const x of [7.01, 7.2, 7.4, 7.5, 7.6, 7.7]) {
+      world.player.x = x;
+      expect(world.availableAction()).toMatchObject({ type: "build", x: 8, y: 8 });
+    }
   });
 
-  it("breaks a tie on the lower tile index, so a hold can finish", () => {
-    // Dead centre between the two thicket tiles: the answer has to be the same
-    // every tick, or the hold resets every tick and the cut never completes.
-    const first = nearestTileWithin(map, 4.5, 4.5, "thicket");
-    const second = nearestTileWithin(map, 4.5, 4.5, "thicket");
-    expect(first).toEqual({ x: 3, y: 4 });
-    expect(second).toEqual(first);
+  it("offers no tool before the first step, even with stream all round", () => {
+    const world = midBridge();
+    world.player.x = 7.5;
+    world.player.heading = null;
+    expect(world.availableAction()).toBeNull();
+  });
+
+  it("offers nothing when the tile ahead is ground, whatever is beside it", () => {
+    const world = midBridge();
+    world.player.x = 7.5;
+    // Heading back west along the bridge: the tile ahead is bridge, and the
+    // stream above and below is not in that direction.
+    world.player.heading = { x: -1, y: 0 };
+    expect(world.availableAction()).toBeNull();
+  });
+
+  it("aims from where the input pointed, kept while standing still", () => {
+    const world = midBridge();
+    world.player.x = 7.5;
+    // Pressing south into the stream moves nothing but still says which tile.
+    hold(world, { ...NO_INPUT, moveY: 1 }, C.TICK_SEC * 2);
+    hold(world, NO_INPUT, 1);
+    expect(world.player.heading).toEqual({ x: 0, y: 1 });
+    expect(world.availableAction()).toMatchObject({ type: "build", x: 7, y: 9 });
+  });
+
+  it("takes only the tile ahead, not a thicket two tiles along", () => {
+    const world = arena((map) => map.set(10, 8, "thicket"));
+    world.player.heading = { x: 1, y: 0 };
+    expect(world.availableAction()).toBeNull();
+  });
+
+  it("reads a diagonal input as a diagonal heading", () => {
+    const diagonal = headingFor(0.7, -0.7)!;
+    expect(diagonal.x).toBeCloseTo(Math.SQRT1_2, 12);
+    expect(diagonal.y).toBeCloseTo(-Math.SQRT1_2, 12);
+    expect(headingFor(0, 0)).toBeNull();
   });
 });
 

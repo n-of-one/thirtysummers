@@ -21,6 +21,7 @@ function worldOn(map: TileMap, spawn: { x: number; y: number }): World {
     map,
     camp: spawn,
     nodes: [],
+    springs: [],
     reachable: new Uint8Array(map.width * map.height),
   });
 }

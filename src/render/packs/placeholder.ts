@@ -33,6 +33,7 @@ class PlaceholderPack implements AssetPack {
   private readonly resources = new Map<ResourceKind, Texture>();
   private readonly walks = new Map<Facing, Texture[]>();
   readonly camp: PropSprite;
+  readonly spring: PropSprite;
 
   /** The drawn legs end at y=15 of a 16px tile. */
   readonly playerAnchor = { x: 0.5, y: 15 / 16 };
@@ -56,6 +57,7 @@ class PlaceholderPack implements AssetPack {
       this.resources.set(kind, this.bake((g) => drawResource(g, kind)));
     }
     this.camp = { texture: this.bake(drawCamp), anchorX: 0.5, anchorY: 0.5, bounds: WHOLE_TILE };
+    this.spring = { texture: this.bake(drawSpring), anchorX: 0.5, anchorY: 0.5, bounds: WHOLE_TILE };
     for (const facing of FACINGS) {
       this.walks.set(
         facing,
@@ -170,15 +172,6 @@ function drawTerrain(g: Graphics, kind: TerrainKind, rng: Rng): void {
       }
       break;
 
-    case "spring":
-      // a round, rimmed pool on grass, so it reads as apart from the stream
-      g.rect(0, 0, S, S).fill(0x4d7c3a);
-      g.circle(8, 8, 6.5).fill(0x3b3a2e);
-      g.circle(8, 8, 5.5).fill(0x2e6b96);
-      g.rect(5, 6, 3, 1).fill(0x4b8cb8);
-      g.rect(8, 10, 2, 1).fill(0x4b8cb8);
-      break;
-
     case "rock":
       g.rect(0, 0, S, S).fill(0x4a4a48);
       for (let i = 0; i < 4; i++) {
@@ -268,6 +261,13 @@ function drawResource(g: Graphics, kind: ResourceKind): void {
       g.rect(11, 9, 1.5, 2).fill(0xc0a071);
       break;
   }
+}
+
+/** A spring on the bank: a droplet. */
+function drawSpring(g: Graphics): void {
+  g.poly([8, 3, 11.5, 9, 4.5, 9]).fill(0x4aa3d8);
+  g.circle(8, 9.5, 3.5).fill(0x4aa3d8);
+  g.circle(6.6, 9.2, 1.1).fill(0xbfe4f7);
 }
 
 function drawCamp(g: Graphics): void {

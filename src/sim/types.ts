@@ -11,8 +11,7 @@ export type TerrainKind =
   | "stream"
   | "rock"
   | "thicket"
-  | "bridge"
-  | "spring";
+  | "bridge";
 
 export type ResourceKind = "fruit" | "ore" | "vine" | "stick";
 
@@ -44,7 +43,7 @@ export interface ResourceNode {
 }
 
 /** Why an attempted action did nothing. The HUD turns these into words. */
-export type BlockedReason = "backpackFull" | "noOre" | "noMaterials";
+export type BlockedReason = "backpackFull" | "nothingToBank" | "noMaterials";
 
 /**
  * Something the simulation did this tick, worth telling the player about.
@@ -57,17 +56,18 @@ export type BlockedReason = "backpackFull" | "noOre" | "noMaterials";
 export type WorldEventPayload =
   | { type: "harvested"; kind: ResourceKind }
   | { type: "drank" }
-  | { type: "deposited"; gold: number }
+  /** Banked at camp: `ore` for `gold`, and `fruit` into the store. */
+  | { type: "deposited"; ore: number; fruit: number; gold: number }
   | { type: "blocked"; reason: BlockedReason }
   /** A thicket tile cut through, and a stream tile bridged. Both change the map. */
   | { type: "cut"; x: number; y: number }
   | { type: "built"; x: number; y: number }
   /**
-   * The summer ended, by the clock or from camp. `ore` is what was still in the
-   * pack and was banked there and then, for `gold`; `away` is whether it ended
-   * out of reach of camp.
+   * The summer ended, by the clock or from camp. `ore` and `fruit` are what was
+   * still in the pack and was banked there and then, the ore for `gold`; `away`
+   * is whether it ended out of reach of camp.
    */
-  | { type: "summerEnded"; away: boolean; ore: number; gold: number }
+  | { type: "summerEnded"; away: boolean; ore: number; fruit: number; gold: number }
   /** A new summer began on the same map. Everything the player changed is kept. */
   | { type: "summerStarted"; year: number };
 

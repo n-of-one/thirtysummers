@@ -14,7 +14,7 @@ that playtest tripped on, the screen first.
 |---|---|---|
 | Chores | a clean tree to build on | done |
 | M8: the body | hydration and fog, springs, the end of a summer, no sprint, no stamina | done |
-| [QoL](qol.md) | a fixed view, aimed tools, the last minute with dusk, springs in the reeds, banking fruit, pause | not started |
+| [QoL](qol.md) | a fixed view, aimed tools, the last minute with dusk, springs in the reeds, banking fruit, pause | built, in review |
 | [M9: the map](m9-map.md) | saplings, wells, caches, seven resources, five new maps | not started |
 | [M10: winter](m10-winter.md) | the store, the winter screen, upkeep, the shop, the map between summers | not started |
 | [M11: the cart](m11-cart.md) | the logistics experiment | not started |

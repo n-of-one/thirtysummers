@@ -16,14 +16,38 @@ html, body {
   margin: 0;
   height: 100%;
   overflow: hidden;
-  background: #0d0f0c;
+  /* The bars round the view, where the window's shape differs from it. */
+  background: #000;
   color: var(--ink);
   font: 13px/1.4 ui-monospace, "SF Mono", "Cascadia Mono", Menlo, Consolas, monospace;
   -webkit-font-smoothing: antialiased;
 }
 
+/* The fixed view. FixedView sets its size and one transform that places and
+   scales it; the transform also makes it the containing block of every fixed
+   layer inside, so `position: fixed; inset: 0` below means the view, not the
+   window. It clips the fog, which is twice its size. */
+#view {
+  position: fixed;
+  left: 0;
+  top: 0;
+  overflow: hidden;
+  transform-origin: 0 0;
+  background: #0d0f0c;
+}
+
 #stage { position: fixed; inset: 0; }
 #stage canvas { display: block; image-rendering: pixelated; }
+
+/* The evening, over the world and under the fog and the HUD: a warm tint
+   multiplied in, its opacity rising through the end of a summer. */
+#dusk {
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  mix-blend-mode: multiply;
+  opacity: 0;
+}
 
 /* --- HUD ----------------------------------------------------------------- */
 
@@ -85,30 +109,35 @@ html, body {
 .pill-note { color: var(--ink-dim); margin-left: 4px; }
 .pill b { color: var(--gold); font-variant-numeric: tabular-nums; }
 
-/* The one control in the HUD that takes the mouse. */
-#end-summer { pointer-events: auto; }
+/* The controls in the HUD that take the mouse. */
+#end-summer,
+#fullscreen { pointer-events: auto; }
+#fullscreen { padding: 5px 12px; }
+
 #end-summer[hidden] { display: none; }
+kbd {
+  font: inherit;
+  color: var(--gold);
+  border: 1px solid var(--edge);
+  border-radius: 3px;
+  padding: 0 5px;
+  margin-left: 6px;
+}
 
 /* The dark round the view, closing in as hydration runs out. Clear inside the
-   radius, then deeper the further out, to solid black. The layer is twice the
-   window each way with the gradient at its centre; the HUD moves it onto the
-   player with a transform and only touches --fog-r when the radius changes. */
+   radius, then deeper the further out. The gradient itself is written by the
+   HUD from FOG_COLOR and FOG_STOPS in config.ts. The layer is twice the view
+   each way with the gradient at its centre; the HUD moves it onto the player
+   with a transform and only touches --fog-r when the radius changes. */
 #fog {
-  --fog-r: 832px;
+  --fog-r: 556px;
   position: fixed;
   left: 0;
   top: 0;
-  width: 200vw;
-  height: 200vh;
+  width: calc(var(--view-w) * 2);
+  height: calc(var(--view-h) * 2);
   pointer-events: none;
   will-change: transform;
-  background: radial-gradient(
-    circle at center,
-    transparent var(--fog-r),
-    rgba(8, 10, 7, 0.5) calc(var(--fog-r) * 1.15),
-    rgba(8, 10, 7, 0.85) calc(var(--fog-r) * 1.35),
-    rgb(8, 10, 7) calc(var(--fog-r) * 1.6)
-  );
 }
 
 /* Prompt and toasts both hang off the player rather than off a corner, so what
@@ -139,7 +168,24 @@ html, body {
 /* A standing notice rather than a toast: it stays under the player until the
    state it describes is over. Thirst is the only one so far. */
 .notice { color: var(--hydration); border-color: var(--hydration); }
+.notice-homeward { color: var(--gold); border-color: var(--gold); }
 .notice[hidden] { display: none; }
+
+/* Points at camp from the edge of the view in the last minute, while camp is
+   off screen. Drawn pointing right, centred on its own middle, and placed and
+   turned by one transform. */
+#camp-arrow {
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: 30px;
+  height: 30px;
+  margin: -15px 0 0 -15px;
+  background: var(--gold);
+  clip-path: polygon(100% 50%, 0 5%, 28% 50%, 0 95%);
+  filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.8));
+}
+#camp-arrow[hidden] { display: none; }
 .prompt b { color: var(--ink); }
 
 .clock {
@@ -193,6 +239,16 @@ html, body {
   backdrop-filter: blur(3px);
 }
 #summary[hidden] { display: none; }
+
+#paused {
+  position: fixed;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  background: rgba(8, 10, 8, 0.6);
+}
+#paused[hidden] { display: none; }
+#paused p { margin: 0; color: var(--ink-dim); }
 
 .summary-card {
   background: #15180f;
@@ -252,7 +308,7 @@ button:hover { background: #363d27; }
   right: 0;
   width: fit-content;
   margin-inline: auto;
-  max-width: min(calc(100vw - 28px), 760px);
+  max-width: min(calc(var(--view-w) - 28px), 760px);
   display: flex;
   flex-direction: column;
   gap: 6px;

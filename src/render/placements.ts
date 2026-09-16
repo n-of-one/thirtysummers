@@ -27,7 +27,7 @@ export const PROP_JITTER_PX = 1;
 
 /**
  * Everything standing on the ground inside the window: trees, underbrush, the
- * camp, and resource nodes still waiting to be harvested.
+ * camp, the springs, and resource nodes still waiting to be harvested.
  *
  * This is the decision -- what to draw and where it stands in the world -- with
  * no sprites in it. Turning a placement into a positioned, snapped, depth-sorted
@@ -40,6 +40,7 @@ export function* placementsIn(
   window: ScrollWindow,
   camp: Vec2,
   nodes: readonly ResourceNode[],
+  springs: readonly Vec2[] = [],
   z = 0,
 ): Generator<Placement> {
   const { originX, originY, cols, rows } = window;
@@ -69,6 +70,18 @@ export function* placementsIn(
 
   if (window.covers(camp.x, camp.y)) {
     yield { worldX: camp.x, worldY: camp.y, art: pack.camp, jitter: 0, occludes: false };
+  }
+
+  // Springs are tile positions, drawn standing at the tile's centre like a node.
+  for (const spring of springs) {
+    if (!window.covers(spring.x, spring.y)) continue;
+    yield {
+      worldX: spring.x + 0.5,
+      worldY: spring.y + 0.5,
+      art: pack.spring,
+      jitter: 0,
+      occludes: false,
+    };
   }
 
   for (const node of nodes) {

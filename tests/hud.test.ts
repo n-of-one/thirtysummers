@@ -6,11 +6,17 @@ import { World } from "../src/sim/world.ts";
 import {
   anchorPosition,
   backpackText,
+  edgeArrow,
   fogRadiusPx,
   formatClock,
   hudModel,
+  duskAlpha,
+  fogGradient,
   toastFor,
 } from "../src/ui/hud.ts";
+
+/** The fog's widest ring in the configured view, in logical pixels. */
+const WIDEST = (C.VIEW_W / 2) * C.FOG_MAX_RADIUS_SHARE;
 
 function world(): World {
   const map = new TileMap(8, 8);
@@ -20,11 +26,13 @@ function world(): World {
     map,
     camp: { x: 1.5, y: 1.5 },
     nodes: [],
+    springs: [],
     reachable: new Uint8Array(64),
   });
   // Out of reach of the camp, so nothing prompts unless a test asks for it.
   w.player.x = 5.5;
   w.player.y = 5.5;
+  w.player.heading = { x: 1, y: 0 };
   return w;
 }
 
@@ -57,11 +65,14 @@ describe("hudModel", () => {
       contents: "empty",
       capacity: C.BACKPACK_CAPACITY,
       gold: 0,
+      storedFruit: 0,
       secondsLeft: C.SUMMER_LENGTH_SEC,
       year: 1,
-      urgent: false,
+      homeward: false,
+      homewardNotice: null,
+      duskAlpha: 0,
       atCamp: false,
-      fogRadiusPx: C.FOG_MAX_RADIUS_TILES * C.TILE,
+      fogRadiusPx: WIDEST,
       prompt: null,
     });
   });
@@ -70,11 +81,17 @@ describe("hudModel", () => {
     const w = world();
     w.stats.hydration = C.HYDRATION_FOG_THRESHOLD;
     expect(hudModel(w).hydrationWarn).toBe(false);
-    expect(hudModel(w).fogRadiusPx).toBe(C.FOG_MAX_RADIUS_TILES * C.TILE);
+    expect(hudModel(w).fogRadiusPx).toBe(WIDEST);
     w.stats.hydration = 10;
     expect(hudModel(w).hydrationWarn).toBe(true);
     expect(hudModel(w).fogRadiusPx).toBe(fogRadiusPx(10));
-    expect(fogRadiusPx(10)).toBeLessThan(C.FOG_MAX_RADIUS_TILES * C.TILE);
+    expect(fogRadiusPx(10)).toBeLessThan(WIDEST);
+  });
+
+  it("shows the store's fruit beside the gold", () => {
+    const w = world();
+    w.store.add("fruit", 7);
+    expect(hudModel(w).storedFruit).toBe(7);
   });
 
   it("follows the backpack, the gold and the clock", () => {
@@ -88,8 +105,73 @@ describe("hudModel", () => {
     expect(model.contents).toBe("fruit 1, ore 3");
     expect(model.gold).toBe(12);
     expect(model.secondsLeft).toBe(30);
-    expect(model.urgent).toBe(true);
+    expect(model.homeward).toBe(true);
     expect(formatClock(model.secondsLeft)).toBe("0:30");
+  });
+});
+
+describe("the last minute", () => {
+  it("says to head back, with the clock's seconds, only away from camp", () => {
+    const w = world();
+    w.elapsedSec = C.SUMMER_LENGTH_SEC - C.HOMEWARD_SEC - 1;
+    expect(hudModel(w).homewardNotice).toBeNull();
+
+    w.elapsedSec = C.SUMMER_LENGTH_SEC - (C.HOMEWARD_SEC - 3.8);
+    expect(hudModel(w).homewardNotice).toBe(
+      `Summer ends in ${formatClock(C.HOMEWARD_SEC - 3.8)}. Get back to camp.`,
+    );
+
+    w.player.x = 1.5;
+    w.player.y = 1.5;
+    expect(hudModel(w).homeward).toBe(true);
+    expect(hudModel(w).homewardNotice).toBeNull();
+  });
+
+  it("draws the dusk in from nothing at HOMEWARD_SEC to its full alpha at the end", () => {
+    expect(duskAlpha(C.SUMMER_LENGTH_SEC)).toBe(0);
+    expect(duskAlpha(C.HOMEWARD_SEC + 1)).toBe(0);
+    expect(duskAlpha(C.HOMEWARD_SEC)).toBe(0);
+    expect(duskAlpha(C.HOMEWARD_SEC / 2)).toBeCloseTo(C.DUSK_MAX_ALPHA / 2, 2);
+    expect(duskAlpha(0)).toBeCloseTo(C.DUSK_MAX_ALPHA, 10);
+  });
+
+  it("moves in steps, so most frames write nothing", () => {
+    const values = new Set<number>();
+    for (let t = C.HOMEWARD_SEC; t >= 0; t -= C.TICK_SEC) values.add(duskAlpha(t));
+    expect(values.size).toBeLessThanOrEqual(Math.round(C.DUSK_MAX_ALPHA / C.DUSK_ALPHA_STEP) + 1);
+    const ticks = Math.round(C.HOMEWARD_SEC / C.TICK_SEC);
+    expect(values.size).toBeLessThan(ticks / 10);
+  });
+});
+
+describe("edgeArrow", () => {
+  const view = { width: 1280, height: 720 };
+  const m = 20;
+
+  it("stays away while the camp is in view", () => {
+    expect(edgeArrow({ x: 640, y: 360 }, { x: 100, y: 700 }, view, m)).toBeNull();
+  });
+
+  it("sits where the line to camp leaves the view, and points along it", () => {
+    const right = edgeArrow({ x: 640, y: 360 }, { x: 2000, y: 360 }, view, m)!;
+    expect(right).toEqual({ x: 1280 - m, y: 360, angle: 0 });
+
+    const up = edgeArrow({ x: 640, y: 360 }, { x: 640, y: -500 }, view, m)!;
+    expect(up.x).toBe(640);
+    expect(up.y).toBe(m);
+    expect(up.angle).toBeCloseTo(-Math.PI / 2, 10);
+  });
+
+  it("leaves by whichever edge the line reaches first", () => {
+    // Down and to the left, steeper than the view's own diagonal: the bottom.
+    const player = { x: 640, y: 360 };
+    const camp = { x: 240, y: 1360 };
+    const at = edgeArrow(player, camp, view, m)!;
+    expect(at.y).toBeCloseTo(720 - m, 10);
+    // On the line from the player to the camp.
+    const along = (at.y - player.y) / (camp.y - player.y);
+    expect(at.x).toBeCloseTo(player.x + (camp.x - player.x) * along, 10);
+    expect(at.angle).toBeCloseTo(Math.atan2(1000, -400), 10);
   });
 });
 
@@ -125,8 +207,14 @@ describe("the action prompt", () => {
       blocked: false,
     });
 
+    w.inventory.add("fruit", 2);
+    expect(hudModel(w).prompt?.text).toBe("Press E to bank 6 ore and 2 fruit");
+
     w.inventory.depositOre();
-    expect(hudModel(w).prompt).toEqual({ text: "No ore to bank", progress: 0, blocked: true });
+    expect(hudModel(w).prompt?.text).toBe("Press E to bank 2 fruit");
+
+    w.inventory.remove("fruit", 2);
+    expect(hudModel(w).prompt).toEqual({ text: "Nothing to bank", progress: 0, blocked: true });
   });
 });
 
@@ -150,7 +238,7 @@ describe("the action prompt at a thicket, on rough ground and by a spring", () =
 
   it("offers a drink beside a spring once thirsty", () => {
     const w = world();
-    w.map.set(6, 5, "spring");
+    w.springs.push({ x: 6, y: 5 });
     w.stats.hydration = 50;
     expect(hudModel(w).prompt).toEqual({ text: "Hold E to drink", progress: 0, blocked: false });
   });
@@ -168,21 +256,37 @@ describe("the end-summer button", () => {
 
 describe("fogRadiusPx", () => {
   it("rings the view at its widest from full hydration down to the threshold", () => {
-    expect(fogRadiusPx(100)).toBe(C.FOG_MAX_RADIUS_TILES * C.TILE);
-    expect(fogRadiusPx(C.HYDRATION_FOG_THRESHOLD)).toBe(C.FOG_MAX_RADIUS_TILES * C.TILE);
+    expect(fogRadiusPx(100)).toBe(WIDEST);
+    expect(fogRadiusPx(C.HYDRATION_FOG_THRESHOLD)).toBe(WIDEST);
+  });
+
+  it("sizes the widest ring by the view, so it keeps its shape at any size", () => {
+    expect(fogRadiusPx(100, 1920) / 960).toBeCloseTo(fogRadiusPx(100, 1280) / 640, 10);
+    expect(fogRadiusPx(100, 1920)).toBe(960 * C.FOG_MAX_RADIUS_SHARE);
   });
 
   it("closes from the widest circle to a few tiles at zero", () => {
-    expect(fogRadiusPx(C.HYDRATION_FOG_THRESHOLD - 1e-9)).toBeCloseTo(
-      C.FOG_MAX_RADIUS_TILES * C.TILE,
-      3,
-    );
+    expect(fogRadiusPx(C.HYDRATION_FOG_THRESHOLD - 1e-9)).toBeCloseTo(WIDEST, 3);
     expect(fogRadiusPx(0)).toBe(C.FOG_MIN_RADIUS_TILES * C.TILE);
   });
 
   it("shrinks steadily as hydration falls", () => {
     const radii = [35, 25, 15, 5, 0].map((h) => fogRadiusPx(h));
     for (let i = 1; i < radii.length; i++) expect(radii[i]).toBeLessThan(radii[i - 1]!);
+  });
+});
+
+describe("fogGradient", () => {
+  it("is clear to the radius, then follows the stops in the fog's colour", () => {
+    expect(fogGradient(0x080a07, [[1.1, 0.5], [1.3, 1]])).toBe(
+      "radial-gradient(circle at center, rgba(8, 10, 7, 0) var(--fog-r), " +
+        "rgba(8, 10, 7, 0.5) calc(var(--fog-r) * 1.1), " +
+        "rgba(8, 10, 7, 1) calc(var(--fog-r) * 1.3))",
+    );
+  });
+
+  it("makes the last stop opaque whatever it says, so nothing shows past it", () => {
+    expect(fogGradient(0x000000, [[1.2, 0.4]])).toContain("rgba(0, 0, 0, 1) calc(var(--fog-r) * 1.2)");
   });
 });
 
@@ -239,10 +343,14 @@ describe("backpackText", () => {
 describe("toastFor", () => {
   it("puts every kind of event into words", () => {
     expect(toastFor({ type: "harvested", kind: "ore", at: 0 })).toBe("+1 ore");
-    expect(toastFor({ type: "deposited", gold: 5, at: 0 })).toBe("Banked 5 gold");
+    expect(toastFor({ type: "deposited", ore: 5, fruit: 0, gold: 5, at: 0 })).toBe("Banked 5 gold");
+    expect(toastFor({ type: "deposited", ore: 5, fruit: 2, gold: 5, at: 0 })).toBe(
+      "Banked 5 gold and 2 fruit",
+    );
+    expect(toastFor({ type: "deposited", ore: 0, fruit: 2, gold: 0, at: 0 })).toBe("Banked 2 fruit");
     expect(toastFor({ type: "drank", at: 0 })).toBe("Drank your fill");
     expect(toastFor({ type: "blocked", reason: "backpackFull", at: 0 })).toBe("Backpack full");
-    expect(toastFor({ type: "summerEnded", away: false, ore: 0, gold: 0, at: 0 })).toBe(
+    expect(toastFor({ type: "summerEnded", away: false, ore: 0, fruit: 0, gold: 0, at: 0 })).toBe(
       "Summer over",
     );
   });

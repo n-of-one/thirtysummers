@@ -27,13 +27,20 @@ export interface HudModel {
   contents: string;
   capacity: number;
   gold: number;
+  /** Fruit in the store at camp. */
+  storedFruit: number;
   secondsLeft: number;
-  urgent: boolean;
+  /** In the last `HOMEWARD_SEC` of the summer: the clock turns, and dusk falls. */
+  homeward: boolean;
+  /** Homeward and away from camp: the standing notice saying to head back. */
+  homewardNotice: string | null;
+  /** Opacity of the dusk layer, in `DUSK_ALPHA_STEP` steps. */
+  duskAlpha: number;
   /** Which summer this is, counting from 1. */
   year: number;
   /** Close enough to camp to end the summer early. */
   atCamp: boolean;
-  /** Radius of the clear circle in the fog, in screen pixels. */
+  /** Radius of the clear circle in the fog, in logical pixels. */
   fogRadiusPx: number;
   /** What the interact key would do here; null for nothing. */
   prompt: Prompt | null;
@@ -65,7 +72,7 @@ export function backpackText(inventory: Inventory): string {
 
 const BLOCKED_TEXT: Record<BlockedReason, string> = {
   backpackFull: "Backpack full",
-  noOre: "No ore to bank",
+  nothingToBank: "Nothing to bank",
   // Says the price, not just the refusal: the player has to learn what a
   // bridge tile costs somewhere, and standing at the water is where it matters.
   noMaterials: `A bridge tile needs ${bridgeCostText()}`,
@@ -81,13 +88,28 @@ export function bridgeCostText(): string {
     : (parts[0] ?? "nothing");
 }
 
+/** A load in words, naming only what there is of it: "3 ore and 2 fruit". */
+function loadText(parts: readonly (readonly [number, string])[]): string {
+  return parts
+    .filter(([n]) => n > 0)
+    .map(([n, name]) => `${n} ${name}`)
+    .join(" and ");
+}
+
 /** What the interact key would do, in words. */
 function actionPrompt(action: Action, progress: number): Prompt {
   switch (action.type) {
     case "deposit":
       return action.blocked
-        ? { text: BLOCKED_TEXT.noOre, progress: 0, blocked: true }
-        : { text: `Press E to bank ${action.ore} ore`, progress: 0, blocked: false };
+        ? { text: BLOCKED_TEXT.nothingToBank, progress: 0, blocked: true }
+        : {
+            text: `Press E to bank ${loadText([
+              [action.ore, RESOURCE_NAME.ore],
+              [action.fruit, RESOURCE_NAME.fruit],
+            ])}`,
+            progress: 0,
+            blocked: false,
+          };
     case "harvest":
       return action.blocked
         ? { text: BLOCKED_TEXT.backpackFull, progress: 0, blocked: true }
@@ -121,7 +143,10 @@ export function toastFor(event: WorldEvent): string {
     case "drank":
       return "Drank your fill";
     case "deposited":
-      return `Banked ${event.gold} gold`;
+      return `Banked ${loadText([
+        [event.ore > 0 ? event.gold : 0, "gold"],
+        [event.fruit, RESOURCE_NAME.fruit],
+      ])}`;
     case "blocked":
       return BLOCKED_TEXT[event.reason];
     case "cut":
@@ -135,8 +160,11 @@ export function toastFor(event: WorldEvent): string {
   }
 }
 
-export function hudModel(world: World): HudModel {
+/** `viewWidth` is the logical view's width, which the fog is sized against. */
+export function hudModel(world: World, viewWidth: number = C.VIEW_W): HudModel {
   const { stats, inventory } = world;
+  const homeward = world.remainingSec < C.HOMEWARD_SEC;
+  const atCamp = world.atCamp;
   return {
     hydration: stats.hydration,
     // The fog's own threshold, so the bar turns at the moment the view starts
@@ -146,27 +174,71 @@ export function hudModel(world: World): HudModel {
     contents: backpackText(inventory),
     capacity: inventory.capacity,
     gold: inventory.gold,
+    storedFruit: world.store.count("fruit"),
     secondsLeft: world.remainingSec,
-    urgent: world.remainingSec < C.CLOCK_URGENT_SEC,
+    homeward,
+    // At camp the End summer button is already there, so nothing is said.
+    homewardNotice:
+      homeward && !atCamp
+        ? `Summer ends in ${formatClock(world.remainingSec)}. Get back to camp.`
+        : null,
+    duskAlpha: duskAlpha(world.remainingSec),
     year: world.year,
-    atCamp: world.atCamp,
-    fogRadiusPx: fogRadiusPx(stats.hydration),
+    atCamp,
+    fogRadiusPx: fogRadiusPx(stats.hydration, viewWidth),
     prompt: promptFor(world),
   };
 }
 
 /**
- * How far the player can see before the dark begins, in screen pixels.
+ * How far the player can see before the dark begins, in logical pixels.
  *
  * The view is always ringed. Fog is the only cost of running dry, so it has to
  * be felt: the widest circle down to the threshold, then one that shrinks
- * linearly to a few tiles at zero.
+ * linearly to a few tiles at zero. The widest is a share of the view's half
+ * width, so the ring keeps its shape whatever size the view is.
  */
-export function fogRadiusPx(hydration: number): number {
+export function fogRadiusPx(hydration: number, viewWidth: number = C.VIEW_W): number {
   const share = Math.min(Math.max(hydration, 0) / C.HYDRATION_FOG_THRESHOLD, 1);
-  const tiles =
-    C.FOG_MIN_RADIUS_TILES + (C.FOG_MAX_RADIUS_TILES - C.FOG_MIN_RADIUS_TILES) * share;
-  return tiles * C.TILE;
+  const widest = (viewWidth / 2) * C.FOG_MAX_RADIUS_SHARE;
+  const narrowest = C.FOG_MIN_RADIUS_TILES * C.TILE;
+  return narrowest + (widest - narrowest) * share;
+}
+
+/**
+ * Opacity of the dusk with `secondsLeft` in the summer.
+ *
+ * Nothing before `HOMEWARD_SEC`, then rising evenly to `DUSK_MAX_ALPHA` as the
+ * clock runs out. Rounded to `DUSK_ALPHA_STEP`, so the layer's style changes a
+ * few dozen times over the stretch rather than every frame.
+ */
+export function duskAlpha(secondsLeft: number): number {
+  const into = Math.min(Math.max((C.HOMEWARD_SEC - secondsLeft) / C.HOMEWARD_SEC, 0), 1);
+  const steps = Math.round((into * C.DUSK_MAX_ALPHA) / C.DUSK_ALPHA_STEP);
+  return Number((steps * C.DUSK_ALPHA_STEP).toFixed(4));
+}
+
+/**
+ * The fog's CSS gradient, from a colour and [radius multiple, opacity] stops.
+ *
+ * Distances are written against `--fog-r`, so the radius can change without
+ * the gradient being rebuilt. Clear up to the radius; the last stop is always
+ * drawn fully opaque, so whatever the stops, the far edge of the layer is
+ * solid and nothing shows past it.
+ */
+export function fogGradient(
+  color: number = C.FOG_COLOR,
+  stops: readonly (readonly [number, number])[] = C.FOG_STOPS,
+): string {
+  const r = (color >> 16) & 255;
+  const g = (color >> 8) & 255;
+  const b = color & 255;
+  const parts = [`rgba(${r}, ${g}, ${b}, 0) var(--fog-r)`];
+  stops.forEach(([at, alpha], i) => {
+    const a = i === stops.length - 1 ? 1 : Math.min(Math.max(alpha, 0), 1);
+    parts.push(`rgba(${r}, ${g}, ${b}, ${a}) calc(var(--fog-r) * ${at})`);
+  });
+  return `radial-gradient(circle at center, ${parts.join(", ")})`;
 }
 
 /**
@@ -189,12 +261,12 @@ function clamp(v: number, lo: number, hi: number): number {
 }
 
 /**
- * Where to put the floating stack, given where the player is on screen.
+ * Where to put the floating stack, given where the player is in the view.
  *
  * `x` is the centre of the stack and `y` its top edge, both already kept a
- * margin away from the window: at the edges of the map the camera stops and the
- * player walks on to the corner of the screen, which would otherwise hang half
- * the prompt off it.
+ * margin away from the view's edge: at the edges of the map the camera stops
+ * and the player walks on to the corner of the view, which would otherwise
+ * hang half the prompt off it.
  */
 export function anchorPosition(
   player: Vec2,
@@ -207,6 +279,52 @@ export function anchorPosition(
     x: clamp(player.x, margin + half, view.width - margin - half),
     y: clamp(player.y + C.PROMPT_OFFSET_PX, margin, view.height - margin - size.height),
   };
+}
+
+/** Where the camp arrow goes, and which way it points. */
+export interface EdgeArrow {
+  x: number;
+  y: number;
+  /** Radians, clockwise from pointing right, as a CSS rotate reads it. */
+  angle: number;
+}
+
+/**
+ * The arrow at the edge of the view that points at camp, or null while the
+ * camp is in view.
+ *
+ * It sits where the line from the player to the camp leaves the view, `margin`
+ * in from the edge, and points along that line. The player is kept inside the
+ * inset box first, so a player walked into a corner of the map still gets an
+ * arrow on the edge rather than one past it.
+ */
+export function edgeArrow(
+  player: Vec2,
+  camp: Vec2,
+  view: { width: number; height: number },
+  margin: number = C.EDGE_ARROW_MARGIN_PX,
+): EdgeArrow | null {
+  const inView = camp.x >= 0 && camp.x <= view.width && camp.y >= 0 && camp.y <= view.height;
+  if (inView) return null;
+
+  const x0 = margin;
+  const y0 = margin;
+  const x1 = view.width - margin;
+  const y1 = view.height - margin;
+  const from = { x: clamp(player.x, x0, x1), y: clamp(player.y, y0, y1) };
+  const dx = camp.x - from.x;
+  const dy = camp.y - from.y;
+
+  // How far along the line each pair of edges is reached; the nearer one is
+  // where it leaves.
+  let t = Infinity;
+  if (dx > 0) t = Math.min(t, (x1 - from.x) / dx);
+  if (dx < 0) t = Math.min(t, (x0 - from.x) / dx);
+  if (dy > 0) t = Math.min(t, (y1 - from.y) / dy);
+  if (dy < 0) t = Math.min(t, (y0 - from.y) / dy);
+  if (!Number.isFinite(t)) return null;
+
+  return { x: from.x + dx * t, y: from.y + dy * t, angle: Math.atan2(dy, dx) };
 }
 
 /**
@@ -246,11 +364,15 @@ export class Hud {
   private readonly backpack: HTMLElement;
   private readonly backpackContents: HTMLElement;
   private readonly gold: HTMLElement;
+  private readonly storedFruit: HTMLElement;
   private readonly prompt: HTMLElement;
   private readonly anchor: HTMLElement;
   private readonly toasts: HTMLElement;
   private readonly thirstyNotice: HTMLElement;
+  private readonly homewardNotice: HTMLElement;
+  private readonly campArrow: HTMLElement;
   private readonly fog: HTMLElement;
+  private readonly dusk: HTMLElement;
   private readonly endSummer: HTMLButtonElement;
   private readonly summary: HTMLElement;
   private readonly summaryTitle: HTMLElement;
@@ -273,8 +395,18 @@ export class Hud {
   /** What the fog layer was last given, so an unchanged frame writes nothing. */
   private fogRadius = "";
   private fogTransform = "";
+  /** The same, for the dusk's opacity and the arrow's placement. */
+  private duskOpacity = "";
+  private arrowTransform = "";
 
-  constructor(root: ParentNode = document) {
+  /** `view` is the logical view the HUD is laid out in. */
+  constructor(
+    root: ParentNode = document,
+    private readonly view: { width: number; height: number } = {
+      width: C.VIEW_W,
+      height: C.VIEW_H,
+    },
+  ) {
     this.hydrationBar = need(root, "#bar-hydration");
     this.hydrationFill = need(this.hydrationBar, ".bar-fill");
     this.hydrationValue = need(this.hydrationBar, ".bar-value");
@@ -284,11 +416,17 @@ export class Hud {
     this.backpack = need(root, "#backpack-count");
     this.backpackContents = need(root, "#backpack-contents");
     this.gold = need(root, "#gold-count");
+    this.storedFruit = need(root, "#store-fruit");
     this.prompt = need(root, "#action-prompt");
     this.anchor = need(root, "#player-anchor");
     this.toasts = need(root, "#toasts");
     this.thirstyNotice = need(root, "#thirsty-notice");
+    this.homewardNotice = need(root, "#homeward-notice");
+    this.campArrow = need(root, "#camp-arrow");
     this.fog = need(root, "#fog");
+    this.fog.style.background = fogGradient();
+    this.dusk = need(root, "#dusk");
+    this.dusk.style.backgroundColor = `#${C.DUSK_COLOR.toString(16).padStart(6, "0")}`;
     this.endSummer = need(root, "#end-summer");
     this.summary = need(root, "#summary");
     this.summaryTitle = need(root, "#summary-title");
@@ -305,11 +443,17 @@ export class Hud {
    * The events are read through a cursor the HUD owns, so showing them takes
    * nothing out of the log and the simulation stays untouched.
    *
-   * `playerScreen` is where the player is on the canvas this frame, which is
-   * the one thing here the simulation cannot answer: the prompt and the toasts
-   * hang off the player rather than off a corner.
+   * `playerScreen` and `campScreen` are where the player and the camp are in
+   * the view this frame, which is the one thing here the simulation cannot
+   * answer: the prompt and the toasts hang off the player, and the arrow
+   * points from the player to the camp.
    */
-  update(model: HudModel, playerScreen: Vec2, events: readonly WorldEvent[] = []): void {
+  update(
+    model: HudModel,
+    playerScreen: Vec2,
+    events: readonly WorldEvent[] = [],
+    campScreen: Vec2 | null = null,
+  ): void {
     this.bar(
       this.hydrationBar,
       this.hydrationFill,
@@ -320,18 +464,24 @@ export class Hud {
     );
 
     setText(this.clockTime, formatClock(model.secondsLeft));
-    this.clock.classList.toggle("is-urgent", model.urgent);
+    this.clock.classList.toggle("is-urgent", model.homeward);
     setText(this.year, String(model.year));
 
     setText(this.backpack, String(model.carried));
     setText(this.backpackContents, model.contents);
     setText(this.gold, String(model.gold));
+    setText(this.storedFruit, String(model.storedFruit));
 
+    // In the stack under the player, so it is never drawn over them.
     this.endSummer.hidden = !model.atCamp;
     // Up for as long as the fog is closing in, not a toast that fades: running
     // dry is a state the player is in until they drink.
     this.thirstyNotice.hidden = !model.hydrationWarn;
+    this.homewardNotice.hidden = model.homewardNotice === null;
+    if (model.homewardNotice) setText(this.homewardNotice, model.homewardNotice);
     this.placeFog(model.fogRadiusPx, playerScreen);
+    this.placeDusk(model.duskAlpha);
+    this.placeArrow(model.homeward && campScreen ? edgeArrow(playerScreen, campScreen, this.view) : null);
 
     this.prompt.hidden = model.prompt === null;
     if (model.prompt) {
@@ -343,8 +493,12 @@ export class Hud {
     for (let i = this.seenEvents; i < events.length; i++) this.toast(toastFor(events[i]!));
     this.seenEvents = events.length;
 
-    // The notice changes the size of the stack as much as the prompt does.
-    this.placeAnchor(`${model.prompt?.text ?? ""}|${model.hydrationWarn}`, playerScreen);
+    // The notices and the button change the size of the stack as much as the
+    // prompt does.
+    this.placeAnchor(
+      `${model.prompt?.text ?? ""}|${model.hydrationWarn}|${model.homewardNotice ?? ""}|${model.atCamp}`,
+      playerScreen,
+    );
   }
 
   /**
@@ -360,10 +514,7 @@ export class Hud {
       this.anchorContent = content;
       this.anchorSize = { width: this.anchor.offsetWidth, height: this.anchor.offsetHeight };
     }
-    const at = anchorPosition(playerScreen, this.anchorSize, {
-      width: window.innerWidth,
-      height: window.innerHeight,
-    });
+    const at = anchorPosition(playerScreen, this.anchorSize, this.view);
     // Centred on x, hung from y. A transform rather than left/top so moving it
     // every frame does not put the page through layout again.
     this.anchor.style.transform =
@@ -374,7 +525,7 @@ export class Hud {
    * Ring the view in dark, and close it in round the player as hydration runs
    * out.
    *
-   * The layer is twice the window each way with the gradient at its centre, so
+   * The layer is twice the view each way with the gradient at its centre, so
    * following the player is a transform, which the compositor moves without
    * painting anything. The gradient itself is repainted only when the radius
    * crosses a step, a few times a second at most, and only while it shrinks.
@@ -385,13 +536,33 @@ export class Hud {
       this.fogRadius = radius;
       this.fog.style.setProperty("--fog-r", radius);
     }
-    const x = (playerScreen.x - window.innerWidth).toFixed(0);
-    const y = (playerScreen.y - window.innerHeight).toFixed(0);
+    const x = (playerScreen.x - this.view.width).toFixed(0);
+    const y = (playerScreen.y - this.view.height).toFixed(0);
     const transform = `translate(${x}px, ${y}px)`;
     if (transform !== this.fogTransform) {
       this.fogTransform = transform;
       this.fog.style.transform = transform;
     }
+  }
+
+  /** Draw the evening in. The alpha arrives in steps, so most frames write nothing. */
+  private placeDusk(alpha: number): void {
+    const opacity = String(alpha);
+    if (opacity === this.duskOpacity) return;
+    this.duskOpacity = opacity;
+    this.dusk.style.opacity = opacity;
+  }
+
+  /** Point at camp from the edge of the view, or put the arrow away. */
+  private placeArrow(arrow: EdgeArrow | null): void {
+    this.campArrow.hidden = arrow === null;
+    if (!arrow) return;
+    const transform =
+      `translate(${arrow.x.toFixed(0)}px, ${arrow.y.toFixed(0)}px) ` +
+      `rotate(${arrow.angle.toFixed(3)}rad)`;
+    if (transform === this.arrowTransform) return;
+    this.arrowTransform = transform;
+    this.campArrow.style.transform = transform;
   }
 
   /**
@@ -434,6 +605,7 @@ export class Hud {
   showSummary(summer: SummerSummary, onRestart: () => void): void {
     const rows: [string, string, boolean][] = [
       ["Gold", String(summer.gold), true],
+      ["Fruit stored", String(summer.fruitStored), false],
       ["Fruit picked", String(summer.harvested.fruit), false],
       ["Ore mined", String(summer.harvested.ore), false],
       ["Vines cut", String(summer.harvested.vine), false],

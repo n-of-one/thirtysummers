@@ -1,7 +1,9 @@
+import * as C from "../config.ts";
 import { TERRAIN, TERRAIN_ORDER } from "./terrain.ts";
 import { TileMap } from "./tilemap.ts";
 import type { ResourceKind, ResourceNode, TerrainKind, Vec2 } from "./types.ts";
 import { reachableFrom } from "./worldgen/reachability.ts";
+import { placeSprings } from "./worldgen/springs.ts";
 import type { GeneratedWorld } from "./worldgen.ts";
 
 /**
@@ -130,14 +132,18 @@ export function parseMap(text: string, seed = 0): GeneratedWorld {
 
   if (!camp) throw new MapFileError(`no camp: the map needs one "${CAMP_GLYPH}"`);
 
-  return { seed, map, camp, nodes, reachable: reachableFrom(map, camp) };
+  // The file carries no springs. They are placed by the generator's own pass,
+  // on a fixed seed, so the same file gets the same springs every load.
+  const springs = placeSprings(map, camp, nodes, C.MAP_SPRING_SEED);
+  return { seed, map, camp, nodes, springs, reachable: reachableFrom(map, camp) };
 }
 
 /**
  * Write a world back out as a map file.
  *
  * The inverse of {@link parseMap} for everything the format carries, which is
- * terrain, nodes and the camp. It is not an inverse for anything else, and is
+ * terrain, nodes and the camp. Springs are not written: reading the file back
+ * places them again. It is not an inverse for anything else, and is
  * not meant to be: a round trip through a file is how a generated map becomes
  * an edited one, so what survives the trip is exactly what an editor is allowed
  * to change.

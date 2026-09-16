@@ -21,6 +21,8 @@ export interface GeneratedWorld {
   /** Tile the camp sits on; also the player spawn. */
   camp: Vec2;
   nodes: ResourceNode[];
+  /** Tiles with a spring on them, in integer tile coordinates. */
+  springs: Vec2[];
   /** Mask of tiles walkable from the camp, indexed y * width + x. */
   reachable: Uint8Array;
 }
@@ -31,10 +33,10 @@ export interface GeneratedWorld {
  * The order matters and each step depends on the last: the stream has to be
  * wide enough to draw before the camp is placed, because the camp needs solid
  * ground; the camp has to exist before fords can be cut, because a ford is
- * defined as a crossing back to the camp; the springs go in once the water and
- * the camp are settled, because they stand a fixed distance from one and clear
- * of the other, and they are solid; and only then is it known which ground is
- * reachable, which is the only ground worth putting resources on.
+ * defined as a crossing back to the camp; only then is it known which ground is
+ * reachable, which is the only ground worth putting resources on. The springs
+ * go in last, on the bank, clear of the camp and of the nodes, from their own
+ * stream of numbers so that moving them never moves a resource.
  *
  * The steps themselves live in ./worldgen/.
  */
@@ -46,10 +48,10 @@ export function generateWorld(seed: number = C.DEFAULT_SEED): GeneratedWorld {
 
   const camp = findCamp(map);
   connectAcrossWater(map, camp);
-  placeSprings(map, camp);
 
   const reachable = reachableFrom(map, camp);
   const nodes = placeResources(map, reachable, camp, master);
+  const springs = placeSprings(map, camp, nodes, seed);
 
-  return { seed, map, camp, nodes, reachable };
+  return { seed, map, camp, nodes, springs, reachable };
 }

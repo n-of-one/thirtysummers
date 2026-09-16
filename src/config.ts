@@ -14,8 +14,25 @@ export const MAP_H = 128;
 export const MAP_LAYERS = 1; // z-levels: only layer 0 is generated for now
 export const DEFAULT_SEED = 1337;
 
-/** On-screen size of one tile, in CSS pixels. */
+/** Size of one tile in the view, in logical pixels. */
 export const TILE = 64;
+
+// ----------------------------------------------------------------- view ----
+
+/**
+ * The logical view the game is drawn in, whatever the window: full HD, chosen
+ * in play over 1280x720. It is scaled to fit the window with black bars where
+ * the shapes differ, so the same number of tiles is on screen everywhere: 30
+ * by 16.875 at TILE 64. `?view=1280x720` tries another.
+ */
+export const VIEW_W = 1920;
+export const VIEW_H = 1080;
+/**
+ * The view's scale, in device pixels per logical pixel, is floored to a
+ * multiple of this. An art pixel is 8 logical pixels, so at any multiple of
+ * 1/8 it covers a whole number of screen pixels.
+ */
+export const VIEW_SCALE_STEP = 1 / 8;
 
 // --------------------------------------------------------------- summer ----
 
@@ -82,14 +99,35 @@ export const DRINK_OFFER_BELOW = 90;
  */
 export const HYDRATION_FOG_THRESHOLD = 50;
 /**
- * [GUESS] Radius of the clear circle round the player, in tiles, from full
- * hydration down to the threshold. Sized for a full HD screen: 13 tiles is
- * 832px, so the dark begins just inside the left and right edges and the
- * corners start out well darkened...
+ * [GUESS] Radius of the clear circle round the player from full hydration down
+ * to the threshold, as a share of half the view's width. The dark begins just
+ * inside the left and right edges and the corners start out well darkened,
+ * whatever size the view is...
  */
-export const FOG_MAX_RADIUS_TILES = 13;
+export const FOG_MAX_RADIUS_SHARE = 0.87;
 /** [GUESS] ...and at zero hydration. */
 export const FOG_MIN_RADIUS_TILES = 2.5;
+/**
+ * [GUESS] The colour the fog darkens to. Pure black meets the black bars round
+ * the view without a seam; 0x080a07 is the near-black it used to be.
+ */
+export const FOG_COLOR = 0x000000;
+/**
+ * [GUESS] How the fog darkens outside the clear radius, as
+ * [distance as a multiple of the radius, opacity from 0 to 1] pairs, in order
+ * outwards. Clear up to 1, then the stops, and fully opaque from the last stop
+ * on, whatever its opacity says. The side edges of the view are at about 1.15
+ * of the widest radius and its corners at about 1.52, so:
+ *
+ * - `[[1, 0], [1.06, 0.85], [1.12, 1]]` is black before the side edges.
+ * - `[[1, 0], [1.08, 0.75], [1.2, 0.95], [1.35, 1]]` was the first darker try.
+ * - `[[1, 0], [1.15, 0.5], [1.35, 0.85], [1.6, 1]]` is the original, soft edge.
+ */
+export const FOG_STOPS: readonly (readonly [number, number])[] = [
+  [1, 0],
+  [1.06, 0.85],
+  [1.12, 1],
+];
 
 // ----------------------------------------------------------------- items ----
 
@@ -101,17 +139,29 @@ export const ORE_GOLD = 1;
 // -------------------------------------------------------------------- HUD ----
 // Purely cosmetic thresholds: when a readout turns from calm to alarming.
 
-/** [GUESS] Seconds left in the summer below which the clock turns urgent. */
-export const CLOCK_URGENT_SEC = 60;
+/**
+ * [GUESS] The last stretch of the summer, in seconds. Below it the clock turns,
+ * a notice away from camp says to head back, an arrow at the edge of the view
+ * points at camp, and the evening draws in.
+ */
+export const HOMEWARD_SEC = 45;
+/** [GUESS] Logical pixels between the camp arrow and the edge of the view. */
+export const EDGE_ARROW_MARGIN_PX = 28;
+/**
+ * [GUESS] The dusk: a full-view tint multiplied over the world, rising from
+ * nothing at HOMEWARD_SEC left to its full opacity at the end of the summer.
+ * Warm, so it cannot be taken for the fog, which is a black ring.
+ */
+export const DUSK_COLOR = 0xe8904f;
+export const DUSK_MAX_ALPHA = 0.8;
+/** Opacity steps the dusk moves in, so most frames write nothing. */
+export const DUSK_ALPHA_STEP = 0.01;
 
 /**
- * The outline drawn on the tile a cut or a bridge would land on.
- *
- * Both act on the nearest tile of the right kind rather than on the one the
- * player is facing, and until the tile was marked there was no way to tell
- * which one that was until the materials had already been spent on it.
+ * The outline drawn on the tile a cut or a bridge would land on, so the player
+ * can see which tile it is before the materials are spent on it.
  */
-/** [GUESS] Thickness of the outline, in screen pixels. */
+/** [GUESS] Thickness of the outline, in logical pixels. */
 export const TARGET_OUTLINE_PX = 3;
 /** [GUESS] Colour when the action can be carried out... */
 export const TARGET_COLOR = 0xffe9a8;
@@ -119,14 +169,6 @@ export const TARGET_COLOR = 0xffe9a8;
 export const TARGET_BLOCKED_COLOR = 0xe0674f;
 /** [GUESS] Opacity of the outline. */
 export const TARGET_OUTLINE_ALPHA = 0.95;
-/**
- * [GUESS] Height of the progress bar along the bottom of the marked tile.
- *
- * A bar rather than a fill over the whole tile: a wash pale enough to see the
- * ground through lightens a thicket until it reads as already cut, which is
- * the one thing the marker must not say.
- */
-export const TARGET_PROGRESS_PX = 8;
 
 /**
  * [GUESS] Screen pixels below the player's feet where the action prompt and the
@@ -135,11 +177,13 @@ export const TARGET_PROGRESS_PX = 8;
  */
 export const PROMPT_OFFSET_PX = 44;
 /**
- * [GUESS] Closest that floating stack comes to the edge of the window. The
+ * [GUESS] Closest that floating stack comes to the edge of the view. The
  * camera stops at the map border while the player keeps walking, so at the
  * edges of the world the prompt would otherwise hang off the screen.
  */
 export const PROMPT_EDGE_MARGIN_PX = 16;
+/** The key that ends the summer at camp, as `KeyboardEvent.key`, lower case. */
+export const END_SUMMER_KEY = "q";
 
 // ---------------------------------------------------------- interaction ----
 
@@ -214,19 +258,17 @@ export const FORD_MIN_REGION = 25;
 export const FORD_MAX_COUNT = 60;
 
 /**
- * Springs, the drinking spots. They stand near a stream but never touch it, so
- * the water you drink from and the water you bridge are different tiles.
+ * Springs, the drinking spots: reeds on a walkable tile of the stream's bank.
  */
-/**
- * [GUESS] Tiles from a spring to the nearest stream tile, counting diagonals.
- * At 2 the bank tile between a spring and the stream reaches both; there the
- * key is the bridge, and the spring is drunk from its other sides.
- */
-export const SPRING_STREAM_DISTANCE = 2;
-/** [GUESS] Closest two springs may stand, so there are many but never a wall of them. */
+/** [GUESS] Closest two springs may stand, in tiles counting diagonals. */
 export const SPRING_SPACING_TILES = 6;
 /** [GUESS] No spring this close to the camp, which needs its clearing. */
 export const SPRING_CAMP_CLEARANCE = 3;
+/**
+ * The seed springs are shuffled with on a hand-edited map, which has no seed of
+ * its own, so the same file gets the same springs every load.
+ */
+export const MAP_SPRING_SEED = 1;
 
 /** How many of each resource to scatter. */
 export const FRUIT_NODES = 45;
