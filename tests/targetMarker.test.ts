@@ -9,18 +9,19 @@ const node: ResourceNode = { id: 1, kind: "ore", x: 4.5, y: 4.5, z: 0, harvested
 
 describe("targetTile", () => {
   it("marks the tile a cut would land on", () => {
-    const action: Action = { type: "cut", x: 12, y: 30, blocked: false };
+    const action: Action = { type: "cut", x: 12, y: 30, blocked: null };
     expect(targetTile(action, 0.4)).toEqual({ x: 12, y: 30, blocked: false, progress: 0.4 });
   });
 
   it("marks a bridge that cannot be paid for, so the refusal has a place", () => {
-    const action: Action = { type: "build", x: 3, y: 9, blocked: true };
+    const action: Action = { type: "build", x: 3, y: 9, blocked: "noMaterials" };
     expect(targetTile(action, 0)).toEqual({ x: 3, y: 9, blocked: true, progress: 0 });
   });
 
   it("marks nothing for harvesting or banking, which stand somewhere visible", () => {
-    expect(targetTile({ type: "harvest", node, blocked: false }, 0.5)).toBeNull();
-    expect(targetTile({ type: "deposit", ore: 3, blocked: false }, 0)).toBeNull();
+    expect(targetTile({ type: "harvest", node, blocked: null }, 0.5)).toBeNull();
+    expect(targetTile({ type: "deposit", ore: 3, blocked: null }, 0)).toBeNull();
+    expect(targetTile({ type: "drink", x: 2, y: 2, blocked: null }, 0.5)).toBeNull();
     expect(targetTile(null, 0)).toBeNull();
   });
 });

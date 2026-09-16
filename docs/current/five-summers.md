@@ -23,23 +23,21 @@ config, so the age curve can come later without touching logic.
 
 ## The body
 
-| Summer | Max stamina | Meals |
-|---|---|---|
-| 1 | 60 | 2 |
-| 2 | 65 | 2 |
-| 3 | 70 | 2 |
-| 4 | 75 | 2 |
-| 5 | 80 | 2 |
+Every summer is the year-1 length until the age curve comes in. Hydration
+is the one bar, and fog is the only consequence of running dry. Time is
+what a summer spends: rough ground is slow, and a cut, a felling, a bridge
+tile and a well are each a hold whose length is the price.
 
-Each meal restores 10 stamina. A summer after missed upkeep starts with max
-stamina 10 lower. Fog is the only consequence of low hydration.
+A summer after missed upkeep is a tired one. Every hold takes half as long
+again, and rough ground is walked at 25% of walking speed instead of 40%.
+Easy ground is walked as fast as ever.
 
 ## The map
 
 All five barrier kinds in [../design/summer.md](../design/summer.md) are
 used, arranged like this:
 
-- **The first stream** is a half circle around camp, with drinking banks on
+- **The first stream** is a half circle around camp, with springs along
   both sides. Inside it is the near ring.
 - **The near ring** holds a thin thicket, about three tiles, walling in the
   sapling stand where the sticks are, and the mud pocket where the vines
@@ -58,7 +56,7 @@ Seven kinds.
 
 | Kind | Where | Use |
 |---|---|---|
-| fruit | near camp and in fields | a meal now, or winter food |
+| fruit | near camp and in fields | winter food, and a burst of speed once M12 is in |
 | feather | near camp | sells, nothing else |
 | stick | the sapling stand behind thicket | bridge and well material, or sells for one |
 | vine | the mud pocket | bridge material, or sells for one |
@@ -87,13 +85,13 @@ Seven kinds.
 Each summer opens one thing and gains one key, and each barrier is short in
 exactly one currency the previous summer supplied.
 
-| Summer | Stamina | Opens | Key gained in the winter before | Short in |
-|---|---|---|---|---|
-| 1 | 60 | the near ring: thin thicket to the vine and stick pockets, mud; bridge the half-circle stream | none; this summer teaches the rules | nothing |
-| 2 | 65 | across the stream: the ore field, and a sapling copse hiding a second field | the axe, paid in gold and something carried home | a tool |
-| 3 | 70 | the far field worked in bulk: a cache there, a cut route wide enough for the cart | the cart, paid in logs | logistics |
-| 4 | 75 | the dry pocket, far from water, where the shells are | the well, from logs and sticks | hydration |
-| 5 | 80 | the thick wall begun in summer 4, twelve tiles into the last pocket | none; the summer is the harvest of everything built | stamina |
+| Summer | Opens | Key gained in the winter before | Short in |
+|---|---|---|---|
+| 1 | the near ring: thin thicket to the vine and stick pockets, mud; bridge the half-circle stream | none; this summer teaches the rules | nothing |
+| 2 | across the stream: the ore field, and a sapling copse hiding a second field | the axe, paid in gold and something carried home | a tool |
+| 3 | the far field worked in bulk: a cache there, a cut route wide enough for the cart | the cart, paid in logs | logistics |
+| 4 | the dry pocket, far from water, where the shells are | the well, from logs and sticks | hydration |
+| 5 | the thick wall begun in summer 4, twelve tiles into the last pocket | none; the summer is the harvest of everything built | time |
 
 ## Open, to settle in play
 
@@ -103,9 +101,11 @@ log.
 - How much extra gold ending a summer away from camp costs.
 - Whether fog alone is enough when dry. If not, slowness comes after it.
 - Whether a full pack should slow the walk. A cheap experiment.
-- Whether two meals make far trips feel safe. If they do not, a rarer refill
-  that grows only far out, honey or nuts, gives far fields a reason for the
-  body and a way to recover out there.
+- How long a cut takes. It is the thickness dial now: at 1.5 seconds the
+  twelve-tile wall is nothing, and somewhere around 4 it is a minute of a
+  five-minute summer plus the trips, which is what makes it a two-summer
+  project. A long hold is watching a bar, so thicker walls with quicker cuts
+  is the other way to turn the same dial.
 - The shop's prices, the upkeep in fruit and gold, and the town's price for
   fruit. Winter 1 has to afford the axe from a first-summer haul.
 - The share of ore and shells that returns each winter, the chance for

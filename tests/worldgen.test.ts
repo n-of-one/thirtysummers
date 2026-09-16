@@ -107,11 +107,10 @@ describe("generateWorld", () => {
     }
 
     expect(counts.fruit).toBe(C.FRUIT_NODES);
-    expect(counts.water).toBe(C.WATER_NODES);
     expect(counts.ore).toBe(C.ORE_NODES);
   });
 
-  it("grows fruit at the forest edge and water at the stream bank", () => {
+  it("grows fruit at the forest edge", () => {
     const { map, nodes } = generateWorld(1337);
     const touches = (x: number, y: number, kind: string) => {
       for (let dy = -1; dy <= 1; dy++) {
@@ -126,7 +125,31 @@ describe("generateWorld", () => {
       const x = Math.floor(node.x);
       const y = Math.floor(node.y);
       if (node.kind === "fruit") expect(touches(x, y, "tree")).toBe(true);
-      if (node.kind === "water") expect(touches(x, y, "stream")).toBe(true);
+    }
+  });
+
+  it("puts springs near the streams, never touching one, and never shutting a path", () => {
+    for (const seed of SEEDS) {
+      const { map } = generateWorld(seed);
+      let springs = 0;
+      for (let y = 0; y < map.height; y++) {
+        for (let x = 0; x < map.width; x++) {
+          if (map.get(x, y) !== "spring") continue;
+          springs++;
+          let nearStream = false;
+          for (let dy = -C.SPRING_STREAM_DISTANCE; dy <= C.SPRING_STREAM_DISTANCE; dy++) {
+            for (let dx = -C.SPRING_STREAM_DISTANCE; dx <= C.SPRING_STREAM_DISTANCE; dx++) {
+              const kind = map.get(x + dx, y + dy);
+              const ring = Math.max(Math.abs(dx), Math.abs(dy));
+              if (ring < C.SPRING_STREAM_DISTANCE) expect(kind).not.toBe("stream");
+              if (ring === 1) expect(map.isPassable(x + dx, y + dy)).toBe(true);
+              if (kind === "stream") nearStream = true;
+            }
+          }
+          expect(nearStream).toBe(true);
+        }
+      }
+      expect(springs).toBeGreaterThan(5);
     }
   });
 

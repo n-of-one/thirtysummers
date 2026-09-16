@@ -23,8 +23,8 @@ export function streamMask(map: TileMap, z = 0): Uint8Array {
  * shortest crossing back to camp, turning the water into a muddy ford (and any
  * blocking trees into underbrush).
  *
- * Fords are difficult terrain, so a crossing still costs stamina -- exactly the
- * kind of friction a bridge would later remove.
+ * Fords are difficult terrain, so a crossing is still slow -- exactly the kind
+ * of friction a bridge would later remove.
  */
 export function carveFords(
   map: TileMap,

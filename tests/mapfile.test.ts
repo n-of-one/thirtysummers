@@ -12,10 +12,10 @@ import { generateWorld } from "../src/sim/worldgen.ts";
 const SEEDS = [1337, 42];
 
 describe("the terrain table", () => {
-  it("ends with the kinds the discovery test added", () => {
+  it("ends with the kinds added since the generator, in the order they came", () => {
     // The grid stores indices into this order, so anything inserted rather
     // than appended silently rewrites every map file ever dumped.
-    expect(TERRAIN_ORDER.slice(-2)).toEqual(["thicket", "bridge"]);
+    expect(TERRAIN_ORDER.slice(-3)).toEqual(["thicket", "bridge", "spring"]);
   });
 
   it("gives every terrain a distinct glyph, or the format is ambiguous", () => {
@@ -58,7 +58,7 @@ describe("parseMap / formatMap", () => {
   });
 
   it("infers the ground under each node glyph", () => {
-    const world = parseMap(["#####", "#fyC#", "#vws#", "#####"].join("\n"));
+    const world = parseMap(["#####", "#fyC#", "#v.s#", "#####"].join("\n"));
     // Every resource but the vine stands on grass; a vine means the mud pocket
     // it grows in, which is the barrier it sits behind.
     expect(world.map.get(1, 1)).toBe("grass");
@@ -66,8 +66,16 @@ describe("parseMap / formatMap", () => {
     expect(world.map.get(3, 1)).toBe("grass");
     expect(world.map.get(1, 2)).toBe("grass");
     expect(world.map.get(3, 2)).toBe("grass");
-    expect(world.nodes.map((n) => n.kind)).toEqual(["fruit", "vine", "ore", "water", "stick"]);
+    expect(world.nodes.map((n) => n.kind)).toEqual(["fruit", "vine", "ore", "stick"]);
     expect(world.camp).toEqual({ x: 3.5, y: 1.5 });
+  });
+
+  it("reads a spring back, solid, and no longer knows the old water glyph", () => {
+    const world = parseMap(["#####", "#Co.#", "#####"].join("\n"));
+    expect(world.map.get(2, 1)).toBe("spring");
+    expect(world.map.isPassable(2, 1)).toBe(false);
+    expect(formatMap(world)).toContain("#Co.#");
+    expect(() => parseMap(["###", "#Cw", "###"].join("\n"))).toThrow(/unknown glyph "w"/);
   });
 
   it("reads the new terrain back", () => {

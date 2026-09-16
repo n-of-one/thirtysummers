@@ -170,6 +170,15 @@ function drawTerrain(g: Graphics, kind: TerrainKind, rng: Rng): void {
       }
       break;
 
+    case "spring":
+      // a round, rimmed pool on grass, so it reads as apart from the stream
+      g.rect(0, 0, S, S).fill(0x4d7c3a);
+      g.circle(8, 8, 6.5).fill(0x3b3a2e);
+      g.circle(8, 8, 5.5).fill(0x2e6b96);
+      g.rect(5, 6, 3, 1).fill(0x4b8cb8);
+      g.rect(8, 10, 2, 1).fill(0x4b8cb8);
+      break;
+
     case "rock":
       g.rect(0, 0, S, S).fill(0x4a4a48);
       for (let i = 0; i < 4; i++) {
@@ -233,13 +242,6 @@ function drawResource(g: Graphics, kind: ResourceKind): void {
       g.circle(8, 6.5, 2.3).fill(0xd6564a);
       g.circle(7.2, 5.8, 0.7).fill(0xf0a79f);
       g.ellipse(10.5, 5, 2.2, 1.2).fill(0x4f8a3a);
-      break;
-
-    case "water":
-      // a droplet: triangle over a circle
-      g.poly([8, 3, 11.5, 9, 4.5, 9]).fill(0x4aa3d8);
-      g.circle(8, 9.5, 3.5).fill(0x4aa3d8);
-      g.circle(6.6, 9.2, 1.1).fill(0xbfe4f7);
       break;
 
     case "ore":

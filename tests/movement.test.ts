@@ -82,11 +82,11 @@ describe("moveWithCollision", () => {
     expect(travelled).toBeCloseTo(0.1, 6); // all of the motion went south
   });
 
-  it("never tunnels through a one-tile wall at sprint speed", () => {
+  it("never tunnels through a one-tile wall at twice walking speed", () => {
     const map = arena();
     map.set(5, 4, "rock");
     const player = createPlayer({ x: 4.5, y: 4.5 });
-    const step = (C.WALK_SPEED * C.SPRINT_MULTIPLIER) / 60;
+    const step = (C.WALK_SPEED * 2) / 60;
     for (let i = 0; i < 600; i++) {
       moveWithCollision(map, player, step, 0);
       expect(map.isPassable(Math.floor(player.x), Math.floor(player.y))).toBe(true);
@@ -136,13 +136,11 @@ describe("World.step", () => {
     expect(a.player.x - 2.5).toBeCloseTo(C.WALK_SPEED, 6); // one second of walking
   });
 
-  it("is slower on difficult terrain and faster when sprinting", () => {
+  it("walks at one speed on easy ground and slower on difficult terrain", () => {
     const grass = worldOn(arena("grass"), { x: 4.5, y: 4.5 });
     const mud = worldOn(arena("mud"), { x: 4.5, y: 4.5 });
+    expect(grass.speed()).toBeCloseTo(C.WALK_SPEED, 6);
     expect(mud.speed()).toBeCloseTo(grass.speed() * C.DIFFICULT_SPEED_MUL, 6);
-
-    grass.player.sprinting = true;
-    expect(grass.speed()).toBeCloseTo(C.WALK_SPEED * C.SPRINT_MULTIPLIER, 6);
   });
 
   it("reports standing still when no key is held, and when walled in", () => {
@@ -176,7 +174,7 @@ describe("World.step", () => {
         bearingX = Math.cos(angle);
         bearingY = Math.sin(angle);
       }
-      world.step(1 / 60, { ...NO_INPUT, moveX: bearingX, moveY: bearingY, sprint: i % 3 === 0 });
+      world.step(1 / 60, { ...NO_INPUT, moveX: bearingX, moveY: bearingY });
       expect(canStand(world.map, world.player.x, world.player.y)).toBe(true);
     }
   });

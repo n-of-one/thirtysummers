@@ -40,7 +40,8 @@ what you did about it. Note every place you hesitated or turned back.
 3. Each winter: what did you buy? Did the price of what you could not buy
    yet give the next summer a goal?
 4. Did upkeep ever matter? If you missed it, what did that cost?
-5. When did stamina run out, and where were you? Were two meals enough?
+5. Which wall took more than one summer, and did the second summer feel
+   like continuing it or starting again?
 6. Did the fog ever push you back to water? Did the well change where you
    worked?
 7. The cart: did cutting a route for it feel like play or like hauling?

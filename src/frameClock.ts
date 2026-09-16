@@ -15,8 +15,8 @@ export interface Frame {
 /**
  * Turns real elapsed time into whole simulation ticks.
  *
- * The simulation advances in fixed steps so that per-second rates -- stamina,
- * hydration, movement -- come out identical whatever the frame rate. Frames do
+ * The simulation advances in fixed steps so that per-second rates -- hydration,
+ * the summer's clock, movement -- come out identical whatever the frame rate. Frames do
  * not arrive in whole ticks, so the remainder is carried to the next frame and
  * the leftover fraction is never lost or double-counted.
  *

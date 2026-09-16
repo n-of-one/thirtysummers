@@ -1,257 +1,119 @@
 import { describe, expect, it } from "vitest";
 import * as C from "../src/config.ts";
 import { NO_INPUT, type InputState } from "../src/input/keyboard.ts";
-import { Stats, type Effort } from "../src/sim/stats.ts";
+import { Stats } from "../src/sim/stats.ts";
 import { TileMap } from "../src/sim/tilemap.ts";
 import type { TerrainKind } from "../src/sim/types.ts";
 import { World } from "../src/sim/world.ts";
 
 /** Run `seconds` of simulated time at the real tick rate. */
-function run(stats: Stats, effort: Effort, seconds: number): Stats {
+function run(stats: Stats, seconds: number): Stats {
   const ticks = Math.round(seconds / C.TICK_SEC);
-  for (let i = 0; i < ticks; i++) stats.step(C.TICK_SEC, effort);
+  for (let i = 0; i < ticks; i++) stats.step(C.TICK_SEC);
   return stats;
 }
-
-/** Stats at a chosen starting point, so a rule can be watched away from the caps. */
-function at(stamina: number, hydration = 100): Stats {
-  const stats = new Stats();
-  stats.stamina = stamina;
-  stats.hydration = hydration;
-  return stats;
-}
-
-describe("Stats — the design doc's stamina rates", () => {
-  it("starts both bars full", () => {
-    const stats = new Stats();
-    expect(stats.stamina).toBe(100);
-    expect(stats.hydration).toBe(100);
-    expect(stats.canEat).toBe(true);
-  });
-
-  it("drops 5%/s while sprinting", () => {
-    expect(run(at(100), "sprinting", 10).stamina).toBeCloseTo(50, 6);
-  });
-
-  it("drops 1%/s over difficult terrain", () => {
-    expect(run(at(100), "difficult", 10).stamina).toBeCloseTo(90, 6);
-  });
-
-  it("restores 0.2%/s walking over easy terrain", () => {
-    expect(run(at(50), "walking", 10).stamina).toBeCloseTo(52, 6);
-  });
-
-  it("restores 1%/s standing still while watered", () => {
-    expect(run(at(50), "standing", 10).stamina).toBeCloseTo(60, 6);
-  });
-
-  it("restores 0.5%/s standing still once parched", () => {
-    expect(run(at(50, 40), "standing", 10).stamina).toBeCloseTo(55, 6);
-  });
-
-  it("empties after 20 seconds of sprinting from full, and goes no lower", () => {
-    const stats = at(100);
-    run(stats, "sprinting", 20);
-    expect(stats.stamina).toBeCloseTo(0, 6);
-    run(stats, "sprinting", 5);
-    expect(stats.stamina).toBe(0);
-    expect(stats.exhausted).toBe(true);
-  });
-
-  it("never recovers past 100", () => {
-    expect(run(at(99), "standing", 60).stamina).toBe(100);
-  });
-
-  it("recovers twice as fast rested and watered as rested and dry", () => {
-    const watered = run(at(20, 100), "standing", 20).stamina - 20;
-    const dry = run(at(20, 10), "standing", 20).stamina - 20;
-    expect(watered).toBeCloseTo(dry * 2, 6);
-  });
-
-  it("charges the sprint rate, not the sum, when sprinting over difficult ground", () => {
-    // The doc gives one rate per situation and never says they stack.
-    expect(run(at(100), "sprinting", 10).stamina).toBeCloseTo(50, 6);
-  });
-
-  it("gives the same answer however the time is chopped up", () => {
-    const coarse = new Stats();
-    const fine = new Stats();
-    for (let i = 0; i < 600; i++) coarse.step(1 / 60, "sprinting");
-    for (let i = 0; i < 1200; i++) fine.step(1 / 120, "sprinting");
-    expect(coarse.stamina).toBeCloseTo(fine.stamina, 9);
-    expect(coarse.hydration).toBeCloseTo(fine.hydration, 9);
-  });
-});
 
 describe("Stats — hydration", () => {
-  it("empties a full bar in 100 seconds", () => {
+  it("starts full", () => {
+    expect(new Stats().hydration).toBe(C.HYDRATION_MAX);
+  });
+
+  it("empties a full bar at the drain rate, and goes no lower", () => {
     const stats = new Stats();
-    run(stats, "standing", 50);
-    expect(stats.hydration).toBeCloseTo(50, 6);
-    run(stats, "standing", 50);
+    const empty = C.HYDRATION_MAX / C.HYDRATION_DRAIN;
+    run(stats, empty / 2);
+    expect(stats.hydration).toBeCloseTo(C.HYDRATION_MAX / 2, 6);
+    run(stats, empty / 2);
     expect(stats.hydration).toBeCloseTo(0, 6);
+    run(stats, 10);
+    expect(stats.hydration).toBe(0);
   });
 
   it("runs dry long before the summer is out, so water has to be found", () => {
-    const stats = new Stats();
-    run(stats, "standing", C.SUMMER_LENGTH_SEC);
-    expect(stats.hydration).toBe(0);
     // Comfortably more than one refill a summer, so hydration is a reason to
     // route past water rather than a bar that happens to empty as the light goes.
-    expect(100 / C.HYDRATION_DRAIN).toBeLessThan(C.SUMMER_LENGTH_SEC / 2);
+    expect(C.HYDRATION_MAX / C.HYDRATION_DRAIN).toBeLessThan(C.SUMMER_LENGTH_SEC / 2);
   });
 
-  it("halves the resting rate below 50% rather than stopping it", () => {
-    const stats = at(40, 49);
-    run(stats, "standing", 10);
-    expect(stats.stamina).toBeCloseTo(45, 6);
-  });
-
-  it("counts exactly 50% as parched, since the doc only rules on either side", () => {
-    const stats = at(40, C.HYDRATION_LOW_THRESHOLD);
-    expect(stats.parched).toBe(true);
-    run(stats, "standing", 10);
-    expect(stats.stamina).toBeCloseTo(45, 6);
-  });
-
-  it("does not gate the cost of effort, or the gain from walking, on hydration", () => {
-    expect(run(at(100, 40), "sprinting", 10).stamina).toBeCloseTo(50, 6);
-    expect(run(at(100, 40), "difficult", 10).stamina).toBeCloseTo(90, 6);
-    expect(run(at(50, 40), "walking", 10).stamina).toBeCloseTo(52, 6);
-  });
-
-  it("costs nothing extra at zero: running dry only halves the rest", () => {
-    const stats = at(50, 0);
-    run(stats, "standing", 10);
-    expect(stats.stamina).toBeCloseTo(55, 6);
-  });
-
-  it("never drains below zero", () => {
-    const stats = at(100, 5);
-    run(stats, "standing", 200);
-    expect(stats.hydration).toBe(0);
+  it("fills to full on a drink", () => {
+    const stats = new Stats();
+    stats.hydration = 3;
+    stats.drink();
+    expect(stats.hydration).toBe(C.HYDRATION_MAX);
   });
 });
 
-describe("Stats — eating and the full stomach", () => {
-  it("restores 20% stamina and starts the 60s cooldown", () => {
-    const stats = at(30);
-    expect(stats.eat()).toBe(true);
-    expect(stats.stamina).toBe(50);
-    expect(stats.stomachCooldownSec).toBe(C.FULL_STOMACH_SEC);
-    expect(stats.canEat).toBe(false);
-  });
-
-  it("refuses a second helping until the cooldown runs out", () => {
-    const stats = at(30);
-    stats.eat();
-    run(stats, "standing", 59);
-    expect(stats.canEat).toBe(false);
-    expect(stats.eat()).toBe(false);
-    expect(stats.stomachCooldownSec).toBeCloseTo(1, 6);
-
-    run(stats, "standing", 1.1);
-    expect(stats.stomachCooldownSec).toBe(0);
-    expect(stats.canEat).toBe(true);
-    expect(stats.eat()).toBe(true);
-  });
-
-  it("leaves stamina alone when the meal is refused", () => {
-    const stats = at(30);
-    stats.eat();
-    const after = stats.stamina;
-    expect(stats.eat()).toBe(false);
-    expect(stats.stamina).toBe(after);
-  });
-
-  it("caps a meal at full rather than overflowing", () => {
-    const stats = at(95);
-    stats.eat();
-    expect(stats.stamina).toBe(100);
-  });
-});
-
-describe("Stats — drinking", () => {
-  it("restores 50% hydration, with no cooldown", () => {
-    const stats = at(100, 10);
-    stats.drink();
-    expect(stats.hydration).toBe(60);
-    stats.drink();
-    expect(stats.hydration).toBe(100); // capped, not 110
-  });
-
-  it("buys 50 seconds of drinking-nothing before it is needed again", () => {
-    const stats = at(100, 0);
-    stats.drink();
-    run(stats, "standing", C.WATER_HYDRATION / C.HYDRATION_DRAIN);
-    expect(stats.hydration).toBeCloseTo(0, 6);
-  });
-});
-
-/** An open map of uniform terrain. */
-function arena(fill: TerrainKind = "grass", size = 64): TileMap {
+/** A 64-tile map of one terrain, with whatever the test paints over it. */
+function worldOn(fill: TerrainKind = "grass", paint: (map: TileMap) => void = () => {}): World {
+  const size = 64;
   const map = new TileMap(size, size);
   for (let y = 0; y < size; y++) for (let x = 0; x < size; x++) map.set(x, y, fill);
-  return map;
-}
-
-function worldOn(fill: TerrainKind): World {
-  const map = arena(fill);
+  paint(map);
   return new World({
     seed: 1,
     map,
     camp: { x: 32.5, y: 32.5 },
     nodes: [],
-    reachable: new Uint8Array(map.width * map.height),
+    reachable: new Uint8Array(size * size),
   });
 }
 
+/** Stand the player at (x, y), without walking there. */
+function at(world: World, x: number, y = 32.5): World {
+  world.player.x = x;
+  world.player.y = y;
+  return world;
+}
+
+/** A band of mud five tiles wide, x = 10 to 14, the full height of the map. */
+function mudBand(map: TileMap): void {
+  for (let y = 0; y < map.height; y++) for (let x = 10; x <= 14; x++) map.set(x, y, "mud");
+}
+
 const still: InputState = NO_INPUT;
-const walkEast: InputState = { ...NO_INPUT, moveX: 1 };
-const sprintEast: InputState = { ...NO_INPUT, moveX: 1, sprint: true };
+const east: InputState = { ...NO_INPUT, moveX: 1 };
 
-describe("World — which stamina rule a tick uses", () => {
-  it("recovers while standing still and while walking on grass", () => {
-    const world = worldOn("grass");
-    world.stats.stamina = 50;
-    for (let i = 0; i < 60; i++) world.step(C.TICK_SEC, still);
-    expect(world.stats.stamina).toBeCloseTo(51, 6); // watered, so the fast rate
-    for (let i = 0; i < 60; i++) world.step(C.TICK_SEC, walkEast);
-    expect(world.stats.stamina).toBeCloseTo(51.2, 6);
+/** Step with `input` until `done` says so, or give up after a minute of game time. */
+function walkUntil(world: World, input: InputState, done: () => boolean): void {
+  for (let i = 0; i < 60 * 60 && !done(); i++) world.step(C.TICK_SEC, input);
+}
+
+/** Hold `input` for `seconds` of simulated time at the real tick rate. */
+function hold(world: World, input: InputState, seconds: number): void {
+  const ticks = Math.round(seconds / C.TICK_SEC);
+  for (let i = 0; i < ticks; i++) world.step(C.TICK_SEC, input);
+}
+
+describe("World — rough ground", () => {
+  it("moves at walking speed on grass and slower in mud", () => {
+    expect(worldOn("grass").speed()).toBeCloseTo(C.WALK_SPEED, 6);
+    expect(worldOn("mud").speed()).toBeCloseTo(C.WALK_SPEED * C.DIFFICULT_SPEED_MUL, 6);
   });
 
-  it("drains while walking through mud", () => {
-    const world = worldOn("mud");
-    for (let i = 0; i < 600; i++) world.step(C.TICK_SEC, walkEast);
-    expect(world.stats.stamina).toBeCloseTo(90, 6);
+  it("wades through at DIFFICULT_SPEED_MUL", () => {
+    const world = at(worldOn("grass", mudBand), 10.5);
+    hold(world, east, 1);
+    expect(world.player.x).toBeCloseTo(10.5 + C.WALK_SPEED * C.DIFFICULT_SPEED_MUL, 6);
   });
 
-  it("counts a blocked shove as standing still, not as sprinting", () => {
-    const world = worldOn("grass");
-    for (let y = 0; y < world.map.height; y++) world.map.set(33, y, "tree");
-    world.player.x = 33 - C.PLAYER_RADIUS - 0.001;
-    world.stats.stamina = 50;
-    for (let i = 0; i < 60; i++) world.step(C.TICK_SEC, sprintEast);
-    expect(world.player.moving).toBe(false);
-    expect(world.stats.stamina).toBeCloseTo(51, 6);
+  it("never refuses a step into it", () => {
+    const world = at(worldOn("grass", mudBand), 8.5);
+    walkUntil(world, east, () => world.player.x >= 20);
+    expect(world.player.x).toBeGreaterThanOrEqual(20);
   });
 
-  it("stops the player sprinting once stamina runs out", () => {
-    const world = worldOn("grass");
-    // Turn round every second so a 30-second run never reaches the map edge --
-    // hitting a wall would stop the sprint for the wrong reason.
-    for (let i = 0; i < 60 * 30; i++) {
-      const east = Math.floor(i / 60) % 2 === 0;
-      world.step(C.TICK_SEC, { ...NO_INPUT, moveX: east ? 1 : -1, sprint: true });
-    }
-    expect(world.stats.stamina).toBeLessThanOrEqual(C.SPRINT_MIN_STAMINA);
-    expect(world.player.sprinting).toBe(false);
-    expect(world.speed()).toBeCloseTo(C.WALK_SPEED, 6); // walking, not sprinting
+  it("costs nothing but time: hydration and the clock run as they do standing still", () => {
+    const wading = at(worldOn("grass", mudBand), 10.5);
+    const standing = at(worldOn("grass"), 10.5);
+    hold(wading, east, 1);
+    hold(standing, still, 1);
+    expect(wading.stats.hydration).toBe(standing.stats.hydration);
+    expect(wading.elapsedSec).toBe(standing.elapsedSec);
   });
 });
 
-describe("World — the summer clock", () => {
-  it("counts down in real seconds and stops at zero", () => {
+describe("World — the end of a summer", () => {
+  it("counts down in real seconds and ends at zero", () => {
     const world = worldOn("grass");
     expect(world.remainingSec).toBe(C.SUMMER_LENGTH_SEC);
     expect(world.summerOver).toBe(false);
@@ -264,5 +126,56 @@ describe("World — the summer clock", () => {
     expect(world.elapsedSec).toBe(C.SUMMER_LENGTH_SEC);
     expect(world.remainingSec).toBe(0);
     expect(world.summerOver).toBe(true);
+  });
+
+  it("banks the ore carried when the clock stops, and flags ending away from camp", () => {
+    const world = at(worldOn(), 8.5);
+    world.inventory.add("ore", 3);
+    world.inventory.add("fruit", 1);
+    world.elapsedSec = C.SUMMER_LENGTH_SEC - C.TICK_SEC / 2;
+    world.step(C.TICK_SEC, still);
+
+    expect(world.summerOver).toBe(true);
+    expect(world.inventory.gold).toBe(3 * C.ORE_GOLD);
+    expect(world.inventory.count("ore")).toBe(0);
+    expect(world.inventory.count("fruit")).toBe(1); // no store for it until winter
+    expect(world.awayAtEnd).toBe(true);
+    expect(world.events[world.events.length - 1]).toEqual({
+      type: "summerEnded",
+      away: true,
+      ore: 3,
+      gold: 3 * C.ORE_GOLD,
+      at: C.SUMMER_LENGTH_SEC,
+    });
+  });
+
+  it("ends early from camp, and that is not away", () => {
+    const world = worldOn(); // the player starts at camp
+    world.endSummer();
+    expect(world.summerOver).toBe(true);
+    expect(world.awayAtEnd).toBe(false);
+    expect(world.remainingSec).toBeGreaterThan(0);
+  });
+
+  it("does nothing once the summer has ended", () => {
+    const world = at(worldOn(), 8.5);
+    world.endSummer();
+    const { x } = world.player;
+    const { elapsedSec } = world;
+    hold(world, east, 1);
+    expect(world.player.x).toBe(x);
+    expect(world.elapsedSec).toBe(elapsedSec);
+    world.endSummer();
+    expect(world.events.filter((e) => e.type === "summerEnded")).toHaveLength(1);
+  });
+
+  it("starts the next summer with full hydration, and keeps the away flag for winter", () => {
+    const world = at(worldOn(), 8.5);
+    world.stats.hydration = 3;
+    world.endSummer();
+    world.nextSummer();
+    expect(world.summerOver).toBe(false);
+    expect(world.stats.hydration).toBe(C.HYDRATION_MAX);
+    expect(world.awayAtEnd).toBe(true);
   });
 });

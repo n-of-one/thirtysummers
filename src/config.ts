@@ -3,9 +3,6 @@
  * without reading any logic.
  *
  * Values marked [DOC] come from docs/design/ or docs/current/five-summers.md.
- * The stamina, hydration and fruit rates below are older: they are marked
- * [DOC] after the original design doc, and M8 replaces them (the model is in
- * docs/archive/decided-against.md).
  * Values marked [GUESS] were not specified and were chosen to make the
  * summer play sensibly -- these are the ones worth arguing about.
  */
@@ -45,18 +42,13 @@ export const MAX_FRAME_SEC = 0.25;
 
 // ------------------------------------------------------------- movement ----
 
-/** [GUESS] Base walking speed, in tiles per second. */
-export const WALK_SPEED = 7;
-/** [GUESS] Sprinting speed multiplier. */
-export const SPRINT_MULTIPLIER = 1.8;
-/** [GUESS] Speed multiplier on difficult terrain (underbrush, mud). */
-export const DIFFICULT_SPEED_MUL = 0.4;
 /**
- * [GUESS] Speed multiplier at zero stamina. Left at 1.0 (no penalty) because
- * the design doc does not call for one; raise to ~0.5 if exhaustion should
- * bite harder than just "cannot sprint".
+ * [GUESS] Walking speed, in tiles per second. Raised from 7 when sprint went,
+ * since walking is now the only speed there is. Tune in play.
  */
-export const EXHAUSTED_SPEED_MUL = 1.0;
+export const WALK_SPEED = 8;
+/** [GUESS] Speed multiplier on difficult terrain (underbrush, mud). Tuned in play. */
+export const DIFFICULT_SPEED_MUL = 0.4;
 
 /** [GUESS] Collision radius of the player, in tiles. */
 export const PLAYER_RADIUS = 0.3;
@@ -69,63 +61,46 @@ export const PLAYER_RADIUS = 0.3;
  */
 export const CAMERA_STIFFNESS = 12;
 
-// -------------------------------------------------------------- stamina ----
-// All rates are percentage points per second.
-
-/** [DOC] Stamina and hydration are percentages, so they top out here. */
-export const STAT_MAX = 100;
-
-/** [DOC] Sprinting costs 5%/s. */
-export const STAMINA_SPRINT = -5.0;
-/** [DOC] Walking over difficult terrain (or up a slope) costs 1%/s. */
-export const STAMINA_DIFFICULT = -1.0;
-/** [DOC] Walking over easy terrain restores 0.2%/s. */
-export const STAMINA_WALK_EASY = 0.2;
-/** [DOC] Standing still restores 1%/s while hydration is above 50%... */
-export const STAMINA_STAND_HYDRATED = 1.0;
-/** [DOC] ...and half that once it is not. Resting is what water is for. */
-export const STAMINA_STAND_PARCHED = 0.5;
-
-/**
- * [GUESS] Stamina needed to break into a sprint. The doc says only that
- * sprinting costs 5%/s; this is what stops an empty bar from flickering in and
- * out of a sprint one tick at a time. Above zero so exhaustion lasts long
- * enough to be felt, low enough that it is never a wait.
- */
-export const SPRINT_MIN_STAMINA = 5;
-
 // ------------------------------------------------------------- hydration ----
 
+/** Hydration is a percentage, so it tops out here. */
+export const HYDRATION_MAX = 100;
 /**
- * [DOC] Passive hydration loss, %/s. A full bar runs dry in 100 seconds, so a
- * summer needs water found and drunk all the way through it.
+ * [GUESS] Hydration lost per second, whatever the player is doing. A full bar
+ * runs dry in 100 seconds.
  */
 export const HYDRATION_DRAIN = 1.0;
 /**
- * [DOC] Above this, standing still recovers stamina at the fast rate; at or
- * below it, at half that. The doc gives "> 50%" and "< 50%" and says nothing
- * about 50% exactly, so exactly 50 counts as parched.
+ * [GUESS] Drinking is offered only below this, so a spring beside a thicket or
+ * a node does not take the key from them while the bar is nearly full.
  */
-export const HYDRATION_LOW_THRESHOLD = 50;
+export const DRINK_OFFER_BELOW = 90;
+/**
+ * [GUESS] Below this the fog closes in, and the player is told they are
+ * thirsty. Fog is the only cost of running dry; above it the view is ringed at
+ * its widest.
+ */
+export const HYDRATION_FOG_THRESHOLD = 50;
+/**
+ * [GUESS] Radius of the clear circle round the player, in tiles, from full
+ * hydration down to the threshold. Sized for a full HD screen: 13 tiles is
+ * 832px, so the dark begins just inside the left and right edges and the
+ * corners start out well darkened...
+ */
+export const FOG_MAX_RADIUS_TILES = 13;
+/** [GUESS] ...and at zero hydration. */
+export const FOG_MIN_RADIUS_TILES = 2.5;
 
 // ----------------------------------------------------------------- items ----
 
 /** [DOC] The backpack holds 10 items, counting every resource type together. */
 export const BACKPACK_CAPACITY = 10;
-/** [DOC] Fruit restores 20% stamina. */
-export const FRUIT_STAMINA = 20;
-/** [DOC] Water restores 50% hydration. */
-export const WATER_HYDRATION = 50;
-/** [DOC] Eating starts a 60s "full stomach" cooldown. */
-export const FULL_STOMACH_SEC = 60;
 /** [DOC] Each ore chunk is worth 1 gold (the doc says feather; you asked for ore). */
 export const ORE_GOLD = 1;
 
 // -------------------------------------------------------------------- HUD ----
 // Purely cosmetic thresholds: when a readout turns from calm to alarming.
 
-/** [GUESS] Stamina below this colours the bar as a warning. */
-export const STAMINA_WARN_THRESHOLD = 25;
 /** [GUESS] Seconds left in the summer below which the clock turns urgent. */
 export const CLOCK_URGENT_SEC = 60;
 
@@ -180,6 +155,8 @@ export const INTERACT_RADIUS = 1.1;
 export const CUT_TIME = 1.5;
 /** [GUESS] Seconds of holding it to lay one bridge tile. */
 export const BUILD_TIME = 2;
+/** [GUESS] Seconds of holding it beside a spring to drink your fill. */
+export const DRINK_TIME = 0.8;
 
 /**
  * What a cut thicket tile turns into. Grass, so a cut path is also a fast path
@@ -236,9 +213,23 @@ export const FORD_MIN_REGION = 25;
 /** Give-up count for ford carving, so a pathological map cannot loop forever. */
 export const FORD_MAX_COUNT = 60;
 
+/**
+ * Springs, the drinking spots. They stand near a stream but never touch it, so
+ * the water you drink from and the water you bridge are different tiles.
+ */
+/**
+ * [GUESS] Tiles from a spring to the nearest stream tile, counting diagonals.
+ * At 2 the bank tile between a spring and the stream reaches both; there the
+ * key is the bridge, and the spring is drunk from its other sides.
+ */
+export const SPRING_STREAM_DISTANCE = 2;
+/** [GUESS] Closest two springs may stand, so there are many but never a wall of them. */
+export const SPRING_SPACING_TILES = 6;
+/** [GUESS] No spring this close to the camp, which needs its clearing. */
+export const SPRING_CAMP_CLEARANCE = 3;
+
 /** How many of each resource to scatter. */
 export const FRUIT_NODES = 45;
-export const WATER_NODES = 45;
 export const ORE_NODES = 140;
 
 // ------------------------------------------------------------- animation ----

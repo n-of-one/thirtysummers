@@ -2,7 +2,6 @@ import { describe, expect, it } from "vitest";
 import * as C from "../src/config.ts";
 import { formatReadout, gridOffset, type Readout } from "../src/debug/overlay.ts";
 import { NO_INPUT } from "../src/input/keyboard.ts";
-import { Stats } from "../src/sim/stats.ts";
 import { TileMap } from "../src/sim/tilemap.ts";
 import { World } from "../src/sim/world.ts";
 
@@ -46,12 +45,9 @@ describe("formatReadout", () => {
     x: 64.5,
     y: 64.5,
     facing: "southEast",
-    sprinting: false,
     terrain: "grass",
     speed: 7,
-    stamina: 100,
     hydration: 100,
-    stomachCooldownSec: 0,
     elapsedSec: 0,
     seed: 1337,
     pack: "minifantasy",
@@ -72,7 +68,7 @@ describe("formatReadout", () => {
   it("only ever breaks a line between fields, never inside one", () => {
     // With `white-space: pre-wrap` every ordinary space is somewhere the line
     // may wrap. The only ones left are the pairs that separate fields.
-    const line = formatReadout({ ...base, sprinting: true, terrain: "underbrush" });
+    const line = formatReadout({ ...base, terrain: "underbrush" });
     expect(line.replaceAll("  ", "")).not.toContain(" ");
   });
 
@@ -83,10 +79,10 @@ describe("formatReadout", () => {
       base,
       { ...base, x: 8, y: 8 },
       { ...base, x: 127.99, y: 0.01 },
-      { ...base, facing: "northWest" as const, sprinting: true },
+      { ...base, facing: "northWest" as const },
       { ...base, terrain: "underbrush" as const, speed: 12.6 },
-      { ...base, stamina: 0, hydration: 9.05 },
-      { ...base, stomachCooldownSec: 60, elapsedSec: 900 },
+      { ...base, hydration: 9.05 },
+      { ...base, elapsedSec: 900 },
       { ...base, fps: 6 },
       { ...base, fps: 144 },
     ].map(formatReadout);
@@ -96,9 +92,9 @@ describe("formatReadout", () => {
 
   it("keeps every column in the same place, not just the total length", () => {
     const a = formatReadout(base);
-    const b = formatReadout({ ...base, x: 7.5, terrain: "mud", stamina: 8.25, fps: 7 });
+    const b = formatReadout({ ...base, x: 7.5, terrain: "mud", hydration: 8, fps: 7 });
     const columnOf = (line: string, label: string) => line.indexOf(label);
-    for (const label of [nb("on "), "tiles/s", nb("sta "), nb("hyd "), nb("full "), "fps", nb("seed ")]) {
+    for (const label of [nb("on "), "tiles/s", nb("hyd "), "fps", nb("seed ")]) {
       expect(columnOf(b, label)).toBe(columnOf(a, label));
     }
   });
@@ -111,46 +107,38 @@ describe("formatReadout", () => {
   });
 });
 
-describe("stat freeze", () => {
-  it("holds every stat still while it is set", () => {
-    const stats = new Stats();
-    stats.hydration = 60;
-    stats.eat();
-    stats.frozen = true;
-    for (let i = 0; i < 600; i++) stats.step(C.TICK_SEC, "sprinting");
-    expect(stats.stamina).toBe(C.STAT_MAX);
-    expect(stats.hydration).toBe(60);
-    expect(stats.stomachCooldownSec).toBe(C.FULL_STOMACH_SEC);
+describe("the freeze", () => {
+  it("holds hydration and the clock still while it is set", () => {
+    const w = world();
+    w.stats.hydration = 60;
+    w.frozen = true;
+    for (let i = 0; i < 600; i++) w.step(C.TICK_SEC, NO_INPUT);
+    expect(w.stats.hydration).toBe(60);
+    expect(w.elapsedSec).toBe(0);
   });
 
   it("thaws exactly where it froze", () => {
-    const stats = new Stats();
-    stats.frozen = true;
-    for (let i = 0; i < 60; i++) stats.step(C.TICK_SEC, "sprinting");
-    stats.frozen = false;
-    for (let i = 0; i < 60; i++) stats.step(C.TICK_SEC, "sprinting");
-    expect(stats.stamina).toBeCloseTo(C.STAT_MAX + C.STAMINA_SPRINT, 6);
-    expect(stats.hydration).toBeCloseTo(C.STAT_MAX - C.HYDRATION_DRAIN, 6);
-  });
-
-  it("still lets the player eat and drink, so a held state can be poked at", () => {
-    const stats = new Stats();
-    stats.stamina = 10;
-    stats.hydration = 10;
-    stats.frozen = true;
-    expect(stats.eat()).toBe(true);
-    stats.drink();
-    expect(stats.stamina).toBe(10 + C.FRUIT_STAMINA);
-    expect(stats.hydration).toBe(10 + C.WATER_HYDRATION);
-  });
-
-  it("freezes the stats without stopping the summer or the player", () => {
     const w = world();
-    w.stats.frozen = true;
-    for (let i = 0; i < 60; i++) w.step(C.TICK_SEC, { ...NO_INPUT, moveX: 1 });
-    expect(w.stats.hydration).toBe(C.STAT_MAX);
+    w.frozen = true;
+    for (let i = 0; i < 60; i++) w.step(C.TICK_SEC, NO_INPUT);
+    w.frozen = false;
+    for (let i = 0; i < 60; i++) w.step(C.TICK_SEC, NO_INPUT);
+    expect(w.stats.hydration).toBeCloseTo(C.HYDRATION_MAX - C.HYDRATION_DRAIN, 6);
     expect(w.elapsedSec).toBeCloseTo(1, 6);
-    expect(w.player.x).toBeGreaterThan(1.5);
+  });
+
+  it("still lets the player walk and drink, so a held state can be poked at", () => {
+    const w = world();
+    w.map.set(2, 1, "spring");
+    w.stats.hydration = 10;
+    w.frozen = true;
+    const drinking = { ...NO_INPUT, interact: true };
+    for (let i = 0; i <= Math.ceil(C.DRINK_TIME / C.TICK_SEC); i++) w.step(C.TICK_SEC, drinking);
+    expect(w.stats.hydration).toBe(C.HYDRATION_MAX);
+
+    for (let i = 0; i < 60; i++) w.step(C.TICK_SEC, { ...NO_INPUT, moveY: 1 });
+    expect(w.player.y).toBeGreaterThan(1.5);
+    expect(w.elapsedSec).toBe(0);
   });
 });
 

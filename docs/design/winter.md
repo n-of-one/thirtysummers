@@ -62,8 +62,10 @@ In order:
 Upkeep rises only when a structure is finished, because the works have to be
 supplied. Bridges, wells and caches are not structures.
 
-**Missing upkeep** is not the end of anything. The next summer starts with
-max stamina ten lower. That is felt on every rough tile, gone by the
+**Missing upkeep** is not the end of anything. The next summer is a tired
+one: every hold takes half as long again, and rough ground is walked at a
+quarter of walking speed instead of four tenths. Easy ground is as fast as
+ever. That is felt on every wall and in every mud pocket, gone by the
 following winter, and enough to make upkeep a priority the year after.
 
 ## The start of a summer

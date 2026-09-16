@@ -35,8 +35,6 @@ function worldWith(nodes: ResourceNode[]): World {
 }
 
 const INTERACT: InputState = { ...NO_INPUT, interact: true };
-const EAT: InputState = { ...NO_INPUT, eat: true };
-const DRINK: InputState = { ...NO_INPUT, drink: true };
 
 /** Hold `input` for `seconds` of simulated time at the real tick rate. */
 function hold(world: World, input: InputState, seconds: number): void {
@@ -51,6 +49,11 @@ function tap(world: World, input: InputState): void {
 }
 
 const types = (world: World) => world.events.map((e) => e.type);
+
+const backpackOf = (world: World) => ({
+  fruit: world.inventory.count("fruit"),
+  ore: world.inventory.count("ore"),
+});
 
 describe("nearestNodeWithin", () => {
   it("finds the closest node inside the radius and ignores the rest", () => {
@@ -167,7 +170,7 @@ describe("banking ore at camp", () => {
     world.player.x = 1.5;
     world.player.y = 1.5;
 
-    expect(world.availableAction()).toEqual({ type: "deposit", ore: 4, blocked: false });
+    expect(world.availableAction()).toEqual({ type: "deposit", ore: 4, blocked: null });
     tap(world, INTERACT);
     expect(world.inventory.gold).toBe(4 * C.ORE_GOLD);
     expect(world.inventory.count("ore")).toBe(0);
@@ -188,7 +191,7 @@ describe("banking ore at camp", () => {
     const world = worldWith([]);
     world.player.x = 1.5;
     world.player.y = 1.5;
-    expect(world.availableAction()).toEqual({ type: "deposit", ore: 0, blocked: true });
+    expect(world.availableAction()).toEqual({ type: "deposit", ore: 0, blocked: "noOre" });
     tap(world, INTERACT);
     expect(world.events).toEqual([{ type: "blocked", reason: "noOre", at: expect.any(Number) }]);
   });
@@ -221,98 +224,103 @@ describe("banking ore at camp", () => {
   });
 });
 
-describe("eating and drinking", () => {
-  it("eats one fruit per press", () => {
+describe("drinking", () => {
+  it("drinks its fill beside a spring, as a hold", () => {
     const world = worldWith([]);
-    world.inventory.add("fruit", 2);
-    world.stats.stamina = 40;
+    world.map.set(9, 8, "spring");
+    world.stats.hydration = 30;
+    expect(world.availableAction()).toEqual({ type: "drink", x: 9, y: 8, blocked: null });
 
-    hold(world, EAT, 2); // held down for two seconds
-    expect(world.inventory.count("fruit")).toBe(1); // still only one eaten
-    expect(world.stats.stamina).toBeGreaterThan(59);
-    expect(types(world)).toEqual(["ate"]);
+    hold(world, INTERACT, C.DRINK_TIME / 2);
+    expect(world.stats.hydration).toBeLessThan(30);
+    hold(world, INTERACT, C.DRINK_TIME * 0.6);
+    expect(world.stats.hydration).toBeGreaterThan(C.HYDRATION_MAX - 1);
+    expect(types(world)).toEqual(["drank"]);
   });
 
-  it("refuses a second fruit until the stomach cooldown is up, and keeps it", () => {
+  it("cannot walk into a spring", () => {
     const world = worldWith([]);
-    world.inventory.add("fruit", 2);
-    world.stats.stamina = 40;
-
-    tap(world, EAT);
-    tap(world, EAT);
-    expect(world.inventory.count("fruit")).toBe(1);
-    expect(types(world)).toEqual(["ate", "blocked"]);
-
-    hold(world, NO_INPUT, C.FULL_STOMACH_SEC + 1);
-    tap(world, EAT);
-    expect(world.inventory.count("fruit")).toBe(0);
-    expect(types(world)).toEqual(["ate", "blocked", "ate"]);
+    world.map.set(9, 8, "spring");
+    hold(world, { ...NO_INPUT, moveX: 1 }, 1);
+    expect(world.player.x).toBeLessThan(9);
   });
 
-  it("says when there is no fruit to eat", () => {
+  it("never drinks at the stream: the key there only ever lays a bridge", () => {
     const world = worldWith([]);
-    tap(world, EAT);
-    expect(world.events).toEqual([{ type: "blocked", reason: "noFruit", at: expect.any(Number) }]);
+    world.map.set(9, 8, "stream");
+    world.stats.hydration = 30;
+    expect(world.availableAction()).toMatchObject({ type: "build", blocked: "noMaterials" });
   });
 
-  it("drinks one water per press, with no cooldown", () => {
+  it("gives the bridge, not the drink, where both the stream and a spring are in reach", () => {
+    // Spring, bank, stream, top to bottom, as the springs pass lays them out.
     const world = worldWith([]);
-    world.inventory.add("water", 2);
-    world.stats.hydration = 5;
-
-    tap(world, DRINK);
-    // 50% a bottle, less the trickle drained by the two ticks the tap took.
-    expect(world.stats.hydration).toBeCloseTo(55 - 2 * C.TICK_SEC * C.HYDRATION_DRAIN, 6);
-    tap(world, DRINK);
-    expect(world.inventory.count("water")).toBe(0);
-    expect(world.stats.hydration).toBeGreaterThan(99);
-    expect(types(world)).toEqual(["drank", "drank"]);
+    world.map.set(8, 6, "spring");
+    world.map.set(8, 8, "stream");
+    world.stats.hydration = 30;
+    world.player.y = 7.5; // on the bank between them
+    expect(world.availableAction()).toMatchObject({ type: "build" });
+    world.player.y = 5.5; // the spring's far side, out of the stream's reach
+    expect(world.availableAction()).toMatchObject({ type: "drink", x: 8, y: 6 });
   });
 
-  it("says when there is no water to drink", () => {
+  it("leaves a spring be while the bar is nearly full, so the tools stay in reach", () => {
     const world = worldWith([]);
-    tap(world, DRINK);
-    expect(world.events).toEqual([{ type: "blocked", reason: "noWater", at: expect.any(Number) }]);
+    world.map.set(9, 8, "spring");
+    world.map.set(8, 9, "thicket");
+    world.stats.hydration = C.DRINK_OFFER_BELOW + 5;
+    expect(world.availableAction()).toMatchObject({ type: "cut" });
+    world.stats.hydration = C.DRINK_OFFER_BELOW - 5;
+    expect(world.availableAction()).toMatchObject({ type: "drink" });
+  });
+
+  it("has nothing to drink away from a spring", () => {
+    const world = worldWith([]);
+    world.stats.hydration = 30;
+    expect(world.availableAction()).toBeNull();
   });
 });
 
 describe("a summer played end to end", () => {
-  it("picks, eats, drinks, banks, and totals up", () => {
+  it("picks, drinks, banks, and totals up", () => {
     const world = worldWith([
       node("ore", 9.5, 8.5),
       node("ore", 7.5, 8.5),
       node("fruit", 8.5, 9.5),
-      node("water", 8.5, 7.5),
     ]);
-    world.stats.stamina = 50;
+    world.map.set(8, 7, "spring");
     world.stats.hydration = 50;
 
-    // Four nodes in reach of where the player stands; hold long enough for each.
-    for (let i = 0; i < 4; i++) hold(world, INTERACT, C.HARVEST_TIME * 1.1);
-    expect(world.inventory.carried).toBe(4);
+    // Three nodes in reach of where the player stands; hold long enough for each.
+    for (let i = 0; i < 3; i++) hold(world, INTERACT, C.HARVEST_TIME * 1.1);
+    expect(world.inventory.carried).toBe(3);
     expect(world.nodes.every((n) => n.harvested)).toBe(true);
 
-    tap(world, EAT);
-    tap(world, DRINK);
+    // With the nodes picked, the spring above is what the key reaches.
+    world.step(C.TICK_SEC, NO_INPUT);
+    hold(world, INTERACT, C.DRINK_TIME * 1.1);
 
     world.player.x = 1.5;
     world.player.y = 1.5;
+    world.step(C.TICK_SEC, NO_INPUT);
     tap(world, INTERACT);
 
     const summer = summarise(world);
     expect(summer.gold).toBe(2);
-    expect(summer.harvested).toEqual({ ore: 2, fruit: 1, water: 1, vine: 0, stick: 0 });
-    expect(summer.fruitEaten).toBe(1);
-    expect(summer.waterDrunk).toBe(1);
-    expect(summer.oreUnbanked).toBe(0);
-    expect(world.inventory.carried).toBe(0);
+    expect(summer.harvested).toEqual({ ore: 2, fruit: 1, vine: 0, stick: 0 });
+    expect(summer.drinks).toBe(1);
+    expect(summer.oreBankedAtEnd).toBe(0);
+    // Fruit is carried like anything else, and there is no store for it yet.
+    expect(backpackOf(world)).toEqual({ fruit: 1, ore: 0 });
   });
 
-  it("counts ore still in the pack when the summer ends as unbanked", () => {
+  it("banks ore still in the pack when the summer ends, and says where it ended", () => {
     const world = worldWith([]);
     world.inventory.add("ore", 3);
-    expect(summarise(world).oreUnbanked).toBe(3);
-    expect(summarise(world).gold).toBe(0);
+    world.endSummer();
+    expect(summarise(world).oreBankedAtEnd).toBe(3);
+    expect(summarise(world).gold).toBe(3 * C.ORE_GOLD);
+    expect(summarise(world).endedAway).toBe(true);
   });
 
   it("reports an untouched summer as all zeroes", () => {
@@ -320,10 +328,10 @@ describe("a summer played end to end", () => {
     expect(summer).toEqual({
       year: 1,
       gold: 0,
-      harvested: { fruit: 0, water: 0, ore: 0, vine: 0, stick: 0 },
-      fruitEaten: 0,
-      waterDrunk: 0,
-      oreUnbanked: 0,
+      harvested: { fruit: 0, ore: 0, vine: 0, stick: 0 },
+      drinks: 0,
+      oreBankedAtEnd: 0,
+      endedAway: false,
       tilesCut: 0,
       bridgesBuilt: 0,
       distanceWalked: 0,

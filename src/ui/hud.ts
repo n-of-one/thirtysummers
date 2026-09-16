@@ -18,29 +18,24 @@ import { BRIDGE_COST, type Action, type World } from "../sim/world.ts";
  * state through here and has no way to write back.
  */
 export interface HudModel {
-  /** Percentages, 0-100. */
-  stamina: number;
+  /** Hydration, a percentage. */
   hydration: number;
-  /** Colour the bar as a warning. */
-  staminaWarn: boolean;
-  /** Hydration is low enough that resting recovers stamina at half speed. */
+  /** Dry enough for the fog to be closing in, and for the thirst notice to stay up. */
   hydrationWarn: boolean;
-  /** Seconds of full stomach left; 0 means the readout is hidden. */
-  stomachCooldownSec: number;
   carried: number;
-  /** What is in the pack, spelled out: "fruit 3, water 1, ore 5". */
+  /** What is in the pack, spelled out: "fruit 3, ore 5". */
   contents: string;
   capacity: number;
   gold: number;
-  /** Carrying fruit, so the key that eats it is worth spelling out. */
-  holdingFruit: boolean;
-  /** Same for water and the key that drinks it. */
-  holdingWater: boolean;
   secondsLeft: number;
   urgent: boolean;
   /** Which summer this is, counting from 1. */
   year: number;
-  /** What the interact key would do here, or null for nothing in reach. */
+  /** Close enough to camp to end the summer early. */
+  atCamp: boolean;
+  /** Radius of the clear circle in the fog, in screen pixels. */
+  fogRadiusPx: number;
+  /** What the interact key would do here; null for nothing. */
   prompt: Prompt | null;
 }
 
@@ -48,14 +43,13 @@ export interface Prompt {
   text: string;
   /** How far through the hold, 0 to 1. Zero for anything that is not a hold. */
   progress: number;
-  /** The right action here, but not possible: a full pack, or nothing to build with. */
+  /** Right here, but not possible: a full pack, no ore to bank, nothing to build with. */
   blocked: boolean;
 }
 
 /** How each resource is referred to in a prompt or a toast. */
 const RESOURCE_NAME: Record<ResourceKind, string> = {
   fruit: "fruit",
-  water: "water",
   ore: "ore",
   vine: "vine",
   stick: "stick",
@@ -71,9 +65,6 @@ export function backpackText(inventory: Inventory): string {
 
 const BLOCKED_TEXT: Record<BlockedReason, string> = {
   backpackFull: "Backpack full",
-  stomachFull: "Too full to eat",
-  noFruit: "No fruit in the backpack",
-  noWater: "No water in the backpack",
   noOre: "No ore to bank",
   // Says the price, not just the refusal: the player has to learn what a
   // bridge tile costs somewhere, and standing at the water is where it matters.
@@ -90,8 +81,8 @@ export function bridgeCostText(): string {
     : (parts[0] ?? "nothing");
 }
 
-function promptFor(action: Action | null, progress: number): Prompt | null {
-  if (!action) return null;
+/** What the interact key would do, in words. */
+function actionPrompt(action: Action, progress: number): Prompt {
   switch (action.type) {
     case "deposit":
       return action.blocked
@@ -105,6 +96,8 @@ function promptFor(action: Action | null, progress: number): Prompt | null {
             progress,
             blocked: false,
           };
+    case "drink":
+      return { text: "Hold E to drink", progress, blocked: false };
     case "cut":
       return { text: "Hold E to cut through", progress, blocked: false };
     case "build":
@@ -114,15 +107,19 @@ function promptFor(action: Action | null, progress: number): Prompt | null {
   }
 }
 
+/** The line under the player: what the interact key would do here. */
+function promptFor(world: World): Prompt | null {
+  const action = world.availableAction();
+  return action ? actionPrompt(action, world.harvestProgress) : null;
+}
+
 /** One line of feedback for something that just happened. */
 export function toastFor(event: WorldEvent): string {
   switch (event.type) {
     case "harvested":
       return `+1 ${RESOURCE_NAME[event.kind]}`;
-    case "ate":
-      return `Ate a fruit  +${C.FRUIT_STAMINA} stamina`;
     case "drank":
-      return `Drank water  +${C.WATER_HYDRATION} hydration`;
+      return "Drank your fill";
     case "deposited":
       return `Banked ${event.gold} gold`;
     case "blocked":
@@ -131,6 +128,8 @@ export function toastFor(event: WorldEvent): string {
       return "Cut a path";
     case "built":
       return "Laid a bridge tile";
+    case "summerEnded":
+      return "Summer over";
     case "summerStarted":
       return `Summer ${event.year}`;
   }
@@ -139,25 +138,35 @@ export function toastFor(event: WorldEvent): string {
 export function hudModel(world: World): HudModel {
   const { stats, inventory } = world;
   return {
-    stamina: stats.stamina,
     hydration: stats.hydration,
-    staminaWarn: stats.stamina < C.STAMINA_WARN_THRESHOLD,
-    // The same threshold the simulation uses, so the bar turns at the moment
-    // resting drops to half speed rather than at a number picked to look about
-    // right.
-    hydrationWarn: stats.parched,
-    stomachCooldownSec: stats.stomachCooldownSec,
+    // The fog's own threshold, so the bar turns at the moment the view starts
+    // to close rather than at a number picked to look about right.
+    hydrationWarn: stats.hydration < C.HYDRATION_FOG_THRESHOLD,
     carried: inventory.carried,
     contents: backpackText(inventory),
     capacity: inventory.capacity,
     gold: inventory.gold,
-    holdingFruit: inventory.count("fruit") > 0,
-    holdingWater: inventory.count("water") > 0,
     secondsLeft: world.remainingSec,
     urgent: world.remainingSec < C.CLOCK_URGENT_SEC,
     year: world.year,
-    prompt: promptFor(world.availableAction(), world.harvestProgress),
+    atCamp: world.atCamp,
+    fogRadiusPx: fogRadiusPx(stats.hydration),
+    prompt: promptFor(world),
   };
+}
+
+/**
+ * How far the player can see before the dark begins, in screen pixels.
+ *
+ * The view is always ringed. Fog is the only cost of running dry, so it has to
+ * be felt: the widest circle down to the threshold, then one that shrinks
+ * linearly to a few tiles at zero.
+ */
+export function fogRadiusPx(hydration: number): number {
+  const share = Math.min(Math.max(hydration, 0) / C.HYDRATION_FOG_THRESHOLD, 1);
+  const tiles =
+    C.FOG_MIN_RADIUS_TILES + (C.FOG_MAX_RADIUS_TILES - C.FOG_MIN_RADIUS_TILES) * share;
+  return tiles * C.TILE;
 }
 
 /**
@@ -210,6 +219,12 @@ export function need<E extends Element>(root: ParentNode, selector: string): E {
   return el;
 }
 
+/**
+ * Steps the fog's radius moves in, in screen pixels. Each step repaints the
+ * gradient, so a smaller one buys a smoother shrink for more painting.
+ */
+const FOG_STEP_PX = 4;
+
 /** Write `text` only when it differs, so a static readout costs nothing. */
 function setText(el: Element, text: string): void {
   if (el.textContent !== text) el.textContent = text;
@@ -222,14 +237,9 @@ function setText(el: Element, text: string): void {
  * the current state, and drawing it twice between frames would be wasted work.
  */
 export class Hud {
-  private readonly staminaBar: HTMLElement;
-  private readonly staminaFill: HTMLElement;
-  private readonly staminaValue: HTMLElement;
   private readonly hydrationBar: HTMLElement;
   private readonly hydrationFill: HTMLElement;
   private readonly hydrationValue: HTMLElement;
-  private readonly stomach: HTMLElement;
-  private readonly stomachValue: HTMLElement;
   private readonly clock: HTMLElement;
   private readonly clockTime: HTMLElement;
   private readonly year: HTMLElement;
@@ -239,8 +249,9 @@ export class Hud {
   private readonly prompt: HTMLElement;
   private readonly anchor: HTMLElement;
   private readonly toasts: HTMLElement;
-  private readonly hintFruit: HTMLElement;
-  private readonly hintWater: HTMLElement;
+  private readonly thirstyNotice: HTMLElement;
+  private readonly fog: HTMLElement;
+  private readonly endSummer: HTMLButtonElement;
   private readonly summary: HTMLElement;
   private readonly summaryTitle: HTMLElement;
   private readonly summaryStats: HTMLElement;
@@ -259,15 +270,14 @@ export class Hud {
   private anchorSize = { width: 0, height: 0 };
   private anchorContent = "";
 
+  /** What the fog layer was last given, so an unchanged frame writes nothing. */
+  private fogRadius = "";
+  private fogTransform = "";
+
   constructor(root: ParentNode = document) {
-    this.staminaBar = need(root, "#bar-stamina");
-    this.staminaFill = need(this.staminaBar, ".bar-fill");
-    this.staminaValue = need(this.staminaBar, ".bar-value");
     this.hydrationBar = need(root, "#bar-hydration");
     this.hydrationFill = need(this.hydrationBar, ".bar-fill");
     this.hydrationValue = need(this.hydrationBar, ".bar-value");
-    this.stomach = need(root, "#cooldown-stomach");
-    this.stomachValue = need(this.stomach, "b");
     this.clock = need(root, ".clock");
     this.clockTime = need(root, "#clock-time");
     this.year = need(root, "#year-count");
@@ -277,8 +287,9 @@ export class Hud {
     this.prompt = need(root, "#action-prompt");
     this.anchor = need(root, "#player-anchor");
     this.toasts = need(root, "#toasts");
-    this.hintFruit = need(root, "#hint-fruit");
-    this.hintWater = need(root, "#hint-water");
+    this.thirstyNotice = need(root, "#thirsty-notice");
+    this.fog = need(root, "#fog");
+    this.endSummer = need(root, "#end-summer");
     this.summary = need(root, "#summary");
     this.summaryTitle = need(root, "#summary-title");
     this.summaryStats = need(root, "#summary-stats");
@@ -299,18 +310,14 @@ export class Hud {
    * hang off the player rather than off a corner.
    */
   update(model: HudModel, playerScreen: Vec2, events: readonly WorldEvent[] = []): void {
-    this.bar(this.staminaBar, this.staminaFill, this.staminaValue, model.stamina, model.staminaWarn);
     this.bar(
       this.hydrationBar,
       this.hydrationFill,
       this.hydrationValue,
       model.hydration,
+      `${Math.round(model.hydration)}%`,
       model.hydrationWarn,
     );
-
-    const cooling = model.stomachCooldownSec > 0;
-    this.stomach.hidden = !cooling;
-    if (cooling) setText(this.stomachValue, `${Math.ceil(model.stomachCooldownSec)}s`);
 
     setText(this.clockTime, formatClock(model.secondsLeft));
     this.clock.classList.toggle("is-urgent", model.urgent);
@@ -320,9 +327,11 @@ export class Hud {
     setText(this.backpackContents, model.contents);
     setText(this.gold, String(model.gold));
 
-    // Only worth saying while there is something to use it on.
-    this.hintFruit.hidden = !model.holdingFruit;
-    this.hintWater.hidden = !model.holdingWater;
+    this.endSummer.hidden = !model.atCamp;
+    // Up for as long as the fog is closing in, not a toast that fades: running
+    // dry is a state the player is in until they drink.
+    this.thirstyNotice.hidden = !model.hydrationWarn;
+    this.placeFog(model.fogRadiusPx, playerScreen);
 
     this.prompt.hidden = model.prompt === null;
     if (model.prompt) {
@@ -334,7 +343,8 @@ export class Hud {
     for (let i = this.seenEvents; i < events.length; i++) this.toast(toastFor(events[i]!));
     this.seenEvents = events.length;
 
-    this.placeAnchor(model.prompt?.text ?? "", playerScreen);
+    // The notice changes the size of the stack as much as the prompt does.
+    this.placeAnchor(`${model.prompt?.text ?? ""}|${model.hydrationWarn}`, playerScreen);
   }
 
   /**
@@ -344,8 +354,8 @@ export class Hud {
    * that has faded out removes itself from the DOM, so the count is part of
    * what counts as a change.
    */
-  private placeAnchor(promptText: string, playerScreen: Vec2): void {
-    const content = `${promptText}|${this.toasts.childElementCount}`;
+  private placeAnchor(stackText: string, playerScreen: Vec2): void {
+    const content = `${stackText}|${this.toasts.childElementCount}`;
     if (content !== this.anchorContent) {
       this.anchorContent = content;
       this.anchorSize = { width: this.anchor.offsetWidth, height: this.anchor.offsetHeight };
@@ -358,6 +368,41 @@ export class Hud {
     // every frame does not put the page through layout again.
     this.anchor.style.transform =
       `translate(calc(${at.x.toFixed(1)}px - 50%), ${at.y.toFixed(1)}px)`;
+  }
+
+  /**
+   * Ring the view in dark, and close it in round the player as hydration runs
+   * out.
+   *
+   * The layer is twice the window each way with the gradient at its centre, so
+   * following the player is a transform, which the compositor moves without
+   * painting anything. The gradient itself is repainted only when the radius
+   * crosses a step, a few times a second at most, and only while it shrinks.
+   */
+  private placeFog(radiusPx: number, playerScreen: Vec2): void {
+    const radius = `${Math.round(radiusPx / FOG_STEP_PX) * FOG_STEP_PX}px`;
+    if (radius !== this.fogRadius) {
+      this.fogRadius = radius;
+      this.fog.style.setProperty("--fog-r", radius);
+    }
+    const x = (playerScreen.x - window.innerWidth).toFixed(0);
+    const y = (playerScreen.y - window.innerHeight).toFixed(0);
+    const transform = `translate(${x}px, ${y}px)`;
+    if (transform !== this.fogTransform) {
+      this.fogTransform = transform;
+      this.fog.style.transform = transform;
+    }
+  }
+
+  /**
+   * Wire the camp's "End summer" button. Focus goes back to the game after the
+   * click, since a focused button would swallow the next key pressed.
+   */
+  onEndSummer(handler: () => void): void {
+    this.endSummer.onclick = () => {
+      this.endSummer.blur();
+      handler();
+    };
   }
 
   /** Float one line above the HUD, and take it back out of the DOM when it fades. */
@@ -390,16 +435,15 @@ export class Hud {
     const rows: [string, string, boolean][] = [
       ["Gold", String(summer.gold), true],
       ["Fruit picked", String(summer.harvested.fruit), false],
-      ["Water drawn", String(summer.harvested.water), false],
       ["Ore mined", String(summer.harvested.ore), false],
       ["Vines cut", String(summer.harvested.vine), false],
       ["Sticks gathered", String(summer.harvested.stick), false],
-      ["Ore left unbanked", String(summer.oreUnbanked), false],
-      ["Fruit eaten", String(summer.fruitEaten), false],
-      ["Water drunk", String(summer.waterDrunk), false],
+      ["Ore banked at the end", String(summer.oreBankedAtEnd), false],
+      ["Drinks", String(summer.drinks), false],
       ["Paths cut", String(summer.tilesCut), false],
       ["Bridge tiles laid", String(summer.bridgesBuilt), false],
       ["Distance walked", `${summer.distanceWalked.toFixed(0)} tiles`, false],
+      ["Ended away from camp", summer.endedAway ? "yes" : "no", false],
     ];
 
     setText(this.summaryTitle, `Summer ${summer.year} over`);
@@ -421,12 +465,19 @@ export class Hud {
 
   /**
    * The fill keeps a decimal so the bar slides rather than stepping, while the
-   * number beside it is rounded -- nobody reads a stamina bar to two places.
+   * number beside it is rounded -- nobody reads a bar to two places.
    */
-  private bar(bar: HTMLElement, fill: HTMLElement, value: HTMLElement, pct: number, warn: boolean): void {
-    const width = `${pct.toFixed(1)}%`;
+  private bar(
+    bar: HTMLElement,
+    fill: HTMLElement,
+    value: HTMLElement,
+    pct: number,
+    text: string,
+    warn: boolean,
+  ): void {
+    const width = `${Math.min(Math.max(pct, 0), 100).toFixed(1)}%`;
     if (fill.style.width !== width) fill.style.width = width;
-    setText(value, `${Math.round(pct)}%`);
+    setText(value, text);
     bar.classList.toggle("is-low", warn);
   }
 }

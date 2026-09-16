@@ -9,7 +9,7 @@ import {
   moveWithCollision,
   type Player,
 } from "./player.ts";
-import { Stats, type Effort } from "./stats.ts";
+import { Stats } from "./stats.ts";
 import type { TileMap } from "./tilemap.ts";
 import type { TerrainDef } from "./terrain.ts";
 import type {
@@ -26,15 +26,16 @@ import { generateWorld, type GeneratedWorld } from "./worldgen.ts";
  * What the interact key would do where the player is standing right now.
  *
  * One query answers two questions -- what the HUD should prompt, and what a
- * press actually does -- so the two can never disagree. `blocked` means the
- * action is the right one here but cannot be carried out: a full backpack, or
- * standing at camp with no ore to hand over.
+ * press actually does -- so the two can never disagree. `blocked` says why the
+ * action is the right one here but cannot be carried out: a full backpack, no
+ * ore to hand over at camp, or nothing to build with. Null means it can.
  */
 export type Action =
-  | { type: "deposit"; ore: number; blocked: boolean }
-  | { type: "harvest"; node: ResourceNode; blocked: boolean }
-  | { type: "cut"; x: number; y: number; blocked: boolean }
-  | { type: "build"; x: number; y: number; blocked: boolean };
+  | { type: "deposit"; ore: number; blocked: BlockedReason | null }
+  | { type: "harvest"; node: ResourceNode; blocked: BlockedReason | null }
+  | { type: "drink"; x: number; y: number; blocked: null }
+  | { type: "cut"; x: number; y: number; blocked: null }
+  | { type: "build"; x: number; y: number; blocked: BlockedReason | null };
 
 /** What one bridge tile costs. The only recipe in the prototype. */
 export const BRIDGE_COST: Partial<Record<ResourceKind, number>> = {
@@ -42,18 +43,11 @@ export const BRIDGE_COST: Partial<Record<ResourceKind, number>> = {
   vine: C.BRIDGE_VINES,
 };
 
-/** Why each action refuses, when it does. */
-const BLOCKED_BY: Record<Action["type"], BlockedReason> = {
-  deposit: "noOre",
-  harvest: "backpackFull",
-  cut: "backpackFull", // unreachable: cutting puts nothing in the pack
-  build: "noMaterials",
-};
-
 /** Seconds of holding the interact key each action takes; 0 for a tap. */
 const HOLD_TIME: Record<Action["type"], number> = {
   deposit: 0,
   harvest: C.HARVEST_TIME,
+  drink: C.DRINK_TIME,
   cut: C.CUT_TIME,
   build: C.BUILD_TIME,
 };
@@ -93,10 +87,10 @@ export class World {
   private holdKey = "";
 
   /**
-   * Last tick's input, for edge detection. Eating, drinking and dropping off
-   * are one-shot: they fire on the press, not for every tick the key is down.
+   * Last tick's input, for edge detection. Dropping off is one-shot: it fires
+   * on the press, not for every tick the key is down.
    */
-  private held = { interact: false, eat: false, drink: false };
+  private held = { interact: false };
   /**
    * Set when a press has already done its one thing, and cleared on release.
    *
@@ -105,6 +99,24 @@ export class World {
    * camp. One press, one action.
    */
   private interactSpent = false;
+
+  /** The summer is over, by the clock or from camp. Nothing steps after it. */
+  ended = false;
+  /**
+   * Whether the last summer ended out of reach of camp. Winter charges for the
+   * fetching, so this outlives the summer it describes.
+   */
+  awayAtEnd = false;
+  /**
+   * While set, neither hydration nor the clock moves on its own. Only the debug
+   * overlay sets it, and it is here rather than in the overlay so that "the
+   * numbers stopped moving" is one flag the simulation owns, not a rate the
+   * renderer reaches in and rewrites.
+   *
+   * The player still walks, works and drinks, so the freeze holds a state still
+   * to poke at rather than switching the summer off.
+   */
+  frozen = false;
 
   constructor(generated: GeneratedWorld) {
     this.seed = generated.seed;
@@ -124,7 +136,31 @@ export class World {
   }
 
   get summerOver(): boolean {
-    return this.remainingSec <= 0;
+    return this.ended;
+  }
+
+  /** Close enough to camp to bank, or to end the summer early. */
+  get atCamp(): boolean {
+    return withinReach(this.player.x, this.player.y, this.camp);
+  }
+
+  /**
+   * End the summer where the player stands, by the clock or from camp.
+   *
+   * What is carried is banked as if brought home, so ore in the pack becomes
+   * gold here and a last trip out is never wasted. Fruit, sticks and vines stay
+   * in the pack: there is no store to put them in until winter is built. Ending
+   * out of reach of camp is remembered, because winter will charge for the
+   * fetching. Does nothing the second time.
+   */
+  endSummer(): void {
+    if (this.ended) return;
+    this.ended = true;
+    this.awayAtEnd = !this.atCamp;
+    this.stopHarvesting();
+    const ore = this.inventory.count("ore");
+    const gold = this.inventory.depositOre();
+    this.record({ type: "summerEnded", away: this.awayAtEnd, ore, gold });
   }
 
   /**
@@ -132,7 +168,7 @@ export class World {
    *
    * The point of the discovery test is that what you changed stays changed, so
    * the terrain, the gold and the backpack are left exactly as they are. What
-   * comes back is the year: every node regrows, the stats refill, the player
+   * comes back is the year: every node regrows, hydration refills, the player
    * wakes at camp and the clock restarts.
    *
    * The event log is kept too, so readers walking it with a cursor carry on
@@ -141,14 +177,12 @@ export class World {
   nextSummer(): void {
     this.year++;
     this.elapsedSec = 0;
+    this.ended = false;
     for (const node of this.nodes) node.harvested = false;
-    this.stats.stamina = C.STAT_MAX;
-    this.stats.hydration = C.STAT_MAX;
-    this.stats.stomachCooldownSec = 0;
+    this.stats.startSummer();
     this.player.x = this.camp.x;
     this.player.y = this.camp.y;
     this.player.moving = false;
-    this.player.sprinting = false;
     // Distance is a per-summer figure in the summary. It also drives the walk
     // animation, but only through a modulo, and the player is standing still at
     // camp when this happens, so there is no frame to jump.
@@ -162,32 +196,41 @@ export class World {
 
   /** What the interact key would do from here, or null for nothing in reach. */
   availableAction(): Action | null {
-    const { x, y } = this.player;
+    const { x, y, z } = this.player;
     const atCamp = withinReach(x, y, this.camp);
     const ore = this.inventory.count("ore");
     // Dropping off wins at camp, but only when there is something to drop off,
     // so a node next to the camp is still harvestable with an empty pack.
-    if (atCamp && ore > 0) return { type: "deposit", ore, blocked: false };
+    if (atCamp && ore > 0) return { type: "deposit", ore, blocked: null };
 
     const node = nearestNodeWithin(this.nodes, x, y);
-    if (node) return { type: "harvest", node, blocked: this.inventory.full };
+    if (node) {
+      return { type: "harvest", node, blocked: this.inventory.full ? "backpackFull" : null };
+    }
+
+    // Drinking is at a spring, never at the stream. It comes before the tools,
+    // but only while there is thirst to quench, so a spring beside a thicket
+    // does not hide the cut; and never where the stream is in reach too, so the
+    // key at the water only ever means a bridge. A spring near the bank is
+    // drunk from its other sides.
+    if (this.stats.hydration < C.DRINK_OFFER_BELOW) {
+      const spring = nearestTileWithin(this.map, x, y, "spring", C.INTERACT_RADIUS, z);
+      const atStream = nearestTileWithin(this.map, x, y, "stream", C.INTERACT_RADIUS, z) !== null;
+      if (spring && !atStream) return { type: "drink", x: spring.x, y: spring.y, blocked: null };
+    }
 
     // Tools come after picking, so a vine growing against the thicket that
     // walls it in can still be picked up.
-    const thicket = nearestTileWithin(this.map, x, y, "thicket", C.INTERACT_RADIUS, this.player.z);
-    if (thicket) return { type: "cut", x: thicket.x, y: thicket.y, blocked: false };
+    const thicket = nearestTileWithin(this.map, x, y, "thicket", C.INTERACT_RADIUS, z);
+    if (thicket) return { type: "cut", x: thicket.x, y: thicket.y, blocked: null };
 
-    const stream = nearestTileWithin(this.map, x, y, "stream", C.INTERACT_RADIUS, this.player.z);
+    const stream = nearestTileWithin(this.map, x, y, "stream", C.INTERACT_RADIUS, z);
     if (stream) {
-      return {
-        type: "build",
-        x: stream.x,
-        y: stream.y,
-        blocked: !this.inventory.has(BRIDGE_COST),
-      };
+      const blocked = this.inventory.has(BRIDGE_COST) ? null : "noMaterials";
+      return { type: "build", x: stream.x, y: stream.y, blocked };
     }
 
-    if (atCamp) return { type: "deposit", ore: 0, blocked: true };
+    if (atCamp) return { type: "deposit", ore: 0, blocked: "noOre" };
     return null;
   }
 
@@ -215,26 +258,9 @@ export class World {
     return this.map.defAt(this.player.x, this.player.y, this.player.z);
   }
 
-  /** Tiles per second, given terrain, sprinting, and how tired the player is. */
+  /** Tiles per second on the ground under the player. */
   speed(): number {
-    const ground = this.groundUnderPlayer();
-    const sprint = this.player.sprinting ? C.SPRINT_MULTIPLIER : 1;
-    const tired = this.stats.exhausted ? C.EXHAUSTED_SPEED_MUL : 1;
-    return C.WALK_SPEED * ground.speedMul * sprint * tired;
-  }
-
-  /**
-   * Which stamina rule applies this tick.
-   *
-   * Read off what the player actually did, not what was asked for: shoving
-   * against a tree is standing still, and it recovers stamina like standing
-   * still, sprint key or no sprint key.
-   */
-  private effort(): Effort {
-    const player = this.player;
-    if (!player.moving) return "standing";
-    if (player.sprinting) return "sprinting";
-    return this.groundUnderPlayer().difficult ? "difficult" : "walking";
+    return C.WALK_SPEED * this.groundUnderPlayer().speedMul;
   }
 
   /**
@@ -246,14 +272,22 @@ export class World {
    * may return early on "no input", which is why movement -- the one part that
    * genuinely has nothing to do then -- keeps its own early return one level
    * down.
+   *
+   * The tick that runs the clock out ends the summer, and once it has ended
+   * nothing steps at all: a summer you can keep playing past the end is not one.
+   * While {@link frozen}, the player still acts but the clock and hydration
+   * hold.
    */
   step(dt: number, input: InputState): void {
+    if (this.ended) return;
     this.movePlayer(dt, input);
     this.interact(dt, input);
-    this.consume(input);
-    this.stats.step(dt, this.effort());
-    this.elapsedSec = Math.min(this.elapsedSec + dt, C.SUMMER_LENGTH_SEC);
-    this.held = { interact: input.interact, eat: input.eat, drink: input.drink };
+    this.held = { interact: input.interact };
+    if (!this.frozen) {
+      this.stats.step(dt);
+      this.elapsedSec = Math.min(this.elapsedSec + dt, C.SUMMER_LENGTH_SEC);
+    }
+    if (this.elapsedSec >= C.SUMMER_LENGTH_SEC) this.endSummer();
   }
 
   private record(event: WorldEventPayload): void {
@@ -265,9 +299,10 @@ export class World {
   }
 
   /**
-   * Everything on the interact key: picking, cutting, bridging, dropping off.
+   * Everything on the interact key: picking, drinking, cutting, bridging,
+   * dropping off.
    *
-   * Three of the four are holds, and they are all the same shape. Progress
+   * Four of the five are holds, and they are all the same shape. Progress
    * builds while the key is down and the same thing stays in reach, and is
    * thrown away the moment either stops being true -- walking away mid-cut
    * loses the cut, which is what makes the timer a cost rather than a
@@ -296,7 +331,7 @@ export class World {
     if (action.type === "deposit") {
       if (!pressed) return;
       this.interactSpent = true;
-      if (action.blocked) this.blocked("noOre");
+      if (action.blocked) this.blocked(action.blocked);
       else this.record({ type: "deposited", gold: this.inventory.depositOre() });
       return;
     }
@@ -305,7 +340,7 @@ export class World {
       // Say why once, on the press, rather than every tick the key is held.
       if (pressed) {
         this.interactSpent = true;
-        this.blocked(BLOCKED_BY[action.type]);
+        this.blocked(action.blocked);
       }
       this.stopHarvesting();
       return;
@@ -314,8 +349,12 @@ export class World {
     // A key identifying what is being held, so that switching target -- to
     // another node, or to the next thicket tile along -- starts the hold over
     // instead of inheriting the last one's progress.
+    // The type is part of it, so two kinds of hold aimed at one tile could never
+    // finish on each other's progress.
     const key =
-      action.type === "harvest" ? `node:${action.node.id}` : `tile:${action.x},${action.y}`;
+      action.type === "harvest"
+        ? `node:${action.node.id}`
+        : `${action.type}:${action.x},${action.y}`;
     if (this.holdKey !== key) {
       this.holdKey = key;
       this.harvestProgress = 0;
@@ -335,6 +374,10 @@ export class World {
         this.inventory.add(action.node.kind);
         this.record({ type: "harvested", kind: action.node.kind });
         return;
+      case "drink":
+        this.stats.drink();
+        this.record({ type: "drank" });
+        return;
       case "cut":
         this.map.set(action.x, action.y, C.CUT_LEAVES, this.player.z);
         this.record({ type: "cut", x: action.x, y: action.y });
@@ -342,10 +385,11 @@ export class World {
       case "build":
         // Checked again rather than trusted: the pack can empty mid-hold, if
         // a bridge tile is laid and the next one started without letting go.
-        if (!this.inventory.pay(BRIDGE_COST)) {
+        if (!this.inventory.has(BRIDGE_COST)) {
           this.blocked("noMaterials");
           return;
         }
+        this.inventory.pay(BRIDGE_COST);
         this.map.set(action.x, action.y, "bridge", this.player.z);
         this.record({ type: "built", x: action.x, y: action.y });
         return;
@@ -359,35 +403,14 @@ export class World {
     this.harvestProgress = 0;
   }
 
-  /** Eating and drinking, one item per press. */
-  private consume(input: InputState): void {
-    if (input.eat && !this.held.eat) {
-      if (this.inventory.count("fruit") === 0) this.blocked("noFruit");
-      else if (!this.stats.canEat) this.blocked("stomachFull");
-      else {
-        this.inventory.remove("fruit");
-        this.stats.eat();
-        this.record({ type: "ate" });
-      }
-    }
-
-    if (input.drink && !this.held.drink) {
-      if (this.inventory.count("water") === 0) this.blocked("noWater");
-      else {
-        this.inventory.remove("water");
-        this.stats.drink();
-        this.record({ type: "drank" });
-      }
-    }
-  }
-
-  /** Walk the player for one tick, or stand them still if nothing is held. */
+  /**
+   * Walk the player for one tick, or stand them still if nothing is held.
+   * Rough ground is slower, read off the tile the tick starts on, and that is
+   * all it does.
+   */
   private movePlayer(dt: number, input: InputState): void {
     const player = this.player;
-    const wants = input.moveX !== 0 || input.moveY !== 0;
-    player.sprinting = input.sprint && wants && this.stats.canSprint;
-
-    if (!wants) {
+    if (input.moveX === 0 && input.moveY === 0) {
       player.moving = false;
       return;
     }

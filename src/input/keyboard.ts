@@ -3,21 +3,15 @@ export interface InputState {
   /** Desired direction, already normalised so diagonals are not faster. */
   moveX: number;
   moveY: number;
-  sprint: boolean;
-  /** Held to harvest, tapped to drop ore off at camp. */
+  /** Held to harvest, drink, cut and build; tapped to drop ore off at camp. */
   interact: boolean;
-  eat: boolean;
-  drink: boolean;
 }
 
 /** Nothing held. Spread it to build an input in a test. */
 export const NO_INPUT: InputState = {
   moveX: 0,
   moveY: 0,
-  sprint: false,
   interact: false,
-  eat: false,
-  drink: false,
 };
 
 const LEFT = ["a", "arrowleft"];
@@ -25,8 +19,6 @@ const RIGHT = ["d", "arrowright"];
 const UP = ["w", "arrowup"];
 const DOWN = ["s", "arrowdown"];
 const INTERACT = ["e", " "];
-const EAT = ["f"];
-const DRINK = ["r"];
 
 /**
  * Is this event headed for something the user is typing or clicking in?
@@ -94,10 +86,7 @@ export class Keyboard {
     return {
       moveX,
       moveY,
-      sprint: this.held.has("shift"),
       interact: this.any(INTERACT),
-      eat: this.any(EAT),
-      drink: this.any(DRINK),
     };
   }
 

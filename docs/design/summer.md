@@ -20,47 +20,51 @@ the cart can run.
 
 ## The body
 
-Two bars, and they answer different questions.
+One bar, and the clock.
+
+**Time** is what a summer spends. Rough ground (mud, underbrush) is slow,
+and every improvement is a hold on a key whose length is its price, so a
+cut path saves next year exactly the seconds it cost this year. Nothing
+else runs down. There is no stamina: the clock already never recovers, is
+always on screen, and stops the summer, and a second budget beside it was
+one the player could not read. The age curve is the length of the summer.
 
 **Hydration** answers *where*: how far from water the character dares to
 work. It drains at a constant rate whatever the character does, and it is
-refilled only at drinking spots: springs, and the banks of streams, many on
-both sides of any stream, all at one speed. Water is never carried. When
-hydration is low the view narrows into fog. Near camp, inside the half
-circle of the first stream, it is no concern. Beyond, distance from water is
-a barrier in its own right, so a map has few streams further out, and a
-stream in a far part of it is a relief.
+refilled only at springs, one-tile pools drunk from beside, all at one speed.
+They stand near the streams, many on both sides, but never touch one: the
+stream is for bridging, so the key at the water never means two things.
+Water is never carried. When hydration is low the view narrows into fog.
+Near camp, inside the half circle of the first stream, it is no concern.
+Beyond, distance from water is a barrier in its own right, so a map has few
+streams further out, and a stream in a far part of it is a relief.
 
-**Stamina** answers *what to spend on*. It does not recover. It is spent per
-tile of rough ground entered (mud, underbrush) and per tool action completed
-(a cut, a felling, a bridge tile), so a path lowers next year's cost exactly.
-At zero, no stamina-costing action is allowed. Walking on easy ground and
-eating still work. Max stamina follows the age curve: about 60 at summer 1,
-100 from summer 10 to 20, back toward 60 by summer 30. The bar is drawn
-under the character as a constant reminder of what the summer can still do,
-and the cost of a tile or a hold is shown before it is paid.
+**Fruit** is winter food. Eating one, once that is in, gives a burst of
+speed for a moment that matters, such as a full pack and a minute left.
+Every fruit eaten is one not in the store, and the choice each time is now
+or winter. There are no meals.
 
-**Meals.** Fruit is the only refill. A summer allows a number of meals that
-follows the age curve, with no cooldown between them. Fruit is also winter
-food, so every fruit eaten is one not in the store, and the choice each time
-is now or winter.
-
-The parent's grave, once it exists, raises max stamina by one on a visit. It
-restores nothing. Camp restores nothing.
+**A tired summer** follows a missed upkeep. Every hold takes half as long
+again and rough ground is slower still. Easy ground is walked as fast as
+ever, so it is felt where the work is, never on the way there. Camp
+restores nothing, because there is nothing to restore.
 
 ## Barriers and keys
 
 A barrier is anything the character cannot afford yet, and there are four
-currencies it can be short in: stamina (a thick thing), a tool (the axe,
+currencies it can be short in: time (a thick thing), a tool (the axe,
 bought), materials (a bridge needs sticks and vines from behind another
 barrier), and hydration (a place too far from water until a well stands).
 Thickness is the main dial. A thicket 3 tiles deep is a first-summer job.
-The same thicket 12 deep, at a few points a tile, is a two-summer project,
-and cuts persist, so the second summer starts where the first stopped.
+The same thicket 12 deep, at a few seconds a tile plus the walk to it, is a
+two-summer project, because those minutes compete with everything else the
+summer could gather. Cuts persist, so the second summer starts where the
+first stopped.
 
 The kinds of barrier so far:
 
-- **Mud** only slows you down, and every tile costs stamina.
+- **Mud** only slows you down. It does not block, it annoys and it costs
+  time, and both count.
 - **Thicket** is a wall of brambles, cut with the knife a tile at a time.
 - **Stream** is bridged with planks, a tile at a time, from sticks and vines.
 - **Saplings** are a copse of young trees, felled with the axe for logs.
@@ -87,9 +91,8 @@ choice for years. Bulky kinds take two backpack slots. No rarity for now.
 The knife is owned from the start. Every other tool is bought in winter from
 the town, and some need particular things brought back before the town can
 make them, so gold is not the whole answer. One tier of tools, no wear. Gear
-changes costs rather than adding tools: boots or clothes that lower the
-stamina cost of a terrain, a bigger backpack that lowers max stamina but adds
-slots.
+changes costs rather than adding tools: boots that make mud faster, a
+bigger backpack that adds slots but slows the walk.
 
 ## Improvements
 

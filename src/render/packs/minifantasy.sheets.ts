@@ -239,7 +239,6 @@ export const SYNTH_NARROW: readonly (readonly (readonly [index: number, region: 
  */
 export const RESOURCE_CELL = {
   fruit: ["farmCrops", 16, 1],
-  water: ["farmCrops", 16, 7],
   ore: ["mining", 13, 1],
   vine: ["fibres", 9, 1],
   stick: ["logging", 23, 11],

@@ -175,46 +175,39 @@ that alone reads as a snap.
 
 ## Stats
 
-This section is the stat model the code runs until M8, which replaces it.
-Delete it then, and write down what replaces it.
+**Drinking is at springs, apart from the stream.** The first version made every
+stream bank a drinking spot, which put the drink and the bridge on one key at
+the same water and needed a hydration threshold to choose between them. Springs
+stand two tiles from a stream. The bank tile between a spring and the stream
+can reach both, and there the key is the bridge, never the drink; the spring
+is drunk from any of its other sides, one step round. That keeps the key at
+the water meaning one thing. Three tiles kept the two reaches apart without the
+rule, but put the springs further from the water than they read as belonging
+to it. A spring is solid and drawn as its own banked pool, never
+autotiled into the stream. Drinking still waits for the bar to drop below
+`DRINK_OFFER_BELOW`, so a spring beside a thicket or a node does not take the
+key from them while the bar is nearly full.
 
-**One stamina rate per tick, not a sum.** The design doc gives four rates
-(sprinting -5%/s, difficult ground -1%/s, easy ground +0.2%/s, standing +0.3%/s)
-and never says what happens when two apply at once. They are resolved by
-precedence, sprint first, so sprinting through mud costs 5%/s rather than 6%/s.
-Adding them would invent a number the doc does not give, and the sum is the
-harder one to reason about while playing.
+**Springs are placed in reading order, not at random.** The same pass runs in
+worldgen and over the hand-edited maps, so it has to give the same springs
+every time on the same map. It only uses open grass whose eight neighbours are
+all walkable, which is what keeps a solid pool from ever closing a path.
 
-**Effort is read off what happened, not off the keys.** Shoving into a tree with
-shift held is standing still, and it recovers stamina at the standing rate. The
-tick already writes a `moving` flag for the walk animation, and that flag is
-what the stamina rule reads.
-
-**A sprint floor, so exhaustion is not one tick long.** With sprinting gated on
-`stamina > 0`, an empty bar recovers 0.0033 of a point in a tick, permits one
-tick of sprint, and empties again. The bar flickers and the player stutters.
-`SPRINT_MIN_STAMINA = 5` gives the recovery something to climb before the sprint
-comes back. It is a guess, and the only stamina number in config.ts that the
-design doc does not supply.
-
-**Hydration is one dial, not a set of gates.** The first version implemented an
-earlier draft of the doc: below 50% stamina stopped recovering entirely, and at
-0% it drained. Both are gone. Hydration now does exactly one thing, which is
-choose between the two standing-still rates, 1%/s watered and 0.5%/s parched.
-Effort costs and the walking gain are not gated on it at all. Running dry has no
-penalty of its own beyond staying on the slow rate, so at 1%/s drain the
-question hydration asks is not "will I collapse" but "how often am I willing to
-stop and find water".
-
-**Hydration is read before it is drained.** Crossing 50% takes effect from the
-next tick. At 1/60s that is worth eight thousandths of a stamina point, and one
-consistent hydration value per tick is easier to reason about than chasing it
-inside the step.
+**Fog is CSS, not Pixi, and it moves without repainting.** It is a layer
+between the canvas and the HUD, twice the window each way, with a radial
+gradient at its centre: clear inside the radius, then deeper in steps to black.
+The HUD already knows where the player is on screen, for the prompt, and puts
+the layer there with a transform, which the compositor moves without painting.
+The first version moved the gradient's centre instead, which repainted a
+full-screen gradient every frame. Now the gradient is repainted only when the
+radius crosses a 4px step, which happens only while hydration is below the
+threshold. The view is ringed from the start, sized so the dark begins just
+inside a full HD screen's side edges.
 
 **The backpack says what is in it.** The count alone (`6/10`) does not tell you
-whether you are carrying the water you need. The pill now reads
-`Backpack 6/10  fruit 2, water 1, ore 3`, listing only kinds actually held and
-`empty` otherwise, which is the smallest thing that answers "can I drink".
+whether you are carrying the fruit or the bridge materials you need. The pill
+reads `Backpack 6/10  fruit 2, ore 3, vine 1`, listing only kinds actually held
+and `empty` otherwise.
 
 **The HUD reads a plain object.** `hudModel(world)` turns simulation state into
 numbers, and `Hud.update` writes those numbers into the markup. Splitting it
@@ -225,7 +218,7 @@ through.
 ## The summer loop
 
 **An append-only event log, not a callback.** The simulation records what it did
-(`harvested`, `ate`, `deposited`, `blocked`) and never removes anything. The
+(`harvested`, `drank`, `deposited`, `blocked`) and never removes anything. The
 HUD, the end-of-summer count and the prop layer each walk the list with their own
 cursor. That keeps the one-way rule intact, since reading with a cursor takes
 nothing out of the world, and it means the summary counts the summer from the same
@@ -253,7 +246,7 @@ else.
 
 **A refusal is said once.** Holding E with a full backpack emits one
 `backpackFull` on the press rather than one per tick, which is 60 toasts a
-second. Everything one-shot (eating, drinking, banking) is edge-triggered
+second. Everything one-shot (banking, and every refusal) is edge-triggered
 against the previous tick's input, which works with the fixed timestep because
 every tick inside a frame sees the same input object.
 
@@ -281,21 +274,23 @@ The same scaled seconds go to the camera and the animations, not just to the
 simulation. A 10x world drawn with 1x frame times reads as the player sliding
 around inside a view that cannot keep up.
 
-**Freeze is a flag on `Stats`, pushed every frame.** It could as easily have been
-a rate the overlay zeroed, but then "the numbers stopped" would live in the
-renderer, and `sim/` would no longer be the whole account of what the summer does.
-Pushing it every frame rather than on change is what makes it survive a
-regenerate: a new `World` gets the checkbox applied on its first tick, where a
-one-shot callback would have left it thawed.
+**Freeze is a flag on `World`, pushed every frame.** It holds hydration and the
+clock, the two things that run down on their own, and nothing else: the player
+still walks, works and drinks. It could as easily have been a rate the overlay
+zeroed, but then "the numbers stopped" would live in the renderer, and `sim/`
+would no longer be the whole account of what the summer does. Pushing it every
+frame rather than on change is what makes it survive a regenerate: a new
+`World` gets the checkbox applied on its first tick, where a one-shot callback
+would have left it thawed.
 
 **The readout is padded to a fixed width.** Unpadded, the line was 131 to 133
 characters depending on where the player was standing, and the columns walked
 sideways every frame, measured at 1041, 1025 and 1033 painted pixels within one
 second of walking. Each field is now padded to the longest value it can hold, so
-the line is 143 characters whatever is happening. The padding is non-breaking
+the line is 116 characters whatever is happening. The padding is non-breaking
 spaces and the fields are separated by ordinary ones: under `white-space:
 pre-wrap` that makes the gaps between fields the only places the line can wrap,
-so `full` can never end up on one line with its number on the next.
+so `hyd` can never end up on one line with its number on the next.
 
 **The panel is always built, and starts hidden.** Building it only under
 `?debug=1` would mean a reload to get at it, and a hidden div plus one keydown
@@ -326,10 +321,10 @@ measured only when its contents change: a prompt that changed text, or a toast
 arriving or fading out. Writing a style and reading a box back in the same frame
 forces layout, and this runs every frame.
 
-The corners keep what is true all summer and is read by glancing: the bars, the
-clock, the pack, the gold. The bottom right, freed up by the move, now carries
-the two lines the player needs exactly once, which key eats fruit and which key
-drinks water, shown only while carrying some.
+The corners keep what is true all summer and is read by glancing: the
+hydration bar, the clock, the pack, the gold. The bottom right, freed up by the
+move, holds the one control that takes the mouse, the "End summer" button, shown
+only at camp.
 
 ## The discovery test
 

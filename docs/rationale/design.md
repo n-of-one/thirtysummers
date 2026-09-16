@@ -60,21 +60,36 @@ follows answers those four lines.
 
 ## Summer
 
-**Two bars that answer different questions.** Hydration answers where, and
-stamina what to spend on. Two is right for now. A third stat should react to
-place, not to time or effort, or it only repeats the other two: health once
-hazards exist, a spirit meter once spirits do.
+**One bar.** Hydration answers where. Time answers what to spend on, and
+the clock is already on screen. Stamina was tried twice and removed on 15
+Sep 2026. As a rate that recovered by standing still, the question it asked
+was "how long do I wait", which is not a decision. As a budget spent per
+rough tile and per cut, it was meant to make a thick wall a price the
+player could count, and it did not survive its first playtest, for two
+reasons. The walking tax could not be planned: underbrush is the forest
+floor, a third to a half of the walkable tiles on every test map, and
+nobody sums a texture by eye, so even the designer could not change a
+route to save it. And a bar that stops the legs at zero is a second hard
+stop beside the clock, a worse one, because the rest of the summer can be
+spent standing in it. The wall part was never tested, since the walk spent
+the bar first. What stamina was for is carried by time: rough ground is
+slow, a cut is a hold, and those seconds compete with gathering, which is
+the same decision. A second stat, if it comes, reacts to place, not to time
+or effort, or it only repeats the clock: health once hazards exist, a
+spirit meter once spirits do.
 
 **No sprint.** A held key that makes you faster is a key held all the time.
 Taking it away makes speed something the map gives, through paths, bridges
 and a cart route, which is the thing being tested. Base walk speed goes up a
-little to compensate.
+little to compensate. A burst of speed bought with a fruit is different: it
+is spent, not held, and it is an experiment of its own.
 
-**Stamina is a budget, not a rate.** Spent per rough tile and per tool
-action, never recovered by resting. A path then lowers next year's cost
-exactly, and a thick wall has a price the player can count. Stamina that
-recovered by standing still made the question "how long do I wait", which
-is not a decision.
+**Thickness is priced in the hold.** With no budget, the only cost of a cut
+is the seconds of holding the key plus the walk to the wall. The length of
+the hold is the dial, and a wall is a two-summer project because its
+minutes compete with everything else the summer could gather. A long hold
+is watching a bar, so the dial can also be turned by making walls thicker
+and cuts quicker.
 
 **Hydration is a leash to a place.** Water is drunk at springs and banks,
 never carried, so where the water is decides where the character can work.
@@ -83,17 +98,15 @@ well is the key to it. It drains at a constant rate because weather and
 seasons are not in yet. Fog is the first consequence because it is felt
 without stopping play. Slowness is held back in case fog is not enough.
 
-**Meals are counted.** Uncapped eating is an exchange rate: fruit buys
-stamina, stamina buys cuts, cuts buy sellables, sellables buy fruit. A thick
-wall becomes "how much fruit did I bring", which erases both thickness and
-the age curve. Prices alone, diminishing returns, eating that costs clock
-time and a separate rarer refill were weighed. A meal count that follows the
-age curve won. Diminishing returns is the fallback if a count feels like a
-rule that has to be explained. No cooldown, because the cooldown was the
-discovery test's one irritation.
-
-**Fruit is both refill and winter food.** Every fruit eaten in summer is one
-not in the store, so eating is a choice between now and winter.
+**Fruit is winter food, and a burst of speed.** With stamina gone there is
+nothing for a meal to refill, and meals went with it. Eating a fruit for a
+few seconds of speed keeps what the meal was for: every fruit eaten in
+summer is one not in the store, so eating is a choice between now and
+winter, and it gives the last minute of a summer a move. It is uncapped on
+purpose, to find out whether the clock alone stops fruit from becoming an
+exchange rate, where a summer's reach is how much fruit was brought. If it
+does not, a meal count or diminishing returns is the fallback. No cooldown,
+because the cooldown was the discovery test's one irritation.
 
 **Summer length follows age.** It is the three stages of a life made visible
 in the one number every summer is measured by.
@@ -102,8 +115,9 @@ in the one number every summer is measured by.
 wasted, and a final trip out is a good move, not a gamble. The extra gold
 for ending away from camp keeps coming home worth something.
 
-**The grave raises max stamina, not stamina.** A visit is worth the walk
-over a life, and it cannot be used as a refill.
+**The grave gives something that lasts.** A visit is worth the walk over a
+life, and it must not be a refill. What it gives is open again now that
+max stamina is gone.
 
 **A rung on the ladder is distance behind barriers.** Near camp sells for
 nothing or one, each barrier out roughly doubles it. That ties the economy
@@ -114,7 +128,7 @@ pull the player outward. Rarity is left out to keep it simple until
 respawning is designed.
 
 **Four currencies, and thickness as the dial.** A barrier can be short in
-stamina, a tool, materials or hydration. Because cuts persist, thickness
+time, a tool, materials or hydration. Because cuts persist, thickness
 turns a wall into a project that spans summers, which is what makes a later
 summer continue an earlier one.
 
@@ -165,9 +179,11 @@ gives surplus a meaning and keeps each winter's purchase a real choice.
 efficient income, which forces new logistics, which keeps a life's play
 changing. Rising for any other reason would be a tax.
 
-**Missing upkeep costs stamina, not the run.** Ten max stamina for one
-summer is felt on every rough tile, enough to make upkeep a priority, never
-enough to end a life.
+**Missing upkeep costs a tired summer, not the run.** Holds take half as
+long again and rough ground is slower, for one summer. Easy ground stays
+fast, so the penalty lands where the work is and never on the walk to it,
+which is the part of a summer that was already the most routing. Enough to
+make upkeep a priority, never enough to end a life.
 
 **Nothing announces the damage.** The player meets what wore and grew back
 on the map, which is where it matters.
@@ -229,9 +245,9 @@ is the sum of the map's play.
 
 ## Words
 
-**In-game words over game-design words.** Upkeep, not floor. Stamina, not
-budget. Hydration, not leash. Shop, not shelf. The design documents use the
-words the player will see.
+**In-game words over game-design words.** Upkeep, not floor. Hydration,
+not leash. Shop, not shelf. The design documents use the words the player
+will see.
 
 **Summer and winter, not day and night.** The game is called thirtysummers,
 and a year is the unit the player counts.

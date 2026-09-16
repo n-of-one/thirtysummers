@@ -4,57 +4,60 @@ Summer as [../design/summer.md](../design/summer.md) describes it, on the
 existing maps. No new terrain, no winter. Playable as one summer, then next
 summer, as now.
 
-**Depends on** the chores in [PLAN.md](PLAN.md). Nothing else.
+The milestone was built once with stamina as a budget and meals, and the
+first playtest dropped both. What is left to do is the strip. Hydration, the
+springs, the fog, the end of a summer and the camp button are built and
+stay. The reasons are in [../rationale/design.md](../rationale/design.md)
+under "One bar".
+
+**Depends on** nothing. The chores are done.
 
 **Replaces** the discovery test's stat model: sprint, stamina that recovers
 per second, water carried as a resource, the fruit cooldown. It is recorded
 in [../archive/decided-against.md](../archive/decided-against.md).
 
+## Built and staying
+
+- No sprint. `WALK_SPEED 8`, `DIFFICULT_SPEED_MUL 0.4`, both hand-tuned.
+- Hydration as the one bar. Water is not a resource. Springs, placed near
+  every stream and never touching one, drunk from beside with a short hold.
+  Below `HYDRATION_FOG_THRESHOLD` the fog closes in. Fog is the only
+  consequence.
+- The end of a summer. What is carried when the clock stops is banked,
+  `world.awayAtEnd` records whether the player was out of reach of camp,
+  and a button at camp ends the summer early.
+
 ## Steps
 
-1. **No sprint.** Remove the sprint input, `SPRINT_MULTIPLIER`,
-   `STAMINA_SPRINT`, `SPRINT_MIN_STAMINA` and the `sprinting` flag. Raise
-   `WALK_SPEED` a little, tuned in play. `WALK_SPEED 7` and
-   `DIFFICULT_SPEED_MUL 0.4` were hand-tuned in play, so change them on
-   purpose. The walk animation loses nothing.
-2. **Stamina as a budget.** `Stats` stops recovering. `STAMINA_ROUGH_TILE`
-   is charged when the player's tile changes to a difficult one, read off
-   the tick's move rather than off the keys, and `STAMINA_CUT`,
-   `STAMINA_BUILD` when a hold completes. Max stamina comes from a per-year
-   table `MAX_STAMINA_BY_YEAR` (60, 65, 70, 75, 80). At zero the interact
-   query refuses cut and build with a new `BlockedReason` `exhausted`, and
-   the move code refuses to enter a difficult tile, which is a new refusal
-   the prompt has to say. Eating still works.
-3. **Meals.** `MEALS_BY_YEAR` (2 for years 1 to 5), `MEAL_STAMINA` 10, no
-   cooldown. `FULL_STOMACH_SEC` goes. The HUD shows meals left.
-4. **Hydration as a leash.** Water is no longer a resource: the `water`
-   kind and its glyph go, and a drinking spot is a tile property instead:
-   any tile adjacent to stream, plus spring tiles (new terrain `spring`,
-   glyph `o`, passable, easy). Drinking is a short hold on the interact key
-   when in reach of one, to full. Below `HYDRATION_FOG_THRESHOLD` the
-   renderer draws a fog vignette whose radius shrinks with hydration. At
-   zero the view is a few tiles. Fog is the only consequence.
-5. **The end of a summer.** What is carried when the clock stops is banked.
-   `world.awayAtEnd` records whether the player was out of reach of camp,
-   for winter. A button at camp ends the summer early.
-6. **The stamina bar under the player.** Drawn by the prop layer or the
-   marker as a thin bar at the feet, and the cost of the tile ahead or the
-   hold in reach shown on the prompt ("wade, 2 stamina").
-7. **Config and docs.** Every new number marked. Delete the "Stats" section
-   of [../rationale/technical.md](../rationale/technical.md), which
-   describes the model this milestone removes, and write down what replaces
-   it and why. Update the controls in
-   [../development.md](../development.md).
+1. **Strip stamina.** `Stats` loses the stamina field, `spend`, and the
+   `exhausted` and rough-ground refusals. `MAX_STAMINA_BY_YEAR`,
+   `STAMINA_ROUGH_TILE`, `STAMINA_CUT`, `STAMINA_BUILD`,
+   `STAMINA_WARN_THRESHOLD`, the `STAMINA_BAR_*` constants and
+   `src/render/staminaBar.ts` go. The corner bar, the bar at the feet and
+   the cost on the prompt go with them. The freeze in the debug overlay
+   freezes hydration and the clock only.
+2. **Strip meals.** `MEALS_BY_YEAR`, `MEAL_STAMINA` and the eat key go.
+   Fruit is picked, carried and banked like every other kind. The HUD's
+   meal count goes.
+3. **Rough ground is slow, never refused.** The tick's per-tile charge and
+   `roughRefused` go. The look-ahead on the prompt goes with them unless the
+   prompt still has something to say about the tile ahead.
+4. **Config and docs.** No new numbers. The "Stats" section of
+   [../rationale/technical.md](../rationale/technical.md) keeps the spring
+   paragraphs and loses the four about stamina. The controls in
+   [../development.md](../development.md) lose the eat key. Tests that
+   asserted stamina sums, refusals and meal counts go, not get skipped.
 
 ## Verification
 
-- Stamina over a simulated summer matches the per-tile and per-action sums
-  exactly.
-- A full bar is refused nothing. An empty one is refused rough ground and
-  tools, with the right reason.
-- Two meals, then a refusal.
+- Rough ground is entered at `DIFFICULT_SPEED_MUL` with nothing else, and
+  the summer's clock is the only thing that runs down on its own besides
+  hydration.
 - Hydration reaches zero at the drain rate, and the fog radius follows it.
-- Drinking at a bank and at a spring fills the bar.
+- Drinking beside a spring fills the bar, and the stream offers only the
+  bridge.
 - A summer ended away from camp banks the pack and flags the world.
+- No `stamina`, `meal` or `eat` in `src/`, `tests/` or
+  [../development.md](../development.md).
 - One summer played on `?map=b` over the protocol, walked not teleported,
   with the numbers read back.

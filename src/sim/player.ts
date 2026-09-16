@@ -9,7 +9,6 @@ export interface Player {
   facing: Facing;
   /** True while actually moving, not merely while a key is held. */
   moving: boolean;
-  sprinting: boolean;
   /**
    * Total distance walked, in tiles. The walk cycle is driven by this rather
    * than by elapsed time so footfalls stay in step with actual speed -- a
@@ -25,7 +24,6 @@ export function createPlayer(spawn: Vec2, z = 0): Player {
     z,
     facing: "southEast",
     moving: false,
-    sprinting: false,
     distanceWalked: 0,
   };
 }

@@ -21,7 +21,6 @@ import type { GeneratedWorld } from "./worldgen.ts";
 /** Glyph for each resource node, as it appears over the ground it grows on. */
 export const RESOURCE_GLYPH: Record<ResourceKind, string> = {
   fruit: "f",
-  water: "w",
   ore: "v",
   vine: "y",
   stick: "s",
@@ -41,7 +40,6 @@ export const CAMP_GLYPH = "C";
  */
 export const NODE_GROUND: Record<ResourceKind, TerrainKind> = {
   fruit: "grass",
-  water: "grass",
   ore: "grass",
   vine: "mud",
   stick: "grass",

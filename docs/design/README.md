@@ -39,8 +39,8 @@ In-game words, not game-design words.
   winter, and it is the counter the player sees.
 - A **life** is thirty summers, from 15 to 45. A **generation** is one life.
   The next life is the **heir**'s.
-- **Stamina** and **hydration** are the two bars. A **meal** is one fruit
-  eaten.
+- **Hydration** is the one bar. A **tired** summer is the one after a
+  missed upkeep.
 - **Upkeep** is what a winter costs, in fruit and gold. The **shop** is what
   the town sells. The **store** is what is banked at camp. A **cache** is a
   box in the field.

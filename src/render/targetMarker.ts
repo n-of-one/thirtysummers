@@ -26,7 +26,7 @@ export interface TargetTile {
 
 export function targetTile(action: Action | null, progress: number): TargetTile | null {
   if (!action || (action.type !== "cut" && action.type !== "build")) return null;
-  return { x: action.x, y: action.y, blocked: action.blocked, progress };
+  return { x: action.x, y: action.y, blocked: action.blocked !== null, progress };
 }
 
 /**

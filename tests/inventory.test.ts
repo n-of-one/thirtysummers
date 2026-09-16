@@ -15,7 +15,7 @@ describe("Inventory", () => {
   it("counts every kind against the same ten slots", () => {
     const bag = new Inventory();
     bag.add("fruit", 4);
-    bag.add("water", 3);
+    bag.add("vine", 3);
     bag.add("ore", 3);
     expect(bag.carried).toBe(10);
     expect(bag.full).toBe(true);
@@ -38,7 +38,7 @@ describe("Inventory", () => {
     expect(bag.count("fruit")).toBe(2);
     expect(bag.remove("fruit", 2)).toBe(true);
     expect(bag.count("fruit")).toBe(0);
-    expect(bag.remove("water")).toBe(false);
+    expect(bag.remove("stick")).toBe(false);
   });
 
   it("turns ore into gold at the drop-off and frees the slots", () => {

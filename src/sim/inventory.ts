@@ -11,7 +11,6 @@ import { RESOURCE_KINDS, type ResourceKind } from "./types.ts";
 export class Inventory {
   private readonly counts: Record<ResourceKind, number> = {
     fruit: 0,
-    water: 0,
     ore: 0,
     vine: 0,
     stick: 0,

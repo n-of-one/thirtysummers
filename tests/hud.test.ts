@@ -3,7 +3,14 @@ import * as C from "../src/config.ts";
 import { Inventory } from "../src/sim/inventory.ts";
 import { TileMap } from "../src/sim/tilemap.ts";
 import { World } from "../src/sim/world.ts";
-import { anchorPosition, backpackText, formatClock, hudModel, toastFor } from "../src/ui/hud.ts";
+import {
+  anchorPosition,
+  backpackText,
+  fogRadiusPx,
+  formatClock,
+  hudModel,
+  toastFor,
+} from "../src/ui/hud.ts";
 
 function world(): World {
   const map = new TileMap(8, 8);
@@ -44,38 +51,30 @@ describe("hudModel", () => {
   it("reports a fresh summer at full", () => {
     const model = hudModel(world());
     expect(model).toEqual({
-      stamina: 100,
       hydration: 100,
-      staminaWarn: false,
       hydrationWarn: false,
-      stomachCooldownSec: 0,
       carried: 0,
       contents: "empty",
       capacity: C.BACKPACK_CAPACITY,
       gold: 0,
-      holdingFruit: false,
-      holdingWater: false,
       secondsLeft: C.SUMMER_LENGTH_SEC,
       year: 1,
       urgent: false,
+      atCamp: false,
+      fogRadiusPx: C.FOG_MAX_RADIUS_TILES * C.TILE,
       prompt: null,
     });
   });
 
-  it("warns on stamina below the display threshold", () => {
+  it("closes the fog in, and warns, once hydration drops below the threshold", () => {
     const w = world();
-    w.stats.stamina = C.STAMINA_WARN_THRESHOLD;
-    expect(hudModel(w).staminaWarn).toBe(false);
-    w.stats.stamina = C.STAMINA_WARN_THRESHOLD - 0.1;
-    expect(hudModel(w).staminaWarn).toBe(true);
-  });
-
-  it("warns on hydration exactly where resting drops to half speed", () => {
-    const w = world();
-    w.stats.hydration = C.HYDRATION_LOW_THRESHOLD + 0.1;
+    w.stats.hydration = C.HYDRATION_FOG_THRESHOLD;
     expect(hudModel(w).hydrationWarn).toBe(false);
-    w.stats.hydration = C.HYDRATION_LOW_THRESHOLD;
+    expect(hudModel(w).fogRadiusPx).toBe(C.FOG_MAX_RADIUS_TILES * C.TILE);
+    w.stats.hydration = 10;
     expect(hudModel(w).hydrationWarn).toBe(true);
+    expect(hudModel(w).fogRadiusPx).toBe(fogRadiusPx(10));
+    expect(fogRadiusPx(10)).toBeLessThan(C.FOG_MAX_RADIUS_TILES * C.TILE);
   });
 
   it("follows the backpack, the gold and the clock", () => {
@@ -91,12 +90,6 @@ describe("hudModel", () => {
     expect(model.secondsLeft).toBe(30);
     expect(model.urgent).toBe(true);
     expect(formatClock(model.secondsLeft)).toBe("0:30");
-  });
-
-  it("shows the full-stomach cooldown after a meal", () => {
-    const w = world();
-    w.stats.eat();
-    expect(hudModel(w).stomachCooldownSec).toBe(C.FULL_STOMACH_SEC);
   });
 });
 
@@ -137,32 +130,59 @@ describe("the action prompt", () => {
   });
 });
 
-describe("the use hints", () => {
-  it("stay quiet until there is something to use", () => {
+describe("the action prompt at a thicket, on rough ground and by a spring", () => {
+  it("offers the cut with nothing but the hold to it", () => {
     const w = world();
-    expect(hudModel(w).holdingFruit).toBe(false);
-    expect(hudModel(w).holdingWater).toBe(false);
+    w.map.set(6, 5, "thicket");
+    expect(hudModel(w).prompt).toEqual({
+      text: "Hold E to cut through",
+      progress: 0,
+      blocked: false,
+    });
   });
 
-  it("appear with the item and leave with the last of it", () => {
+  it("says nothing about rough ground, which is only slow", () => {
     const w = world();
-    w.inventory.add("fruit", 2);
-    expect(hudModel(w).holdingFruit).toBe(true);
-    expect(hudModel(w).holdingWater).toBe(false);
-
-    w.inventory.add("water", 1);
-    w.inventory.remove("fruit");
-    w.inventory.remove("fruit");
-    const model = hudModel(w);
-    expect(model.holdingFruit).toBe(false);
-    expect(model.holdingWater).toBe(true);
+    w.map.set(6, 5, "mud");
+    w.player.x = 5.9;
+    expect(hudModel(w).prompt).toBeNull();
   });
 
-  it("ignores ore, which is banked rather than used", () => {
+  it("offers a drink beside a spring once thirsty", () => {
     const w = world();
-    w.inventory.add("ore", 5);
-    expect(hudModel(w).holdingFruit).toBe(false);
-    expect(hudModel(w).holdingWater).toBe(false);
+    w.map.set(6, 5, "spring");
+    w.stats.hydration = 50;
+    expect(hudModel(w).prompt).toEqual({ text: "Hold E to drink", progress: 0, blocked: false });
+  });
+});
+
+describe("the end-summer button", () => {
+  it("is offered only at camp", () => {
+    const w = world();
+    expect(hudModel(w).atCamp).toBe(false);
+    w.player.x = 1.5;
+    w.player.y = 1.5;
+    expect(hudModel(w).atCamp).toBe(true);
+  });
+});
+
+describe("fogRadiusPx", () => {
+  it("rings the view at its widest from full hydration down to the threshold", () => {
+    expect(fogRadiusPx(100)).toBe(C.FOG_MAX_RADIUS_TILES * C.TILE);
+    expect(fogRadiusPx(C.HYDRATION_FOG_THRESHOLD)).toBe(C.FOG_MAX_RADIUS_TILES * C.TILE);
+  });
+
+  it("closes from the widest circle to a few tiles at zero", () => {
+    expect(fogRadiusPx(C.HYDRATION_FOG_THRESHOLD - 1e-9)).toBeCloseTo(
+      C.FOG_MAX_RADIUS_TILES * C.TILE,
+      3,
+    );
+    expect(fogRadiusPx(0)).toBe(C.FOG_MIN_RADIUS_TILES * C.TILE);
+  });
+
+  it("shrinks steadily as hydration falls", () => {
+    const radii = [35, 25, 15, 5, 0].map((h) => fogRadiusPx(h));
+    for (let i = 1; i < radii.length; i++) expect(radii[i]).toBeLessThan(radii[i - 1]!);
   });
 });
 
@@ -203,15 +223,15 @@ describe("backpackText", () => {
     bag.add("ore", 5);
     bag.add("fruit", 2);
     expect(backpackText(bag)).toBe("fruit 2, ore 5");
-    bag.add("water", 1);
-    expect(backpackText(bag)).toBe("fruit 2, water 1, ore 5");
+    bag.add("vine", 1);
+    expect(backpackText(bag)).toBe("fruit 2, ore 5, vine 1");
   });
 
   it("drops a kind again once the last of it is used", () => {
     const bag = new Inventory();
-    bag.add("water", 1);
+    bag.add("vine", 1);
     bag.add("ore", 1);
-    bag.remove("water");
+    bag.remove("vine");
     expect(backpackText(bag)).toBe("ore 1");
   });
 });
@@ -220,11 +240,10 @@ describe("toastFor", () => {
   it("puts every kind of event into words", () => {
     expect(toastFor({ type: "harvested", kind: "ore", at: 0 })).toBe("+1 ore");
     expect(toastFor({ type: "deposited", gold: 5, at: 0 })).toBe("Banked 5 gold");
-    expect(toastFor({ type: "ate", at: 0 })).toContain("Ate a fruit");
-    expect(toastFor({ type: "drank", at: 0 })).toContain("Drank water");
-    expect(toastFor({ type: "blocked", reason: "stomachFull", at: 0 })).toBe("Too full to eat");
-    expect(toastFor({ type: "blocked", reason: "noWater", at: 0 })).toBe(
-      "No water in the backpack",
+    expect(toastFor({ type: "drank", at: 0 })).toBe("Drank your fill");
+    expect(toastFor({ type: "blocked", reason: "backpackFull", at: 0 })).toBe("Backpack full");
+    expect(toastFor({ type: "summerEnded", away: false, ore: 0, gold: 0, at: 0 })).toBe(
+      "Summer over",
     );
   });
 });

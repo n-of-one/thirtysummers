@@ -19,8 +19,8 @@ function touches(map: TileMap, x: number, y: number, kind: TerrainKind): boolean
  * Scatter the resources over ground the player can actually walk to.
  *
  * Each kind draws from its own pool of candidate tiles, so where a resource
- * grows says something about the terrain: fruit at the forest edge, water at
- * the stream bank, ore across open ground. A tile is only ever used once.
+ * grows says something about the terrain: fruit at the forest edge, ore
+ * across open ground. A tile is only ever used once.
  */
 export function placeResources(
   map: TileMap,
@@ -33,7 +33,6 @@ export function placeResources(
   const campY = Math.floor(camp.y);
 
   const nearTrees: number[] = [];
-  const nearStream: number[] = [];
   const open: number[] = [];
 
   for (let y = 0; y < map.height; y++) {
@@ -45,7 +44,6 @@ export function placeResources(
       if (kind !== "grass" && kind !== "underbrush" && kind !== "mud") continue;
 
       if (touches(map, x, y, "tree")) nearTrees.push(idx);
-      if (touches(map, x, y, "stream")) nearStream.push(idx);
       if (kind === "grass" || kind === "underbrush") open.push(idx);
     }
   }
@@ -73,7 +71,6 @@ export function placeResources(
   };
 
   place("fruit", nearTrees, C.FRUIT_NODES);
-  place("water", nearStream, C.WATER_NODES);
   place("ore", open, C.ORE_NODES);
 
   return nodes;

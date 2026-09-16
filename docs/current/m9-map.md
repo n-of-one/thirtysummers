@@ -5,8 +5,7 @@ five new maps that hold it. Playable as five summers back to back, with no
 winter yet. The axe and the well are given at the start of the summer whose
 table row needs them, so the map can be tested before the shop exists.
 
-**Depends on** M8: the `spring` terrain, drinking spots, and stamina costs
-for tool actions.
+**Depends on** M8: the `spring` terrain and drinking spots.
 
 ## Steps
 
@@ -18,9 +17,9 @@ for tool actions.
    winter, slowly, or never. `RESOURCE_KINDS` and `NODE_GROUND` move into
    it. The inventory counts slots, not items.
 3. **Tools.** `world.tools` is a set: the knife from the start, the axe and
-   the cart granted by the map's year table for now. Felling is a hold on a
-   sapling tile with the axe. It leaves grass and one log in the pack, and
-   costs `STAMINA_FELL`.
+   the cart granted by the map's year table for now. Felling is a hold of
+   `FELL_TIME` on a sapling tile with the axe. It leaves grass and one log
+   in the pack.
 4. **Improvements.** The well is a hold on a grass tile far from water with
    `WELL_LOGS` and `WELL_STICKS` in the pack, and leaves a `spring` tile.
    The cache is a hold on grass with `CACHE_STICKS`, and leaves a `cache`
@@ -39,7 +38,7 @@ for tool actions.
 
 - The resource table round-trips through the map file.
 - Slots count, and a log takes two.
-- Felling needs the axe and pays stamina.
+- Felling needs the axe and takes its hold.
 - The well makes a drinking spot, and refuses near water.
 - The cache holds and returns.
 - `map:check` passes all five maps on every row.

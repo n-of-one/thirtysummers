@@ -41,13 +41,10 @@ export interface Readout {
   x: number;
   y: number;
   facing: Facing;
-  sprinting: boolean;
   terrain: TerrainKind;
   /** Tiles per second. */
   speed: number;
-  stamina: number;
   hydration: number;
-  stomachCooldownSec: number;
   elapsedSec: number;
   seed: number;
   pack: string;
@@ -67,11 +64,9 @@ export interface Readout {
 const W = {
   coord: 6,
   facing: 9,
-  sprint: 6,
   terrain: 10,
   speed: 5,
   stat: 6,
-  stomach: 4,
   elapsed: 5,
   fps: 3,
 } as const;
@@ -98,12 +93,10 @@ const num = (value: number, width: number, places: number): string =>
 export function formatReadout(r: Readout): string {
   return [
     `pos${NBSP}${num(r.x, W.coord, 2)},${num(r.y, W.coord, 2)}`,
-    `${r.facing.padEnd(W.facing, NBSP)}${NBSP}${(r.sprinting ? "sprint" : "").padEnd(W.sprint, NBSP)}`,
+    r.facing.padEnd(W.facing, NBSP),
     `on${NBSP}${r.terrain.padEnd(W.terrain, NBSP)}`,
     `${num(r.speed, W.speed, 2)}${NBSP}tiles/s`,
-    `sta${NBSP}${num(r.stamina, W.stat, 2)}`,
     `hyd${NBSP}${num(r.hydration, W.stat, 2)}`,
-    `full${NBSP}${num(r.stomachCooldownSec, W.stomach, 1)}`,
     `t${NBSP}${num(r.elapsedSec, W.elapsed, 1)}`,
     `${num(r.fps, W.fps, 0)}fps`,
     `seed${NBSP}${r.seed}`,
@@ -134,7 +127,7 @@ export interface DebugOptions {
 /**
  * The developer's half of the screen: seed, speed, grid, freeze, teleport.
  *
- * Two of the four controls are read rather than pushed. Time scale and stat
+ * Two of the four controls are read rather than pushed. Time scale and the
  * freeze are left as fields for the frame loop to pick up, because they are
  * states rather than events, and reading them each frame means a world built
  * after the box was ticked is frozen too -- with a callback, a regenerate would
@@ -147,7 +140,7 @@ export interface DebugOptions {
 export class DebugOverlay {
   /** Simulated seconds per real second. The frame loop reads this. */
   timeScale = C.TIME_SCALE_MIN;
-  /** Hold the stats where they are. The frame loop reads this too. */
+  /** Hold hydration and the clock where they are. The frame loop reads this too. */
   frozen = false;
   /** Is the panel up? Closing it hides the panel, not what it was set to. */
   open = false;

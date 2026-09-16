@@ -36,16 +36,16 @@ gitignored. Without them the code-drawn placeholder pack draws everything.
 
 ## Controls
 
-WASD or arrows to move, Shift to sprint, E or Space to gather, cut, build and
-bank ore, F to eat, R to drink. M8 removes sprint and R, and drinking becomes
-a hold on E at the water.
+WASD or arrows to move. E or Space to gather, cut, build and bank ore, and,
+held beside a spring, to drink. At camp an "End summer" button ends the
+summer early.
 
 ## The debug overlay
 
 Press `` ` `` in the running game, or open with `?debug=1`. It has a seed box
 with regenerate (`[` and `]` step the seed), a 1x–10x time scale, a tile
-grid, a stat freeze, click-to-teleport, and a fixed-width readout of the
-numbers the frame was drawn with. Regenerating reseeds in place. Keys typed
+grid, a freeze that holds hydration and the clock, click-to-teleport, and a
+fixed-width readout of the numbers the frame was drawn with. Regenerating reseeds in place. Keys typed
 into the panel do not move the player.
 
 ## Measuring the game
@@ -55,6 +55,27 @@ the running game over the Chrome DevTools Protocol and read numbers back.
 `window.__game` is always there to measure from. Walk with real keystrokes
 when movement is what is being checked, not teleports. Prove a check is
 non-vacuous by reverting the fix and watching it fail.
+
+Two background processes and a driver are the whole rig. Both write into
+`tmp/`, which is gitignored, so nothing here touches the tree:
+
+```
+npm run dev -- --strictPort                     # :5173, in the background
+google-chrome --headless=new --remote-debugging-port=9222 \
+  --user-data-dir=tmp/chrome --window-size=1920,1080 \
+  --enable-unsafe-swiftshader --use-angle=swiftshader about:blank
+```
+
+The driver is a throwaway script in `tmp/`. Node's own `WebSocket` and
+`fetch` speak CDP, so it needs no dependency: read the target list from
+`http://127.0.0.1:9222/json`, open its `webSocketDebuggerUrl`, then
+`Runtime.evaluate` to read numbers out of `window.__game` and
+`Input.dispatchKeyEvent` to press real keys. `Page.captureScreenshot` is how
+a claim about what is on screen gets settled.
+
+Headless runs at a handful of frames a second on software GL. That does not
+change what is measured: the simulation is fixed-step, and a frame slower
+than `MAX_FRAME_SEC` is the only thing that would lose time.
 
 ## What must keep passing
 

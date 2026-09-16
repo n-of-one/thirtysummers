@@ -82,7 +82,7 @@ describe("cutting a thicket", () => {
 
   it("offers the cut when one is in reach", () => {
     const world = withThicket();
-    expect(world.availableAction()).toEqual({ type: "cut", x: 9, y: 8, blocked: false });
+    expect(world.availableAction()).toEqual({ type: "cut", x: 9, y: 8, blocked: null });
     expect(hudModel(world).prompt?.text).toBe("Hold E to cut through");
   });
 
@@ -152,7 +152,7 @@ describe("laying a bridge", () => {
 
   it("refuses without the materials, and says why once", () => {
     const world = withStream();
-    expect(world.availableAction()).toEqual({ type: "build", x: 9, y: 8, blocked: true });
+    expect(world.availableAction()).toEqual({ type: "build", x: 9, y: 8, blocked: "noMaterials" });
     expect(hudModel(world).prompt?.text).toBe("A bridge tile needs 1 vine and 1 stick");
     expect(hudModel(world).prompt?.blocked).toBe(true);
 
@@ -165,7 +165,7 @@ describe("laying a bridge", () => {
 
   it("offers the build once the materials are in the pack", () => {
     const world = stocked();
-    expect(world.availableAction()).toEqual({ type: "build", x: 9, y: 8, blocked: false });
+    expect(world.availableAction()).toEqual({ type: "build", x: 9, y: 8, blocked: null });
     expect(hudModel(world).prompt?.text).toBe("Hold E to lay a bridge tile");
   });
 
@@ -226,20 +226,16 @@ describe("the next summer", () => {
     expect(world.inventory.gold).toBe(1);
   });
 
-  it("regrows every node, refills the stats and restarts the clock", () => {
+  it("regrows every node, refills hydration and restarts the clock", () => {
     const world = played();
-    world.stats.stamina = 12;
     world.stats.hydration = 3;
-    world.stats.stomachCooldownSec = 40;
     world.elapsedSec = C.SUMMER_LENGTH_SEC;
     expect(world.nodes.every((n) => n.harvested)).toBe(true);
 
     world.nextSummer();
 
     expect(world.nodes.every((n) => !n.harvested)).toBe(true);
-    expect(world.stats.stamina).toBe(C.STAT_MAX);
-    expect(world.stats.hydration).toBe(C.STAT_MAX);
-    expect(world.stats.stomachCooldownSec).toBe(0);
+    expect(world.stats.hydration).toBe(C.HYDRATION_MAX);
     expect(world.elapsedSec).toBe(0);
     expect(world.remainingSec).toBe(C.SUMMER_LENGTH_SEC);
     expect(world.summerOver).toBe(false);

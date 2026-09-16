@@ -84,6 +84,8 @@ app.renderer.on("resize", applyViewport);
 
 const keyboard = new Keyboard();
 const hud = new Hud();
+// Reads `world` when clicked rather than now, because a regenerate replaces it.
+hud.onEndSummer(() => world.endSummer());
 
 /** How far through `world.events` the renderer has got. */
 let seenEvents = 0;
@@ -193,12 +195,9 @@ function readout(): string {
     x: p.x,
     y: p.y,
     facing: p.facing,
-    sprinting: p.sprinting,
     terrain: world.groundUnderPlayer().kind,
     speed: world.speed(),
-    stamina: world.stats.stamina,
     hydration: world.stats.hydration,
-    stomachCooldownSec: world.stats.stomachCooldownSec,
     elapsedSec: world.elapsedSec,
     seed,
     pack: pack.id,
@@ -215,7 +214,7 @@ app.ticker.add(({ deltaMS }) => {
   // way they survive a regenerate and the world they apply to is always the one
   // on screen.
   clock.timeScale = overlay.timeScale;
-  world.stats.frozen = overlay.frozen;
+  world.frozen = overlay.frozen;
 
   const { frameSec, steps } = clock.tick(deltaMS / 1000);
   const input = keyboard.state();
@@ -264,7 +263,7 @@ app.ticker.add(({ deltaMS }) => {
 console.log(
   `${mapName ? `map "${mapName}"` : `seed ${seed}`} | pack "${pack.id}" @${pack.tileSize}px | ` +
     `${world.map.width}x${world.map.height} | ${world.nodes.length} nodes | ` +
-    `renderer ${app.renderer.name} | WASD move, Shift sprint, ` +
-    `E/Space gather, cut, bridge and bank ore, F eat fruit, R drink water, ` +
+    `renderer ${app.renderer.name} | WASD move, ` +
+    `E/Space gather, drink, cut, bridge and bank ore, ` +
     `\` debug panel`,
 );

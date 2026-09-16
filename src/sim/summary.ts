@@ -9,10 +9,12 @@ export interface SummerSummary {
   gold: number;
   /** Nodes picked, by kind. */
   harvested: Record<ResourceKind, number>;
-  fruitEaten: number;
-  waterDrunk: number;
-  /** Ore still in the backpack when the light went, and so worth nothing. */
-  oreUnbanked: number;
+  /** Drinks at a spring. */
+  drinks: number;
+  /** Ore still in the backpack when the summer ended, banked there and then. */
+  oreBankedAtEnd: number;
+  /** The summer ended out of reach of camp. Winter will charge for the fetching. */
+  endedAway: boolean;
   /** Thicket tiles cut through, and bridge tiles laid. */
   tilesCut: number;
   bridgesBuilt: number;
@@ -51,28 +53,32 @@ export function summarise(world: World): SummerSummary {
     ResourceKind,
     number
   >;
-  let fruitEaten = 0;
-  let waterDrunk = 0;
+  let drinks = 0;
   let tilesCut = 0;
   let bridgesBuilt = 0;
+  let oreBankedAtEnd = 0;
+  let endedAway = false;
 
   const events = world.events as readonly WorldEvent[];
   for (let i = summerStartsAt(events); i < events.length; i++) {
     const event = events[i]!;
     if (event.type === "harvested") harvested[event.kind]++;
-    else if (event.type === "ate") fruitEaten++;
-    else if (event.type === "drank") waterDrunk++;
+    else if (event.type === "drank") drinks++;
     else if (event.type === "cut") tilesCut++;
     else if (event.type === "built") bridgesBuilt++;
+    else if (event.type === "summerEnded") {
+      oreBankedAtEnd = event.ore;
+      endedAway = event.away;
+    }
   }
 
   return {
     year: world.year,
     gold: world.inventory.gold,
     harvested,
-    fruitEaten,
-    waterDrunk,
-    oreUnbanked: world.inventory.count("ore"),
+    drinks,
+    oreBankedAtEnd,
+    endedAway,
     tilesCut,
     bridgesBuilt,
     distanceWalked: world.player.distanceWalked,

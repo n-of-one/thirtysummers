@@ -5,7 +5,7 @@ does between summers, as [../design/winter.md](../design/winter.md)
 describes. After this the five-summer unit is complete and the log can say
 whether summers 2 to 5 held.
 
-**Depends on** M8: `world.awayAtEnd` and the per-year max stamina. M9: the
+**Depends on** M8: `world.awayAtEnd`. M9: the
 resource table and its prices, the cache, the five maps, and the year
 table's tool grants, which this milestone removes. `src/sim/trace.ts`, kept
 on main by the chores, for trails.
@@ -36,7 +36,9 @@ on main by the chores, for trails.
      deterministically;
    - trails with `TRAIL_CHANCE` on underbrush tiles the trace crossed more
      than `TRAIL_CROSSINGS` times;
-   - max stamina ten lower after missed upkeep.
+   - a tired summer after missed upkeep: every hold `TIRED_HOLD_MUL` times
+     as long and rough ground at `TIRED_DIFFICULT_SPEED_MUL`, for that
+     summer only.
 4. **The start of a summer.** A small notice with the length and the
    upkeep, dismissed by the first movement key.
 5. **The shop sells the tools.** The year table's tool grants from M9 go.
@@ -47,7 +49,8 @@ on main by the chores, for trails.
 
 - The winter model over a synthetic store gives the right gold, the right
   fruit bought and sold, the right surplus and level.
-- Missed upkeep lowers next year's max stamina, and only for one year.
+- Missed upkeep makes next summer tired, with the hold and the mud speed
+  read back, and only for one summer.
 - Replenishment, creep, sapling return, bridge loss and trails, each over
   five simulated winters on a small seeded map, with the counts read back.
 - Five summers and four winters on `?map=f` over the protocol.

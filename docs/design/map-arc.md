@@ -94,9 +94,9 @@ Gold to spare, after upkeep, goes to the family. The family has levels,
 each needing more surplus than the last, accumulated over the summers. A
 stronger family gives the heir a better start, in stats or in tools, or
 more from visiting the grave. A family that misses upkeep does not lose
-the run. It gains no strength that winter and starts the next summer with
-less stamina, enough to make upkeep a priority the year after, never
-enough to end a life.
+the run. It gains no strength that winter and plays the next summer tired,
+enough to make upkeep a priority the year after, never enough to end a
+life.
 
 So the two strengths are kept apart. Town strength comes from structures.
 Family strength comes from spare gold.
@@ -127,15 +127,14 @@ one inherited thing. That is what makes it a new life and not a
 continuation.
 
 Somewhere on the map is the parent's grave. Visiting it in a summer gives
-something worth the walk: max stamina one higher, as
-[summer.md](summer.md) says. How the grave is placed and how the burial
-works are not designed yet.
+something worth the walk. What that is, how the grave is placed and how
+the burial works are not designed yet.
 
 The second youth is meant to be faster than the first, and to feel like a
 power trip rather than a chore: the map is known, the roads are half
 there, the camp stands where the parent reached in year eight, and the new
 structure's yield is waiting. What the second youth re-experiences is the
-body: low stamina, short summers, choosing which of the parent's roads
+body: short summers, choosing which of the parent's roads
 matters. What it skips is the exploration of the middle. What it gains is
 the outer ring of the valley, which the first life never reached.
 

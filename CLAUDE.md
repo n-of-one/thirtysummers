@@ -51,6 +51,24 @@ the game and the code is in `docs/`, indexed by
   `public/maps/README.md` is the safe half: which seed each came from, not
   what is in it.
 
+## Running things
+
+Every command that cannot be seen to stay inside the project costs Erik an
+approval, so keep the work where it is visible.
+
+- `tmp/` is the scratch space, and it is gitignored. Driver scripts, logs,
+  screenshots and the headless browser profile go there, never in `/tmp` or
+  a scratch directory outside the project. Nothing in `tmp/` is precious.
+- Write commands whose paths are plainly in-project: relative paths as
+  arguments, and no `cd` prefix, since the working directory is already the
+  project root.
+- Change files with the editing tools rather than `sed -i` or a heredoc. One
+  named path can be checked; a shell rewrite cannot.
+- Anything long-running goes in the background with its output redirected
+  into `tmp/`: the dev server, the headless browser, a summer played out
+  over the protocol. A five-minute summer is a background job, not a wait.
+- [docs/development.md](docs/development.md) has the commands themselves.
+
 ## Brainstorms
 
 In design work Erik wants a co-creator, not an option-picker.

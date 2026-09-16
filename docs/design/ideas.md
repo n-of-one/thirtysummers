@@ -15,9 +15,12 @@ one up means refining it into a design document first. Rejected ideas are in
   town makes an outpost with better benefits in the next map's winters.
 - What family levels unlock: the heir's starting stats or tools, more from
   the grave, perhaps tools.
-- What else changes with age besides summer length and max stamina. Old
-  characters drink less and tire more, young ones the reverse.
-- How the grave is placed and how burial works.
+- What else changes with age besides summer length. Walking speed and the
+  length of a hold are the candidates. Old characters drink less and tire
+  more, young ones the reverse.
+- How the grave is placed and how burial works, and what a visit gives.
+  It was one max stamina; with stamina gone it could be seconds on the
+  summer, or something the lineage design decides.
 
 ## Parked
 
@@ -30,8 +33,7 @@ one up means refining it into a design document first. Rejected ideas are in
   has reached is visible. Cards naming the year at the start and end of a
   summer.
 - **Weather.** Weather years, and harsh years that wear things faster.
-- **Dusk with a dropped pack.** And the summer as a bag of stamina rather
-  than a clock.
+- **Dusk with a dropped pack.** The last minute drawn as evening.
 - **Gravel on mud**, the third improvement, once repeat trips through the mud
   have taught what a road is worth.
 - **Rarity**, once respawning is designed.
@@ -92,7 +94,7 @@ Contraptions that raise collection: a sand catcher, spiritual things that
 raise the chance of ore.
 
 **More barriers.** Hard: river, lake, mountain face, forest. Soft: swamp,
-underbrush. Tied to a stat: uphill costs stamina, brambles cost health,
+underbrush. Tied to a stat: uphill is slow, brambles cost health,
 desert costs hydration. Answered by gear, stats, and caches.
 
 **Logistics.** Wheelbarrows for ore, wagons for lumber, each with its own

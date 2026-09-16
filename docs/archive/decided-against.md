@@ -12,27 +12,32 @@ chosen instead.
 
 ## Summer
 
-- **Sprint.** A held key that makes you faster is a key held all the time.
-  Speed comes from changing the map.
-- **Stamina that drains and recovers per second.** The original rules were
-  1%/s on rough ground, 5%/s sprinting, +0.2%/s walking easy ground, and
-  +1%/s standing while watered or +0.5%/s parched. Stamina is now a budget
-  spent per tile and per action, so it asks what to spend on, not how long
-  to stand still. The code runs the old rates until M8.
-- **A full-stomach cooldown after eating**, with fruit restoring 20%. It was
-  the one real irritation of the discovery test. Meals are counted instead.
-- **Uncapped eating.** It turns fruit into an exchange rate: fruit buys
-  stamina, stamina buys cuts, cuts buy sellables, sellables buy fruit. A
-  thick wall becomes "how much fruit did I bring", and the age curve
-  disappears.
-- **Capping eating by price alone, or by making eating cost clock time.**
-  Weighed against a meal count and dropped. Diminishing returns per fruit is
-  the fallback if a count feels like a rule that has to be explained.
+- **Sprint as a held key.** A key that makes you faster is a key held all
+  the time. Speed comes from changing the map. A burst bought with a fruit
+  is a different thing and is M12's experiment.
+- **Stamina**, in both forms. As a rate, 1%/s on rough ground and recovering
+  while standing, it asked how long to wait, which is not a decision. As a
+  budget spent per rough tile and per cut, it could not be planned, because
+  underbrush is a third to a half of every map and nobody sums a texture by
+  eye, and at zero it stopped the legs, a second hard stop beside the clock.
+  Time is the budget now: rough ground is slow and a cut is a hold.
+- **Stamina per tool**, as tools that wear with use, so a bridge spends the
+  hammer. It is stamina cut into pieces and adds nothing the clock does
+  not.
+- **Meals**, a counted number of fruit a summer, each refilling stamina.
+  They went with stamina. The concern they answered stays: uncapped eating
+  can turn fruit into an exchange rate, where a summer's reach is how much
+  fruit was brought. A meal count or diminishing returns per fruit is the
+  fallback if the fruit burst shows that.
+- **A full-stomach cooldown after eating.** It was the one real irritation
+  of the discovery test.
+- **Drinking at a stream bank.** It put the drink and the bridge on one key
+  at the same water. Springs near the stream, never touching it, replaced it.
 - **Carried water**, as a node in the backpack or in a flask. Hydration's job
   is to tie the character to a place, and carried water cuts that tie.
-- **Hydration as gates**, where stamina stopped recovering below 50% and
-  drained at 0%. Hydration now does one thing, the fog.
-- **Camp restoring stamina.** Only fruit restores it.
+- **Hydration as gates**, where low hydration slowed or stopped something
+  else. Hydration does one thing, the fog.
+- **Camp restoring anything.** There is nothing to restore.
 - **Gold in the ground.** Gold is currency. Ore, shells and feathers are what
   sells for it.
 - **Tool tiers and tool wear.** One tier, no wear. Gear changes costs
@@ -43,8 +48,8 @@ chosen instead.
 - **Regions as biomes**, with palette swaps. Three biomes forty tiles apart
   look like a theme park, and a test could not say whether the opening or
   the art felt good. A region is a resource field on the same grass.
-- **A third stat that reacts to time or effort.** A third stat, if it comes,
-  reacts to place.
+- **A second stat that reacts to time or effort.** It repeats the clock. A
+  second stat, if it comes, reacts to place.
 
 ## Winter and the economy
 
@@ -55,8 +60,10 @@ chosen instead.
   Winter has no clock and ends when the player starts the next summer.
 - **Upkeep that grows by itself, or that family levels raise.** It rises
   only when a structure is finished.
-- **Missing upkeep ending the run.** It costs ten max stamina for one summer
-  and nothing more.
+- **Missing upkeep ending the run.** It costs one tired summer, with longer
+  holds and slower mud, and nothing more.
+- **Missing upkeep slowing the walk on easy ground.** The walk is the part
+  of a summer that is already routing. The penalty lands on the work.
 - **A list of what broke over winter.** The player meets the damage in play.
 
 ## The map arc and generations
@@ -93,7 +100,7 @@ chosen instead.
 - **Monument**, retired for structure. Works, landmark and trade were not
   adopted either.
 - **Floor, budget, leash, shelf.** Game-design words. The game says upkeep,
-  stamina, hydration, shop.
+  hydration, shop.
 - **Hero, main character** for the character.
 
 ## Process
