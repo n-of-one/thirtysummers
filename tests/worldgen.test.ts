@@ -1,9 +1,26 @@
 import { describe, expect, it } from "vitest";
 import { generateWorld, reachableFrom } from "../src/sim/worldgen.ts";
 import { TERRAIN } from "../src/sim/terrain.ts";
+import type { TileMap } from "../src/sim/tilemap.ts";
 import * as C from "../src/config.ts";
 
 const SEEDS = [1, 42, 1337, 20260902];
+
+/** Inside the rock border: the ground the map is made of. */
+function inPlayArea(map: TileMap, x: number, y: number): boolean {
+  const b = C.BORDER_THICKNESS;
+  return x >= b && y >= b && x < map.width - b && y < map.height - b;
+}
+
+/**
+ * Inside the play area and not on its outermost ring. A stream that runs into
+ * the border ends there against rock, and every 2x2 square a tile on that ring
+ * could sit in reaches into the border, so the stream-shape rules are checked
+ * one tile in from it.
+ */
+function awayFromBorder(map: TileMap, x: number, y: number): boolean {
+  return inPlayArea(map, x - 1, y - 1) && inPlayArea(map, x + 1, y + 1);
+}
 
 describe("generateWorld", () => {
   it("is deterministic for a given seed", () => {
@@ -45,8 +62,21 @@ describe("generateWorld", () => {
 
   it.each(SEEDS)("keeps terrain proportions playable (seed %i)", (seed) => {
     const { map } = generateWorld(seed);
-    const total = map.width * map.height;
-    const hist = map.histogram();
+    // Measured over the play area only. The border is as thick as it needs to
+    // be for the camera to stay centred on the player at the map's edge, and
+    // counting it would make every share depend on that instead of on terrain.
+    const hist = Object.fromEntries(Object.keys(TERRAIN).map((k) => [k, 0])) as Record<
+      keyof typeof TERRAIN,
+      number
+    >;
+    let total = 0;
+    for (let y = 0; y < map.height; y++) {
+      for (let x = 0; x < map.width; x++) {
+        if (!inPlayArea(map, x, y)) continue;
+        hist[map.get(x, y)]++;
+        total++;
+      }
+    }
     const share = (n: number) => n / total;
 
     // Enough open ground to travel, enough obstruction to make routing matter.
@@ -291,10 +321,12 @@ describe("stream shape", () => {
       let pinched = 0;
       for (let y = 0; y < map.height; y++) {
         for (let x = 0; x < map.width; x++) {
-          if (!isStream(x, y)) continue;
+          if (!isStream(x, y) || !awayFromBorder(map, x, y)) continue;
           if (!inSquare([[x, y]])) pinched++;
-          if (isStream(x + 1, y) && !inSquare([[x, y], [x + 1, y]])) pinched++;
-          if (isStream(x, y + 1) && !inSquare([[x, y], [x, y + 1]])) pinched++;
+          const east = awayFromBorder(map, x + 1, y);
+          const south = awayFromBorder(map, x, y + 1);
+          if (east && isStream(x + 1, y) && !inSquare([[x, y], [x + 1, y]])) pinched++;
+          if (south && isStream(x, y + 1) && !inSquare([[x, y], [x, y + 1]])) pinched++;
         }
       }
       expect(pinched, `seed ${seed}`).toBe(0);
@@ -310,13 +342,14 @@ describe("stream shape", () => {
       let slits = 0;
       for (let y = 0; y < map.height; y++) {
         for (let x = 0; x < map.width; x++) {
-          if (isStream(x, y) && isStream(x, y + 1)) {
+          if (!awayFromBorder(map, x, y)) continue;
+          if (isStream(x, y) && isStream(x, y + 1) && awayFromBorder(map, x, y + 1)) {
             const beside =
               (isStream(x - 1, y) && isStream(x - 1, y + 1)) ||
               (isStream(x + 1, y) && isStream(x + 1, y + 1));
             if (!beside) slits++;
           }
-          if (isStream(x, y) && isStream(x + 1, y)) {
+          if (isStream(x, y) && isStream(x + 1, y) && awayFromBorder(map, x + 1, y)) {
             const beside =
               (isStream(x, y - 1) && isStream(x + 1, y - 1)) ||
               (isStream(x, y + 1) && isStream(x + 1, y + 1));

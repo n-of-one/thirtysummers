@@ -107,4 +107,4 @@ ones.
 - `npm run map:check public/maps/*.txt` passes on every shipped map. Run it
   after editing one by hand.
 - `?pack=placeholder` still draws every terrain.
-- 60fps with headroom at 128×128.
+- 60fps with headroom at 168×168.

@@ -7,14 +7,16 @@ done.
 **Status, 16 Sep 2026.** The discovery test's verdict, on 8 Sep, was that
 the idea works. M8 is done: it was built with stamina as a budget and
 meals, its first playtest dropped both, and what stayed is hydration, the
-fog and the end of a summer. Before the map comes a QoL milestone for what
-that playtest tripped on, the screen first.
+fog and the end of a summer. The QoL milestone that followed is done too:
+the game is drawn in a fixed full HD view, tools act on the tile ahead,
+springs are reeds on the bank, fruit is banked into a store, and the end of
+a summer is dusk. M9, the map, is next.
 
 | Milestone | What it adds | Status |
 |---|---|---|
 | Chores | a clean tree to build on | done |
 | M8: the body | hydration and fog, springs, the end of a summer, no sprint, no stamina | done |
-| [QoL](qol.md) | a fixed view, aimed tools, the last minute with dusk, springs in the reeds, banking fruit, pause | built, in review |
+| QoL | a fixed view, the tile ahead for tools, the last minute with dusk, springs in the reeds, banking fruit, pause | done |
 | [M9: the map](m9-map.md) | saplings, wells, caches, seven resources, five new maps | not started |
 | [M10: winter](m10-winter.md) | the store, the winter screen, upkeep, the shop, the map between summers | not started |
 | [M11: the cart](m11-cart.md) | the logistics experiment | not started |

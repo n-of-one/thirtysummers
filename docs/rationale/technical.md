@@ -179,20 +179,34 @@ that alone reads as a snap.
 QoL milestone the canvas followed the window, so a laptop saw fewer tiles
 than a full HD screen, the fog was sized for full HD, and a playtest on one
 screen said nothing about another. Now the game is drawn at `VIEW_W × VIEW_H`
-logical pixels at `TILE 64`, and one wrapper holds the canvas, the grid, the
+logical pixels, and one wrapper holds the canvas, the grid, the
 dusk, the fog, the HUD, the cards and the debug panel, so one CSS transform
 scales them all to fit, with black bars where the window's shape differs.
 The transform also makes the wrapper the containing block of the
 `position: fixed` layers inside it, so they needed no rewriting. Everything
 that read the window reads the view: the camera and the sprite pools, the
 fog, the prompt clamp, the arrow, and the teleport click, which divides by
-the scale. The size was chosen in play: 1280×720 came first, and full HD,
-30 tiles across, was kept. `?view=` still tries another.
+the scale. The size was chosen in play: 1280×720 at `TILE 64` came first,
+then full HD at `TILE 64`, 30 tiles across, then `TILE 48`, and the one kept
+is full HD at `TILE 32`, 60 tiles across and 33.75 down. `?view=` still tries
+another.
 
-**The scale moves in eighths.** An art pixel is 8 logical pixels, so a scale
-that is a multiple of 1/8, in device pixels per logical pixel, puts every art
-pixel on a whole number of screen pixels: 1 on full HD, 1.25 on 1440p, 2 on
-4K, and below 1 in a window smaller than the view. Pixi is given the view
+**The camera does not lag, so the border is wide.** `CAMERA_STIFFNESS` is
+high enough that the view stays on the player. The camera stops at the map's
+edge, so near it the player would drift off centre; a rock border at least
+half a view thick keeps the camera centred wherever the player can stand.
+The worldgen tests measure terrain shares and stream shape over the play area
+inside the border, so how thick it is does not change what they verify.
+
+**The scale moves in eighths.** It was built when an art pixel was 8 logical
+pixels at `TILE 64`, where a scale that is a multiple of 1/8, in device pixels
+per logical pixel, puts every art pixel on a whole number of screen pixels:
+1 on full HD, 1.25 on 1440p, 2 on 4K, and below 1 in a window smaller than
+the view. At `TILE 32` an art pixel is 4 logical pixels, and only multiples
+of 1/4 keep that promise. Full HD at scale 1 and 4K at scale 2 still land on
+whole pixels; 1440p at 1.25 and a window at 0.625 give art pixels of 5 and
+2.5 screen pixels, the second of them not whole. `VIEW_SCALE_STEP` has not
+been changed to match yet. Pixi is given the view
 size once, and its resolution follows the scale, so the backing store is one
 device pixel per screen pixel and the browser never resamples the canvas.
 The wrapper is placed on whole device pixels for the same reason. Measured:
@@ -239,20 +253,27 @@ The first version moved the gradient's centre instead, which repainted a
 full-screen gradient every frame. Now the gradient is repainted only when the
 radius crosses a 4px step, which happens only while hydration is below the
 threshold. The view is ringed from the start. The widest ring is
-`FOG_MAX_RADIUS_SHARE` of the view's half width, so the dark begins just
-inside the side edges at any view size; measured at 13.06 tiles from the
-player in a full HD view, at both window sizes tried.
+`FOG_MAX_RADIUS_SHARE` of the view's half width, so it keeps its shape at any
+view size.
 
-The edge is being tried darker, and its shape is in config: `FOG_COLOR` and
-`FOG_STOPS`, a list of [multiple of the radius, opacity] pairs that the HUD
-writes into the gradient once, against `--fog-r`. The original ramp was a
-near-black `rgb(8, 10, 7)` spread over 0.6 of the radius, half dark at the
-side edges of the view, and read as dark green there. The first darker try
-narrowed it to 0.35, which took the mean green at the side edge from 64 to 26
-and in a corner from 48 to 13, and still read as green. The current try is
-pure black, opaque by 1.12 of the radius, which is inside the side edges at
-about 1.15: measured, the side edge, the corner and the bar beside the view
-are all 0, 0, 0, and the middle of the view is unchanged.
+**The fog's shape is in config, and settled in play.** `FOG_COLOR` and
+`FOG_STOPS`, a list of [multiple of the radius, opacity] pairs, are written
+into the gradient once, against `--fog-r`, so the radius still changes
+without a rebuild. The last stop is always drawn opaque. The original ring
+was a near-black `rgb(8, 10, 7)` whose clear radius reached almost to the
+side edges of the view, with the ramp to black spread over 0.6 of the radius
+and half dark at those edges, where it read as dark green. Narrowing the ramp
+to 0.35 took the mean green at the side edge from 64 to 26 and in a corner
+from 48 to 13, and still read as green; a pure black ramp of 0.12 made the
+side edges, the corners and the bars beside the view all measure 0, 0, 0.
+
+What play kept is different from all three: pure black, a clear radius of
+only 0.3 of the view's half width, 288 logical pixels or 9 tiles at
+`TILE 32`, and a long, even fade from there to solid black at 1.9 of the
+radius, 17.1 tiles out, well inside the side edges at 3.3 times the radius.
+The fog is no longer a vignette at the edge of the view but a pool of light
+round the player, with the black of the view's edge running into the black
+bars.
 
 **Dusk is a second CSS layer, told apart from the fog by colour.** The last
 `HOMEWARD_SEC` are drawn as the evening: a full-view layer between the canvas

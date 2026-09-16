@@ -14,7 +14,8 @@ stops is banked as if brought home, so the last minute is never wasted and a
 final trip out is fine. Ending away from camp costs extra gold in winter, to
 pay for the fetching. The last minute is drawn as dusk, and away from camp
 it says so and points the way home. A summer can also be ended early from
-camp, with a button, once there is nothing left worth doing.
+camp, with a button or a key, once there is nothing left worth doing. A
+summer can be paused, and the window losing focus pauses it.
 
 Speed improvements come from altering the map: a cut path, a bridge, a route
 the cart can run.

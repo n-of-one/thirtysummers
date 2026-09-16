@@ -56,7 +56,7 @@ in [development.md](development.md).
 |---|---|
 | Projection | Top-down orthogonal. Z-levels, when they come, are discrete stacked layers viewed one at a time. |
 | Movement | Free and continuous, with a tile grid underneath for collision and terrain cost. |
-| Map | 128×128 tiles generated, 64×64 for hand-edited maps. `TILE = 64` logical px, 8px source art at 8× scale. |
+| Map | 168×168 tiles generated, inside a rock border 20 thick so the camera can stay centred at the edge of play; 64×64 for hand-edited maps. `TILE = 32` logical px, 8px source art at 4× scale. |
 | View | A fixed logical view of `VIEW_W × VIEW_H`, 1920×1080, scaled to fit the window in steps of 1/8 with black bars. |
 | HUD | HTML/CSS overlay on top of the canvas. |
 | Art | Minifantasy, behind a swappable pack layer. |

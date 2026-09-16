@@ -37,6 +37,8 @@ chosen instead.
   Drinking at the bank, at spots marked by reeds, came back on purpose: the
   hydration threshold that was the objection to it had been in the game
   since M8 anyway, for a spring beside a thicket.
+- **A dawn at the start of a summer**, the dusk in reverse. Only the evening
+  means something: it is the clock running out.
 - **Carried water**, as a node in the backpack or in a flask. Hydration's job
   is to tie the character to a place, and carried water cuts that tie.
 - **Hydration as gates**, where low hydration slowed or stopped something

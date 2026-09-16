@@ -9,28 +9,30 @@
 
 // ---------------------------------------------------------------- world ----
 
-export const MAP_W = 128;
-export const MAP_H = 128;
+export const MAP_W = 168;
+export const MAP_H = 168;
 export const MAP_LAYERS = 1; // z-levels: only layer 0 is generated for now
 export const DEFAULT_SEED = 1337;
 
 /** Size of one tile in the view, in logical pixels. */
-export const TILE = 64;
+export const TILE = 32;
 
 // ----------------------------------------------------------------- view ----
 
 /**
  * The logical view the game is drawn in, whatever the window: full HD, chosen
  * in play over 1280x720. It is scaled to fit the window with black bars where
- * the shapes differ, so the same number of tiles is on screen everywhere: 30
- * by 16.875 at TILE 64. `?view=1280x720` tries another.
+ * the shapes differ, so the same number of tiles is on screen everywhere: 60
+ * by 33.75 at TILE 32. `?view=1280x720` tries another.
  */
 export const VIEW_W = 1920;
 export const VIEW_H = 1080;
 /**
  * The view's scale, in device pixels per logical pixel, is floored to a
- * multiple of this. An art pixel is 8 logical pixels, so at any multiple of
- * 1/8 it covers a whole number of screen pixels.
+ * multiple of this. Chosen when an art pixel was 8 logical pixels (TILE 64), so
+ * any multiple of 1/8 covered a whole number of screen pixels. At TILE 32 an
+ * art pixel is 4 logical pixels and that needs a multiple of 1/4; not yet
+ * changed. Scale 1 and 2 are whole either way.
  */
 export const VIEW_SCALE_STEP = 1 / 8;
 
@@ -76,7 +78,7 @@ export const PLAYER_RADIUS = 0.3;
  * [GUESS] How hard the camera is pulled toward the player, per second. Higher
  * follows more tightly; lower glides further behind.
  */
-export const CAMERA_STIFFNESS = 12;
+export const CAMERA_STIFFNESS = 120;
 
 // ------------------------------------------------------------- hydration ----
 
@@ -100,11 +102,11 @@ export const DRINK_OFFER_BELOW = 90;
 export const HYDRATION_FOG_THRESHOLD = 50;
 /**
  * [GUESS] Radius of the clear circle round the player from full hydration down
- * to the threshold, as a share of half the view's width. The dark begins just
- * inside the left and right edges and the corners start out well darkened,
- * whatever size the view is...
+ * to the threshold, as a share of half the view's width, so it keeps its shape
+ * whatever size the view is. 0.3 is 288 logical pixels, 9 tiles, in full HD at
+ * TILE 32...
  */
-export const FOG_MAX_RADIUS_SHARE = 0.87;
+export const FOG_MAX_RADIUS_SHARE = 0.3;
 /** [GUESS] ...and at zero hydration. */
 export const FOG_MIN_RADIUS_TILES = 2.5;
 /**
@@ -116,17 +118,26 @@ export const FOG_COLOR = 0x000000;
  * [GUESS] How the fog darkens outside the clear radius, as
  * [distance as a multiple of the radius, opacity from 0 to 1] pairs, in order
  * outwards. Clear up to 1, then the stops, and fully opaque from the last stop
- * on, whatever its opacity says. The side edges of the view are at about 1.15
- * of the widest radius and its corners at about 1.52, so:
+ * on, whatever its opacity says. With FOG_MAX_RADIUS_SHARE at 0.3 the side
+ * edges of the view are at about 3.3 of the widest radius and its corners at
+ * about 3.8, so every stop below is inside the view. Settled in play: a long,
+ * even fade to black at 1.9. Tried before it, with the radius at 0.87, where
+ * the side edges were at 1.15:
  *
- * - `[[1, 0], [1.06, 0.85], [1.12, 1]]` is black before the side edges.
- * - `[[1, 0], [1.08, 0.75], [1.2, 0.95], [1.35, 1]]` was the first darker try.
- * - `[[1, 0], [1.15, 0.5], [1.35, 0.85], [1.6, 1]]` is the original, soft edge.
+ * - `[[1, 0], [1.06, 0.85], [1.12, 1]]`, black just before the side edges.
+ * - `[[1, 0], [1.08, 0.75], [1.2, 0.95], [1.35, 1]]`, the first darker try.
+ * - `[[1, 0], [1.15, 0.5], [1.35, 0.85], [1.6, 1]]`, the original soft edge.
  */
 export const FOG_STOPS: readonly (readonly [number, number])[] = [
-  [1, 0],
-  [1.06, 0.85],
-  [1.12, 1],
+  [1.0, 0],
+  [1.2, 0.1],
+  [1.3, 0.2],
+  [1.4, 0.3],
+  [1.5, 0.5],
+  [1.6, 0.7],
+  [1.8, 0.9],
+  [1.9, 1],
+  // [1.25, 1],
 ];
 
 // ----------------------------------------------------------------- items ----
@@ -244,8 +255,13 @@ export const MUD_THRESHOLD = 0.45;
 /** Half-width of the band around zero that becomes stream. Wider = fatter river. */
 export const STREAM_WIDTH = 0.03;
 
-/** Thickness of the impassable rock border around the playable area. */
-export const BORDER_THICKNESS = 2;
+/**
+ * [GUESS] Thickness of the impassable rock border around the playable area.
+ * Wide on purpose: the camera stays centred on the player, and it can only do
+ * that at the edge of the play area while half a view of map lies beyond it.
+ * Half the view is VIEW_W / 2 / TILE tiles across and VIEW_H / 2 / TILE down.
+ */
+export const BORDER_THICKNESS = 20;
 
 /**
  * Stream widening runs to a fixed point. This is the give-up count, not a
