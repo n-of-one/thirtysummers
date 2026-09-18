@@ -13,6 +13,12 @@ describe("targetTile", () => {
     expect(targetTile(action)).toEqual({ x: 12, y: 30, blocked: false });
   });
 
+  it("marks felling, a well and a cache on their tile, refused or not", () => {
+    expect(targetTile({ type: "fell", x: 1, y: 2, blocked: "noAxe" })).toEqual({ x: 1, y: 2, blocked: true });
+    expect(targetTile({ type: "dig", x: 3, y: 4, blocked: null })).toEqual({ x: 3, y: 4, blocked: false });
+    expect(targetTile({ type: "cache", x: 5, y: 6, blocked: null })).toEqual({ x: 5, y: 6, blocked: false });
+  });
+
   it("marks a bridge that cannot be paid for, so the refusal has a place", () => {
     const action: Action = { type: "build", x: 3, y: 9, blocked: "noMaterials" };
     expect(targetTile(action)).toEqual({ x: 3, y: 9, blocked: true });
@@ -20,7 +26,8 @@ describe("targetTile", () => {
 
   it("marks nothing for harvesting or banking, which stand somewhere visible", () => {
     expect(targetTile({ type: "harvest", node, blocked: null })).toBeNull();
-    expect(targetTile({ type: "deposit", ore: 3, fruit: 0, blocked: null })).toBeNull();
+    expect(targetTile({ type: "deposit", sold: 3, fruit: 0, blocked: null })).toBeNull();
+    expect(targetTile({ type: "stash", x: 2, y: 2, items: 3, blocked: null })).toBeNull();
     expect(targetTile({ type: "drink", x: 2, y: 2, blocked: null })).toBeNull();
     expect(targetTile(null)).toBeNull();
   });

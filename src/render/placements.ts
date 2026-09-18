@@ -1,5 +1,5 @@
 import type { TileMap } from "../sim/tilemap.ts";
-import type { ResourceNode, Vec2 } from "../sim/types.ts";
+import type { ResourceNode, Spring, Vec2 } from "../sim/types.ts";
 import type { AssetPack, PropSprite } from "./packs/pack.ts";
 import { tileHash } from "./packs/pack.ts";
 import type { ScrollWindow } from "./scrollWindow.ts";
@@ -26,8 +26,9 @@ export interface Placement {
 export const PROP_JITTER_PX = 1;
 
 /**
- * Everything standing on the ground inside the window: trees, underbrush, the
- * camp, the springs, and resource nodes still waiting to be harvested.
+ * Everything standing on the ground inside the window: trees, saplings,
+ * underbrush, the camp, the springs and wells, the caches, and resource nodes
+ * still waiting to be harvested.
  *
  * This is the decision -- what to draw and where it stands in the world -- with
  * no sprites in it. Turning a placement into a positioned, snapped, depth-sorted
@@ -40,7 +41,8 @@ export function* placementsIn(
   window: ScrollWindow,
   camp: Vec2,
   nodes: readonly ResourceNode[],
-  springs: readonly Vec2[] = [],
+  springs: readonly Spring[] = [],
+  caches: readonly Vec2[] = [],
   z = 0,
 ): Generator<Placement> {
   const { originX, originY, cols, rows } = window;
@@ -53,7 +55,9 @@ export function* placementsIn(
       // Thicket stands here too: its ground is the same undergrowth, and what
       // separates the wall from the walkable version of it is that the wall
       // has growth on every tile with no gaps to step through.
-      if (kind !== "tree" && kind !== "underbrush" && kind !== "thicket") continue;
+      if (kind !== "tree" && kind !== "underbrush" && kind !== "thicket" && kind !== "sapling") {
+        continue;
+      }
       const art = pack.prop(kind, tileHash(tileX, tileY));
       if (!art) continue;
       yield {
@@ -63,7 +67,8 @@ export function* placementsIn(
         worldY: tileY + 1,
         art,
         jitter: PROP_JITTER_PX,
-        occludes: kind === "tree",
+        // A sapling can be drawn as tall as a tree, so it may hide the player too.
+        occludes: kind === "tree" || kind === "sapling",
       };
     }
   }
@@ -72,16 +77,21 @@ export function* placementsIn(
     yield { worldX: camp.x, worldY: camp.y, art: pack.camp, jitter: 0, occludes: false };
   }
 
-  // Springs are tile positions, drawn standing at the tile's centre like a node.
+  // Springs, wells and caches are tile positions, drawn standing at the tile's
+  // centre like a node.
   for (const spring of springs) {
     if (!window.covers(spring.x, spring.y)) continue;
     yield {
       worldX: spring.x + 0.5,
       worldY: spring.y + 0.5,
-      art: pack.spring,
+      art: spring.well ? pack.well : pack.spring,
       jitter: 0,
       occludes: false,
     };
+  }
+  for (const cache of caches) {
+    if (!window.covers(cache.x, cache.y)) continue;
+    yield { worldX: cache.x + 0.5, worldY: cache.y + 0.5, art: pack.cache, jitter: 0, occludes: false };
   }
 
   for (const node of nodes) {

@@ -1,7 +1,8 @@
 import { Texture, TextureSource } from "pixi.js";
 import type { AssetPack, Bounds, PropSprite } from "../src/render/packs/pack.ts";
 import { TERRAIN_ORDER } from "../src/sim/terrain.ts";
-import { FACINGS, RESOURCE_KINDS } from "../src/sim/types.ts";
+import { RESOURCE_KINDS } from "../src/sim/resources.ts";
+import { FACINGS } from "../src/sim/types.ts";
 import type { Facing, ResourceKind, TerrainKind } from "../src/sim/types.ts";
 
 /**
@@ -47,6 +48,8 @@ export class StubPack implements AssetPack {
   private readonly walks = new Map<Facing, Texture[]>();
   readonly camp = stubProp();
   readonly spring = stubProp();
+  readonly well = stubProp();
+  readonly cache = stubProp();
 
   readonly playerAnchor = { x: 0.5, y: 1 };
   readonly playerBounds: Bounds = { left: -0.4, top: -2, right: 0.4, bottom: 0 };

@@ -31,21 +31,23 @@ export function fbm(noise: Noise2D, x: number, y: number, octaves: number): numb
  * stream produces the same landscape. `seed` scatters the trees, which is a
  * spatial hash rather than a stream because it has to answer per tile.
  */
-export function paintTerrain(seed: number, rng: Rng): TileMap {
+export function paintTerrain(
+  seed: number,
+  rng: Rng,
+  width = C.MAP_W,
+  height = C.MAP_H,
+  border = C.BORDER_THICKNESS,
+): TileMap {
   // Independent noise fields, each with its own derived seed.
   const forestNoise = createNoise2D(mulberry32(randInt(rng, 0, 2 ** 31)));
   const moistureNoise = createNoise2D(mulberry32(randInt(rng, 0, 2 ** 31)));
   const streamNoise = createNoise2D(mulberry32(randInt(rng, 0, 2 ** 31)));
 
-  const map = new TileMap(C.MAP_W, C.MAP_H, C.MAP_LAYERS);
+  const map = new TileMap(width, height, C.MAP_LAYERS);
 
-  for (let y = 0; y < C.MAP_H; y++) {
-    for (let x = 0; x < C.MAP_W; x++) {
-      const nearEdge =
-        x < C.BORDER_THICKNESS ||
-        y < C.BORDER_THICKNESS ||
-        x >= C.MAP_W - C.BORDER_THICKNESS ||
-        y >= C.MAP_H - C.BORDER_THICKNESS;
+  for (let y = 0; y < height; y++) {
+    for (let x = 0; x < width; x++) {
+      const nearEdge = x < border || y < border || x >= width - border || y >= height - border;
       if (nearEdge) {
         map.set(x, y, "rock");
         continue;

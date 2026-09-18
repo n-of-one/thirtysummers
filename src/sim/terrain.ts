@@ -39,6 +39,9 @@ export const TERRAIN: Record<TerrainKind, TerrainDef> = {
   // Planks laid over the stream, one tile at a time. Easy ground, because the
   // whole point of building one is that the crossing stops costing anything.
   bridge: def("bridge", true, false, "-"),
+  // A copse of young trees. A wall like a grown tree, but the axe fells it,
+  // leaving grass and a log.
+  sapling: def("sapling", false, false, "t"),
 };
 
 /** Stable id order -- the tile grid stores these indices, so do not reorder. */
@@ -51,6 +54,7 @@ export const TERRAIN_ORDER: readonly TerrainKind[] = [
   "rock",
   "thicket",
   "bridge",
+  "sapling",
 ];
 
 export const TERRAIN_ID: Record<TerrainKind, number> = Object.fromEntries(

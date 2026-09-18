@@ -2,10 +2,11 @@ import { describe, expect, it } from "vitest";
 import {
   CAMP_GLYPH,
   MapFileError,
-  RESOURCE_GLYPH,
+  WELL_GLYPH,
   formatMap,
   parseMap,
 } from "../src/sim/mapfile.ts";
+import { RESOURCE_KINDS, RESOURCES } from "../src/sim/resources.ts";
 import { TERRAIN, TERRAIN_ORDER } from "../src/sim/terrain.ts";
 import { generateWorld } from "../src/sim/worldgen.ts";
 
@@ -16,16 +17,22 @@ describe("the terrain table", () => {
     // The grid stores indices into this order, so anything inserted rather
     // than appended silently rewrites every map file ever dumped.
     // The spring was the last, and removing the last entry moves no index.
-    expect(TERRAIN_ORDER.slice(-2)).toEqual(["thicket", "bridge"]);
+    expect(TERRAIN_ORDER.slice(-3)).toEqual(["thicket", "bridge", "sapling"]);
   });
 
-  it("gives every terrain a distinct glyph, or the format is ambiguous", () => {
-    const glyphs = TERRAIN_ORDER.map((kind) => TERRAIN[kind].glyph);
+  it("gives every terrain, resource, the camp and the well a distinct glyph", () => {
+    const glyphs = [
+      ...TERRAIN_ORDER.map((kind) => TERRAIN[kind].glyph),
+      ...RESOURCE_KINDS.map((kind) => RESOURCES[kind].glyph),
+      CAMP_GLYPH,
+      WELL_GLYPH,
+    ];
     expect(new Set(glyphs).size).toBe(glyphs.length);
-    for (const glyph of Object.values(RESOURCE_GLYPH)) {
-      expect(glyphs).not.toContain(glyph);
-    }
-    expect(glyphs).not.toContain(CAMP_GLYPH);
+  });
+
+  it("makes a sapling a wall", () => {
+    expect(TERRAIN.sapling.passable).toBe(false);
+    expect(TERRAIN.sapling.glyph).toBe("t");
   });
 
   it("makes a thicket a wall and a bridge a fast crossing", () => {
@@ -69,6 +76,24 @@ describe("parseMap / formatMap", () => {
     expect(world.map.get(3, 2)).toBe("grass");
     expect(world.nodes.map((n) => n.kind)).toEqual(["fruit", "vine", "ore", "stick"]);
     expect(world.camp).toEqual({ x: 3.5, y: 1.5 });
+  });
+
+  it("round trips the resource table: every kind's glyph and ground, and a sapling", () => {
+    const row = RESOURCE_KINDS.map((kind) => RESOURCES[kind].glyph).join("");
+    const text = `${row}Ct\n`;
+    const world = parseMap(text);
+    expect(world.nodes.map((n) => n.kind)).toEqual(RESOURCE_KINDS);
+    RESOURCE_KINDS.forEach((kind, x) => expect(world.map.get(x, 0)).toBe(RESOURCES[kind].ground));
+    expect(world.map.get(RESOURCE_KINDS.length + 1, 0)).toBe("sapling");
+    expect(formatMap(world)).toBe(text);
+  });
+
+  it("keeps a well from the file as a spring, and writes it back", () => {
+    const text = ["#####", "#C.W#", "#####"].join("\n");
+    const world = parseMap(text);
+    expect(world.springs).toEqual([{ x: 3, y: 1, well: true }]);
+    expect(world.map.get(3, 1)).toBe("grass");
+    expect(formatMap(world)).toBe(`${text}\n`);
   });
 
   it("no longer knows the spring glyph or the old water glyph", () => {

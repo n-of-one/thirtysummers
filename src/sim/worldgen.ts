@@ -1,7 +1,7 @@
 import * as C from "../config.ts";
 import { mulberry32 } from "./rng.ts";
 import type { TileMap } from "./tilemap.ts";
-import type { ResourceNode, Vec2 } from "./types.ts";
+import type { ResourceNode, Spring, Vec2 } from "./types.ts";
 import { reachableFrom } from "./worldgen/reachability.ts";
 import { placeResources } from "./worldgen/resources.ts";
 import { placeSprings } from "./worldgen/springs.ts";
@@ -13,6 +13,7 @@ export { carveFords, streamMask, thickenStream } from "./worldgen/water.ts";
 export { fbm, findCamp, paintTerrain } from "./worldgen/terrain.ts";
 export { placeResources } from "./worldgen/resources.ts";
 export { placeSprings } from "./worldgen/springs.ts";
+export { layoutSummerWorld } from "./worldgen/layout.ts";
 export { Grid, NEIGHBOURS_4 } from "./worldgen/grid.ts";
 
 export interface GeneratedWorld {
@@ -21,8 +22,8 @@ export interface GeneratedWorld {
   /** Tile the camp sits on; also the player spawn. */
   camp: Vec2;
   nodes: ResourceNode[];
-  /** Tiles with a spring on them, in integer tile coordinates. */
-  springs: Vec2[];
+  /** Tiles with a spring or a well on them, in integer tile coordinates. */
+  springs: Spring[];
   /** Mask of tiles walkable from the camp, indexed y * width + x. */
   reachable: Uint8Array;
 }

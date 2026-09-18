@@ -1,7 +1,7 @@
 import { Container, Sprite, type Renderer, type Texture } from "pixi.js";
 import { PIXEL_SETTLE_SEC, TILE } from "../config.ts";
 import type { TileMap } from "../sim/tilemap.ts";
-import type { ResourceNode, Vec2 } from "../sim/types.ts";
+import type { ResourceNode, Spring, Vec2 } from "../sim/types.ts";
 import type { AssetPack } from "./packs/pack.ts";
 import { tileHash } from "./packs/pack.ts";
 import type { Camera } from "./camera.ts";
@@ -174,12 +174,13 @@ export class PropLayer {
     player: Vec2 | null = null,
     playerTexture: Texture | null = null,
     dt = 0,
-    springs: readonly Vec2[] = [],
+    springs: readonly Spring[] = [],
+    caches: readonly Vec2[] = [],
   ): void {
     const scrolled = this.window.moveTo(camera.leftPx, camera.topPx);
     if (scrolled || this.dirty) {
       this.dirty = false;
-      this.rebuild(camp, nodes, springs);
+      this.rebuild(camp, nodes, springs, caches);
     }
 
     this.container.x = this.window.offsetX;
@@ -253,7 +254,12 @@ export class PropLayer {
     }
   }
 
-  private rebuild(camp: Vec2, nodes: readonly ResourceNode[], springs: readonly Vec2[]): void {
+  private rebuild(
+    camp: Vec2,
+    nodes: readonly ResourceNode[],
+    springs: readonly Spring[],
+    caches: readonly Vec2[],
+  ): void {
     this.used = 0;
     for (const placement of placementsIn(
       this.map,
@@ -262,6 +268,7 @@ export class PropLayer {
       camp,
       nodes,
       springs,
+      caches,
       this.z,
     )) {
       this.draw(placement);

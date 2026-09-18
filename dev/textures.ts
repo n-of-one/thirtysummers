@@ -2,11 +2,12 @@ import { Application, Sprite, Text, type Texture } from "pixi.js";
 import { loadAssetPack } from "../src/render/atlas.ts";
 import { autotileIndex } from "../src/render/packs/autotile.ts";
 import { TERRAIN_ORDER } from "../src/sim/terrain.ts";
-import { FACINGS, RESOURCE_KINDS } from "../src/sim/types.ts";
+import { RESOURCE_KINDS } from "../src/sim/resources.ts";
+import { FACINGS } from "../src/sim/types.ts";
 import type { TerrainKind } from "../src/sim/types.ts";
 
 const app = new Application();
-await app.init({ width: 1400, height: 1000, background: "#555555", antialias: false, resolution: 1 });
+await app.init({ width: 1400, height: 1500, background: "#555555", antialias: false, resolution: 1 });
 document.body.appendChild(app.canvas);
 const pack = await loadAssetPack(app.renderer);
 
@@ -39,12 +40,12 @@ for (const kind of TERRAIN_ORDER) {
   row(kind, masks.map((i) => pack.ground(kind, seen.get(i) ?? 0, i, 0)));
 }
 row("stream frame 1", Array.from({ length: 15 }, (_, i) => pack.ground("stream", 255, i, 1)));
-for (const kind of ["tree", "underbrush"] as TerrainKind[]) {
+for (const kind of ["tree", "underbrush", "sapling"] as TerrainKind[]) {
   const props: Texture[] = [];
   for (let v = 0; v < 400; v++) { const p = pack.prop(kind, v); if (p && !props.includes(p.texture)) props.push(p.texture); }
   row(`prop ${kind}`, props);
 }
 row("resources", RESOURCE_KINDS.map((k) => pack.resource(k).texture));
-row("camp", [pack.camp.texture]);
+row("camp, spring, well, cache", [pack.camp.texture, pack.spring.texture, pack.well.texture, pack.cache.texture]);
 for (const f of FACINGS) row(`walk ${f}`, pack.walk(f));
 label(`pack: ${pack.id}  tileSize ${pack.tileSize}px`, 4);

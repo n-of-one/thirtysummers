@@ -1,14 +1,17 @@
 import * as C from "../config.ts";
 import type { SummerSummary } from "../sim/summary.ts";
-import type { Inventory } from "../sim/inventory.ts";
-import {
-  RESOURCE_KINDS,
-  type BlockedReason,
-  type ResourceKind,
-  type Vec2,
-  type WorldEvent,
+import type { Amounts, Inventory } from "../sim/inventory.ts";
+import { RESOURCE_KINDS } from "../sim/resources.ts";
+import type {
+  BlockedReason,
+  Build,
+  Recipe,
+  ResourceKind,
+  Tool,
+  Vec2,
+  WorldEvent,
 } from "../sim/types.ts";
-import { BRIDGE_COST, type Action, type World } from "../sim/world.ts";
+import { BRIDGE_COST, BUILD_COST, WELL_COST, type Action, type World } from "../sim/world.ts";
 
 /**
  * Everything the HUD draws, as plain numbers.
@@ -29,6 +32,10 @@ export interface HudModel {
   gold: number;
   /** Fruit in the store at camp. */
   storedFruit: number;
+  /** The tools owned and the recipes known, in words: "knife, axe, well". */
+  tools: string;
+  /** What is being built, in words, or null for nothing. */
+  building: string | null;
   secondsLeft: number;
   /** In the last `HOMEWARD_SEC` of the summer: the clock turns, and dusk falls. */
   homeward: boolean;
@@ -57,9 +64,21 @@ export interface Prompt {
 /** How each resource is referred to in a prompt or a toast. */
 const RESOURCE_NAME: Record<ResourceKind, string> = {
   fruit: "fruit",
-  ore: "ore",
-  vine: "vine",
+  feather: "feather",
   stick: "stick",
+  vine: "vine",
+  ore: "ore",
+  log: "log",
+  shell: "shell",
+};
+
+/** The toast for each thing the year table can hand over. */
+const GRANTED_TEXT: Record<Tool | Recipe, string> = {
+  knife: "You have a knife",
+  axe: "You have an axe",
+  cart: "You have a cart",
+  cache: "You know how to build a cache",
+  well: `You know how to dig a well: ${costText(WELL_COST)}`,
 };
 
 /** The pack's contents in words, listing only what is actually in it. */
@@ -73,15 +92,62 @@ export function backpackText(inventory: Inventory): string {
 const BLOCKED_TEXT: Record<BlockedReason, string> = {
   backpackFull: "Backpack full",
   nothingToBank: "Nothing to bank",
-  // Says the price, not just the refusal: the player has to learn what a
-  // bridge tile costs somewhere, and standing at the water is where it matters.
-  noMaterials: `A bridge tile needs ${bridgeCostText()}`,
+  // A fallback: what is missing is said with the name of what is being built,
+  // by `refusedText`, wherever the build is known.
+  noMaterials: "Not enough in the pack",
+  noAxe: "Felling a sapling needs an axe",
+  nearWater: `Too near water for a well, ${C.WELL_WATER_CLEARANCE} tiles away at least`,
+  wrongGround: "Not this ground",
+  occupied: "Something already stands here",
 };
+
+/** What each build is called in a prompt, and the verb it takes. */
+const BUILD_NAME: Record<Build, string> = {
+  bridge: "a bridge tile",
+  cache: "a cache",
+  well: "a well",
+};
+const BUILD_VERB: Record<Build, string> = {
+  bridge: "lay",
+  cache: "build",
+  well: "dig",
+};
+
+/** Why a build cannot go on the tile ahead, naming what is being built. */
+function refusedText(build: Build, reason: BlockedReason): string {
+  if (reason === "noMaterials") {
+    // Says the price, not just the refusal: the recipes are learned at the
+    // barrier they are needed at, as well as in the menu.
+    return `${capitalise(BUILD_NAME[build])} needs ${costText(BUILD_COST[build])}`;
+  }
+  if (reason === "wrongGround") {
+    return build === "bridge" ? "A bridge goes on water" : `${capitalise(BUILD_NAME[build])} goes on open grass`;
+  }
+  return BLOCKED_TEXT[reason];
+}
+
+const capitalise = (text: string) => text.slice(0, 1).toUpperCase() + text.slice(1);
+
+/**
+ * The one line the game volunteers about building, at the water's edge with
+ * nothing chosen: what a crossing costs, and which key starts one.
+ */
+export function buildHintText(build: Build, affordable: boolean): string {
+  const key = C.BUILD_MENU_KEY.toUpperCase();
+  return affordable
+    ? `Press ${key} to build ${BUILD_NAME[build]}`
+    : `${capitalise(BUILD_NAME[build])} needs ${costText(BUILD_COST[build])}. Press ${key} to build`;
+}
 
 /** What one bridge tile costs, in words: "1 stick and 1 vine". */
 export function bridgeCostText(): string {
-  const parts = RESOURCE_KINDS.filter((kind) => (BRIDGE_COST[kind] ?? 0) > 0).map(
-    (kind) => `${BRIDGE_COST[kind]} ${RESOURCE_NAME[kind]}`,
+  return costText(BRIDGE_COST);
+}
+
+/** A recipe in words: "2 log and 2 stick". */
+export function costText(cost: Amounts): string {
+  const parts = RESOURCE_KINDS.filter((kind) => (cost[kind] ?? 0) > 0).map(
+    (kind) => `${cost[kind]} ${RESOURCE_NAME[kind]}`,
   );
   return parts.length > 1
     ? `${parts.slice(0, -1).join(", ")} and ${parts[parts.length - 1]}`
@@ -103,13 +169,33 @@ function actionPrompt(action: Action, progress: number): Prompt {
       return action.blocked
         ? { text: BLOCKED_TEXT.nothingToBank, progress: 0, blocked: true }
         : {
-            text: `Press E to bank ${loadText([
-              [action.ore, RESOURCE_NAME.ore],
-              [action.fruit, RESOURCE_NAME.fruit],
-            ])}`,
+            text: `Press E to ${[
+              action.sold > 0 ? `sell ${action.sold}` : "",
+              action.fruit > 0 ? `store ${action.fruit} ${RESOURCE_NAME.fruit}` : "",
+            ]
+              .filter(Boolean)
+              .join(" and ")}`,
             progress: 0,
             blocked: false,
           };
+    case "stash":
+      return { text: `Press E to put ${action.items} in the cache`, progress: 0, blocked: false };
+    case "fetch":
+      return action.blocked
+        ? { text: BLOCKED_TEXT.backpackFull, progress: 0, blocked: true }
+        : { text: `Press E to take from the cache (${action.items})`, progress: 0, blocked: false };
+    case "fell":
+      return action.blocked
+        ? { text: BLOCKED_TEXT[action.blocked], progress: 0, blocked: true }
+        : { text: "Hold E to fell the sapling", progress, blocked: false };
+    case "dig":
+      return action.blocked
+        ? { text: refusedText("well", action.blocked), progress: 0, blocked: true }
+        : { text: buildPrompt("well"), progress, blocked: false };
+    case "cache":
+      return action.blocked
+        ? { text: refusedText("cache", action.blocked), progress: 0, blocked: true }
+        : { text: buildPrompt("cache"), progress, blocked: false };
     case "harvest":
       return action.blocked
         ? { text: BLOCKED_TEXT.backpackFull, progress: 0, blocked: true }
@@ -124,15 +210,27 @@ function actionPrompt(action: Action, progress: number): Prompt {
       return { text: "Hold E to cut through", progress, blocked: false };
     case "build":
       return action.blocked
-        ? { text: BLOCKED_TEXT.noMaterials, progress: 0, blocked: true }
-        : { text: "Hold E to lay a bridge tile", progress, blocked: false };
+        ? { text: refusedText("bridge", action.blocked), progress: 0, blocked: true }
+        : { text: buildPrompt("bridge"), progress, blocked: false };
   }
 }
 
-/** The line under the player: what the interact key would do here. */
+/** "Hold E to dig a well (2 log and 2 stick)". */
+function buildPrompt(build: Build): string {
+  return `Hold E to ${BUILD_VERB[build]} ${BUILD_NAME[build]} (${costText(BUILD_COST[build])})`;
+}
+
+/**
+ * The line under the player: what the interact key would do here, or, with
+ * nothing in reach and nothing chosen to build, the one hint about building.
+ */
 function promptFor(world: World): Prompt | null {
   const action = world.availableAction();
-  return action ? actionPrompt(action, world.harvestProgress) : null;
+  if (action) return actionPrompt(action, world.harvestProgress);
+  const hint = world.buildHint();
+  if (!hint) return null;
+  const option = world.buildOptions().find((o) => o.build === hint);
+  return { text: buildHintText(hint, option?.affordable ?? false), progress: 0, blocked: false };
 }
 
 /** One line of feedback for something that just happened. */
@@ -144,9 +242,21 @@ export function toastFor(event: WorldEvent): string {
       return "Drank your fill";
     case "deposited":
       return `Banked ${loadText([
-        [event.ore > 0 ? event.gold : 0, "gold"],
+        [event.sold > 0 ? event.gold : 0, "gold"],
         [event.fruit, RESOURCE_NAME.fruit],
       ])}`;
+    case "felled":
+      return `Felled a sapling, +1 ${RESOURCE_NAME.log}`;
+    case "dug":
+      return "Dug a well";
+    case "cached":
+      return "Built a cache";
+    case "stashed":
+      return `Put ${event.items} in the cache`;
+    case "fetched":
+      return `Took ${event.items} from the cache`;
+    case "granted":
+      return GRANTED_TEXT[event.what];
     case "blocked":
       return BLOCKED_TEXT[event.reason];
     case "cut":
@@ -175,6 +285,8 @@ export function hudModel(world: World, viewWidth: number = C.VIEW_W): HudModel {
     capacity: inventory.capacity,
     gold: inventory.gold,
     storedFruit: world.store.count("fruit"),
+    tools: [...world.tools, ...[...world.recipes].filter((r) => r !== "cache")].join(", "),
+    building: world.buildMode ? BUILD_NAME[world.buildMode] : null,
     secondsLeft: world.remainingSec,
     homeward,
     // At camp the End summer button is already there, so nothing is said.
@@ -365,6 +477,9 @@ export class Hud {
   private readonly backpackContents: HTMLElement;
   private readonly gold: HTMLElement;
   private readonly storedFruit: HTMLElement;
+  private readonly tools: HTMLElement;
+  private readonly buildPill: HTMLElement;
+  private readonly buildName: HTMLElement;
   private readonly prompt: HTMLElement;
   private readonly anchor: HTMLElement;
   private readonly toasts: HTMLElement;
@@ -417,6 +532,9 @@ export class Hud {
     this.backpackContents = need(root, "#backpack-contents");
     this.gold = need(root, "#gold-count");
     this.storedFruit = need(root, "#store-fruit");
+    this.tools = need(root, "#tools");
+    this.buildPill = need(root, "#build-pill");
+    this.buildName = need(root, "#build-name");
     this.prompt = need(root, "#action-prompt");
     this.anchor = need(root, "#player-anchor");
     this.toasts = need(root, "#toasts");
@@ -471,6 +589,9 @@ export class Hud {
     setText(this.backpackContents, model.contents);
     setText(this.gold, String(model.gold));
     setText(this.storedFruit, String(model.storedFruit));
+    setText(this.tools, model.tools);
+    this.buildPill.hidden = model.building === null;
+    if (model.building) setText(this.buildName, model.building);
 
     // In the stack under the player, so it is never drawn over them.
     this.endSummer.hidden = !model.atCamp;
@@ -607,13 +728,18 @@ export class Hud {
       ["Gold", String(summer.gold), true],
       ["Fruit stored", String(summer.fruitStored), false],
       ["Fruit picked", String(summer.harvested.fruit), false],
-      ["Ore mined", String(summer.harvested.ore), false],
-      ["Vines cut", String(summer.harvested.vine), false],
+      ["Feathers found", String(summer.harvested.feather), false],
       ["Sticks gathered", String(summer.harvested.stick), false],
-      ["Ore banked at the end", String(summer.oreBankedAtEnd), false],
+      ["Vines cut", String(summer.harvested.vine), false],
+      ["Ore mined", String(summer.harvested.ore), false],
+      ["Shells found", String(summer.harvested.shell), false],
+      ["Sold at the end", String(summer.soldAtEnd), false],
       ["Drinks", String(summer.drinks), false],
       ["Paths cut", String(summer.tilesCut), false],
       ["Bridge tiles laid", String(summer.bridgesBuilt), false],
+      ["Saplings felled", String(summer.saplingsFelled), false],
+      ["Wells dug", String(summer.wellsDug), false],
+      ["Caches built", String(summer.cachesBuilt), false],
       ["Distance walked", `${summer.distanceWalked.toFixed(0)} tiles`, false],
       ["Ended away from camp", summer.endedAway ? "yes" : "no", false],
     ];

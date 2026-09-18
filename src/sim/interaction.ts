@@ -40,17 +40,18 @@ export function nearestNodeWithin(
 
 /**
  * The spring nearest (x, y) and within reach of its tile's centre, or null.
+ * Anything else standing on a tile, a cache, is found the same way.
  *
  * Nearest to the player, not aimed: springs are sparse, and one is drunk from
  * by standing at it. Ties break on list order, which is fixed for a map.
  */
-export function nearestSpringWithin(
-  springs: readonly Vec2[],
+export function nearestSpringWithin<T extends Vec2>(
+  springs: readonly T[],
   x: number,
   y: number,
   radius = INTERACT_RADIUS,
-): Vec2 | null {
-  let best: Vec2 | null = null;
+): T | null {
+  let best: T | null = null;
   let bestDist = Infinity;
   for (const spring of springs) {
     const dist = Math.hypot(spring.x + 0.5 - x, spring.y + 0.5 - y);
@@ -60,6 +61,30 @@ export function nearestSpringWithin(
     }
   }
   return best;
+}
+
+/**
+ * Is there water within `radius` tiles of (x, y), counting diagonals: a
+ * stream tile, or a spring or well from `springs`? What a well asks of the
+ * spot it is dug on.
+ */
+export function waterWithin(
+  map: TileMap,
+  springs: readonly Vec2[],
+  x: number,
+  y: number,
+  radius: number,
+  z = 0,
+): boolean {
+  for (const spring of springs) {
+    if (Math.max(Math.abs(spring.x - x), Math.abs(spring.y - y)) <= radius) return true;
+  }
+  for (let ty = y - radius; ty <= y + radius; ty++) {
+    for (let tx = x - radius; tx <= x + radius; tx++) {
+      if (map.get(tx, ty, z) === "stream") return true;
+    }
+  }
+  return false;
 }
 
 /** A tile, by its integer coordinates. What cutting and building act on. */

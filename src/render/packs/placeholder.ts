@@ -1,7 +1,8 @@
 import { Graphics, Rectangle, type Renderer, type Texture } from "pixi.js";
 import { mulberry32, type Rng } from "../../sim/rng.ts";
+import { RESOURCE_KINDS } from "../../sim/resources.ts";
 import { TERRAIN_ORDER } from "../../sim/terrain.ts";
-import { FACINGS, RESOURCE_KINDS } from "../../sim/types.ts";
+import { FACINGS } from "../../sim/types.ts";
 import type { Facing, ResourceKind, TerrainKind } from "../../sim/types.ts";
 import type { AssetPack, AssetPackSource, Bounds, PropSprite } from "./pack.ts";
 
@@ -34,6 +35,8 @@ class PlaceholderPack implements AssetPack {
   private readonly walks = new Map<Facing, Texture[]>();
   readonly camp: PropSprite;
   readonly spring: PropSprite;
+  readonly well: PropSprite;
+  readonly cache: PropSprite;
 
   /** The drawn legs end at y=15 of a 16px tile. */
   readonly playerAnchor = { x: 0.5, y: 15 / 16 };
@@ -58,6 +61,8 @@ class PlaceholderPack implements AssetPack {
     }
     this.camp = { texture: this.bake(drawCamp), anchorX: 0.5, anchorY: 0.5, bounds: WHOLE_TILE };
     this.spring = { texture: this.bake(drawSpring), anchorX: 0.5, anchorY: 0.5, bounds: WHOLE_TILE };
+    this.well = { texture: this.bake(drawWell), anchorX: 0.5, anchorY: 0.5, bounds: WHOLE_TILE };
+    this.cache = { texture: this.bake(drawCache), anchorX: 0.5, anchorY: 0.5, bounds: WHOLE_TILE };
     for (const facing of FACINGS) {
       this.walks.set(
         facing,
@@ -223,6 +228,17 @@ function drawTerrain(g: Graphics, kind: TerrainKind, rng: Rng): void {
       g.circle(9.5, 6.5, 2.4).fill(0x356b26);
       break;
     }
+
+    case "sapling": {
+      // open grass with a young tree on it: thinner and paler than a grown
+      // one, so a copse of them reads as something an axe could clear
+      g.rect(0, 0, S, S).fill(0x4d7c3a);
+      speckle(g, rng, 10, [0x5c8f45, 0x40682f]);
+      g.rect(7.5, 8, 1, 7).fill(0x7a5a3a);
+      g.circle(8, 6, 3.6).fill(0x7fae4a);
+      g.circle(6.8, 5, 1.6).fill(0x9cc862);
+      break;
+    }
   }
 }
 
@@ -260,7 +276,47 @@ function drawResource(g: Graphics, kind: ResourceKind): void {
       g.rect(3, 6, 1.5, 2).fill(0xc0a071);
       g.rect(11, 9, 1.5, 2).fill(0xc0a071);
       break;
+
+    case "feather":
+      // a white quill, slanted, with a dark shaft
+      g.poly([4, 13, 10, 3, 12, 4, 7, 12]).fill(0xf2f0e6);
+      g.rect(5, 11, 1, 3).fill(0x6b5a45);
+      g.poly([5, 12, 11, 3.5, 11.5, 4]).fill(0xb9b4a4);
+      break;
+
+    case "log":
+      // one thick length of trunk, its cut end showing rings
+      g.rect(3, 6, 10, 6).fill(0x6e4a2b);
+      g.rect(3, 6, 10, 1.5).fill(0x86603a);
+      g.ellipse(12.5, 9, 2.2, 3).fill(0xd1a86e);
+      g.ellipse(12.5, 9, 1, 1.5).fill(0x9c7447);
+      break;
+
+    case "shell":
+      // a pale fan with ribs
+      g.poly([8, 12, 3, 7, 5, 4, 8, 3, 11, 4, 13, 7]).fill(0xf0d6c2);
+      for (const x of [5.5, 8, 10.5]) g.poly([8, 12, x - 0.5, 4, x + 0.5, 4]).fill(0xc99a86);
+      g.rect(7, 12, 2, 1.5).fill(0xc99a86);
+      break;
   }
+}
+
+/** A well: a ring of stone round dark water. */
+function drawWell(g: Graphics): void {
+  g.circle(8, 9, 5.5).fill(0x8a8a84);
+  g.circle(8, 9, 3.6).fill(0x2a4d68);
+  g.circle(7, 8, 1).fill(0x4aa3d8);
+  g.rect(2.5, 2, 1.5, 7).fill(0x6e4a2b);
+  g.rect(12, 2, 1.5, 7).fill(0x6e4a2b);
+  g.rect(2.5, 2, 11, 1.5).fill(0x86603a);
+}
+
+/** A cache: a lidded wooden box. */
+function drawCache(g: Graphics): void {
+  g.rect(3, 6, 10, 8).fill(0x8a6039);
+  g.rect(2.5, 5, 11, 2.5).fill(0x6e4a2b);
+  g.rect(3, 10, 10, 1).fill(0x694627);
+  g.rect(7, 7.5, 2, 2).fill(0xc9a24a);
 }
 
 /** A spring on the bank: a droplet. */

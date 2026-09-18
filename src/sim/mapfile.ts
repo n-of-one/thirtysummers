@@ -1,7 +1,8 @@
 import * as C from "../config.ts";
+import { RESOURCE_KINDS, RESOURCES } from "./resources.ts";
 import { TERRAIN, TERRAIN_ORDER } from "./terrain.ts";
 import { TileMap } from "./tilemap.ts";
-import type { ResourceKind, ResourceNode, TerrainKind, Vec2 } from "./types.ts";
+import type { ResourceKind, ResourceNode, Spring, TerrainKind, Vec2 } from "./types.ts";
 import { reachableFrom } from "./worldgen/reachability.ts";
 import { placeSprings } from "./worldgen/springs.ts";
 import type { GeneratedWorld } from "./worldgen.ts";
@@ -20,32 +21,11 @@ import type { GeneratedWorld } from "./worldgen.ts";
  * the dump script, the checker and the browser.
  */
 
-/** Glyph for each resource node, as it appears over the ground it grows on. */
-export const RESOURCE_GLYPH: Record<ResourceKind, string> = {
-  fruit: "f",
-  ore: "v",
-  vine: "y",
-  stick: "s",
-};
-
 /** The camp, which is also where the player starts. */
 export const CAMP_GLYPH = "C";
 
-/**
- * What a node glyph is standing on, since one character cannot say both.
- *
- * Every resource but the vine grows on open grass; the vine grows in the mud
- * pocket that is its whole reason for being a soft barrier, so a `y` implies
- * mud under it. An editor who wants a node on some other ground can say so by
- * moving it, which is the kind of thing the format is deliberately too small
- * to express.
- */
-export const NODE_GROUND: Record<ResourceKind, TerrainKind> = {
-  fruit: "grass",
-  ore: "grass",
-  vine: "mud",
-  stick: "grass",
-};
+/** A well already dug. It stands on grass, and is a spring the loader keeps. */
+export const WELL_GLYPH = "W";
 
 /** The camp stands on grass, cleared. */
 export const CAMP_GROUND: TerrainKind = "grass";
@@ -53,8 +33,9 @@ export const CAMP_GROUND: TerrainKind = "grass";
 const TERRAIN_BY_GLYPH = new Map<string, TerrainKind>(
   TERRAIN_ORDER.map((kind) => [TERRAIN[kind].glyph, kind]),
 );
+// Each node glyph, and the ground it stands on, come from the resource table.
 const RESOURCE_BY_GLYPH = new Map<string, ResourceKind>(
-  Object.entries(RESOURCE_GLYPH).map(([kind, glyph]) => [glyph, kind as ResourceKind]),
+  RESOURCE_KINDS.map((kind) => [RESOURCES[kind].glyph, kind]),
 );
 
 export class MapFileError extends Error {}
@@ -88,6 +69,7 @@ export function parseMap(text: string, seed = 0): GeneratedWorld {
 
   const map = new TileMap(width, height);
   const nodes: ResourceNode[] = [];
+  const wells: Spring[] = [];
   let camp: Vec2 | null = null;
 
   for (let y = 0; y < height; y++) {
@@ -103,7 +85,7 @@ export function parseMap(text: string, seed = 0): GeneratedWorld {
 
       const resource = RESOURCE_BY_GLYPH.get(glyph);
       if (resource) {
-        map.set(x, y, NODE_GROUND[resource]);
+        map.set(x, y, RESOURCES[resource].ground);
         nodes.push({
           id: nodes.length + 1,
           kind: resource,
@@ -126,15 +108,22 @@ export function parseMap(text: string, seed = 0): GeneratedWorld {
         continue;
       }
 
+      if (glyph === WELL_GLYPH) {
+        map.set(x, y, "grass");
+        wells.push({ x, y, well: true });
+        continue;
+      }
+
       throw new MapFileError(`line ${y + 1}, column ${x + 1}: unknown glyph "${glyph}"`);
     }
   }
 
   if (!camp) throw new MapFileError(`no camp: the map needs one "${CAMP_GLYPH}"`);
 
-  // The file carries no springs. They are placed by the generator's own pass,
-  // on a fixed seed, so the same file gets the same springs every load.
-  const springs = placeSprings(map, camp, nodes, C.MAP_SPRING_SEED);
+  // The file carries no springs on the bank. They are placed by the generator's
+  // own pass, on a fixed seed, so the same file gets the same springs every
+  // load. Wells are not on a bank, so the file has to say where they are.
+  const springs = [...placeSprings(map, camp, nodes, C.MAP_SPRING_SEED), ...wells];
   return { seed, map, camp, nodes, springs, reachable: reachableFrom(map, camp) };
 }
 
@@ -142,8 +131,8 @@ export function parseMap(text: string, seed = 0): GeneratedWorld {
  * Write a world back out as a map file.
  *
  * The inverse of {@link parseMap} for everything the format carries, which is
- * terrain, nodes and the camp. Springs are not written: reading the file back
- * places them again. It is not an inverse for anything else, and is
+ * terrain, nodes, wells and the camp. Springs on the bank are not written:
+ * reading the file back places them again. It is not an inverse for anything else, and is
  * not meant to be: a round trip through a file is how a generated map becomes
  * an edited one, so what survives the trip is exactly what an editor is allowed
  * to change.
@@ -152,7 +141,10 @@ export function formatMap(world: GeneratedWorld, z = 0): string {
   const { map } = world;
   const overlay = new Map<number, string>();
   for (const node of world.nodes) {
-    overlay.set(Math.floor(node.y) * map.width + Math.floor(node.x), RESOURCE_GLYPH[node.kind]);
+    overlay.set(Math.floor(node.y) * map.width + Math.floor(node.x), RESOURCES[node.kind].glyph);
+  }
+  for (const spring of world.springs) {
+    if (spring.well) overlay.set(spring.y * map.width + spring.x, WELL_GLYPH);
   }
   // The camp goes on last, so a node generated onto the camp tile cannot bury
   // the one glyph the file cannot do without.
@@ -172,8 +164,6 @@ export function formatMap(world: GeneratedWorld, z = 0): string {
 /** The legend, for the dump script's footer and the checker's. */
 export function mapLegend(): string {
   const terrain = TERRAIN_ORDER.map((kind) => `${TERRAIN[kind].glyph} ${kind}`).join("   ");
-  const resources = Object.entries(RESOURCE_GLYPH)
-    .map(([kind, glyph]) => `${glyph} ${kind}`)
-    .join("   ");
-  return `${terrain}\n           ${CAMP_GLYPH} camp   ${resources}`;
+  const resources = RESOURCE_KINDS.map((kind) => `${RESOURCES[kind].glyph} ${kind}`).join("   ");
+  return `${terrain}\n           ${CAMP_GLYPH} camp   ${WELL_GLYPH} well   ${resources}`;
 }

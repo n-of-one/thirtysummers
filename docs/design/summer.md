@@ -99,14 +99,34 @@ bigger backpack that adds slots but slows the walk.
 
 ## Improvements
 
-Improvements are made in place, in summer, with a hold on the interact key.
+Improvements are made in place, in summer, with a hold on the interact key on
+the tile ahead.
 
 - **Cut** a thicket tile with the knife.
+- **Fell** a sapling with the axe, for a log.
 - **Bridge** a stream tile with planks.
 - **Well**, dug where there is no water, from logs and sticks. It is a spring
   the family can work from, further from any stream.
 - **Cache**, a box in the field: bank there, fetch later. It holds any
   amount. Fruit may be left in one but does not survive winter there.
+
+Cutting and felling are the tools, and act on what is in front of you. The
+other three are **built, and building is chosen rather than guessed**: a build
+menu lists what the character knows how to build with what each one costs, and
+the tile ahead then does that one thing until the choice is changed or put
+down. What cannot be paid for yet is still listed, because the menu is where
+the recipes are read.
+
+Guessing from the pack was tried first and does not work. Three sticks are a
+cache and can be nothing else, so a player saving for a well was told to build
+a cache on every patch of grass they walked past, and had no way to say which
+they meant and no way to be rid of one stick. Choosing also empties the screen:
+with nothing chosen, open ground says nothing at all, and the only thing the
+game volunteers about building is at the water's edge, where a crossing is the
+barrier and the prompt names its price and the key that starts one.
+
+A choice does not survive the end of a summer, and the clock runs while the
+menu is open: choosing what to build is part of what a summer is spent on.
 
 What wears, and how fast, is in [winter.md](winter.md).
 

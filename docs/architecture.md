@@ -56,7 +56,7 @@ in [development.md](development.md).
 |---|---|
 | Projection | Top-down orthogonal. Z-levels, when they come, are discrete stacked layers viewed one at a time. |
 | Movement | Free and continuous, with a tile grid underneath for collision and terrain cost. |
-| Map | 168×168 tiles generated, inside a rock border 20 thick so the camera can stay centred at the edge of play; 64×64 for hand-edited maps. `TILE = 32` logical px, 8px source art at 4× scale. |
+| Map | 168×168 tiles generated, inside a rock border 20 thick so the camera can stay centred at the edge of play; 200×180 for a laid-out five-summer map, with a rock border 2 thick. `TILE = 32` logical px, 8px source art at 4× scale. |
 | View | A fixed logical view of `VIEW_W × VIEW_H`, 1920×1080, scaled to fit the window in steps of 1/8 with black bars. |
 | HUD | HTML/CSS overlay on top of the canvas. |
 | Art | Minifantasy, behind a swappable pack layer. |
@@ -65,17 +65,25 @@ in [development.md](development.md).
 ## Modules
 
 - **`src/sim/`** is the whole game with no renderer. `world.ts` owns
-  everything: `world.step(dt, input)` and `nextSummer()`. Around it:
-  `stats.ts`, `inventory.ts`, `player.ts` (collision, per-axis moving
-  flags, the heading), `interaction.ts` (what is in reach, the tile ahead,
-  and `availableAction`, the one query that decides what the interact key
-  does), `terrain.ts` and
-  `tilemap.ts` (the terrain table and the grid), `mapfile.ts` (the text map
-  format), `summary.ts` (a summer counted from the event log).
+  everything: `world.step(dt, input)`, `nextSummer()` with the year table's
+  grants, the tools and recipes owned, the wells and the caches, and
+  `availableAction`, the one query that decides what the interact key does.
+  Around it: `stats.ts`, `resources.ts` (the resource table: glyph, ground,
+  slots, price, whether it comes back, what camp does with it),
+  `inventory.ts` (slots, and the store and caches with no limit),
+  `player.ts` (collision, per-axis moving flags, the heading),
+  `interaction.ts` (what is in reach, the tile ahead, water nearby),
+  `terrain.ts` and `tilemap.ts` (the terrain table and the grid),
+  `mapfile.ts` (the text map format), `summary.ts` (a summer counted from
+  the event log).
 - **`src/sim/worldgen/`** turns a seed into a map: noise into terrain and a
   camp, stream thickening and fords, a flood fill from camp, resources
-  scattered by terrain, springs on the bank. `worldgen.ts` says what order the steps run in, and
-  why.
+  scattered by terrain, springs on the bank. `worldgen.ts` says what order the
+  steps run in, and why. On top of that, `layout.ts` stamps the five-summer
+  table onto the landscape -- the stream round camp, the near ring, the
+  pockets beyond -- and is what `World.fromSeed` and `npm run map` build;
+  `rows.ts` measures whether a map holds that table, and is shared by the
+  layout's tests and `npm run map:check`.
 - **`src/render/`** is Pixi only. `tileLayer.ts` is the culled, autotiled
   ground. `propLayer.ts` is the y-sorted props and player, with pixel
   snapping. `silhouette.ts` redraws the player where a canopy covers them.
@@ -88,6 +96,8 @@ in [development.md](development.md).
 - **`src/ui/`** is the HUD and the view. `hudModel(world)` turns state into
   plain numbers and `Hud.update` writes them into the markup in
   `index.html`; `edgeArrow` and `anchorPosition` are its geometry, pure.
+  `buildMenu.ts` is the menu B opens: it draws `world.buildOptions()` and
+  reports the choice back, and never writes simulation state itself.
   `view.ts` scales the one wrapper that holds everything on screen.
 - **`src/input/`, `src/debug/`, `src/main.ts`, `src/frameClock.ts`** are the
   keyboard and pause, the debug overlay, the wiring, and the fixed-step
@@ -95,5 +105,5 @@ in [development.md](development.md).
 - **`scripts/`** are `npm run map` and `npm run map:check`.
 - **`tests/`** are Vitest. `stubPack.ts` is an `AssetPack` that draws
   nothing and records everything, so both layers run headless.
-- **`public/maps/`** are the hand-edited maps.
+- **`public/maps/`** are dumps of particular seeds, editable by hand.
   **`public/assets/minifantasy/`** is the art, gitignored.

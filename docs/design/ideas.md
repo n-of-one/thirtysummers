@@ -46,11 +46,11 @@ one up means refining it into a design document first. Rejected ideas are in
 - **Challenge maps** with a known time limit. Never the first map.
 - **Z-levels.** Terrain in stacked layers viewed one at a time. The code is
   z-indexed already and worldgen makes layer 0 only.
-- **A generator pass** that builds the barrier chain, and later the
-  five-summer table, per seed, with the hand-edited maps as its fixtures:
-  no ford carving, sellables only across the stream, a forest patch walled
-  in thicket, a mud pocket picked for the vines, the flood fill run three
-  ways, and a retry when a seed fails.
+- **A generator that varies the table itself**, rather than laying the same
+  arrangement out per seed as `worldgen/layout.ts` now does: a different
+  number of pockets, barriers in another order, the near ring somewhere
+  other than round camp. What is built holds the table on every seed; what
+  is open is whether the table is the only shape worth holding.
 - **Outside testers**, once the concept is fleshed out further.
 - **A high-fantasy setting**, to see what it offers over low fantasy.
 

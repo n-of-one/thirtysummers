@@ -13,6 +13,7 @@ import { TileLayer } from "./render/tileLayer.ts";
 import { parseMap } from "./sim/mapfile.ts";
 import { summarise } from "./sim/summary.ts";
 import { World } from "./sim/world.ts";
+import { BuildMenu } from "./ui/buildMenu.ts";
 import { Hud, hudModel } from "./ui/hud.ts";
 import { bindFullscreenButton, FixedView, parseViewParam } from "./ui/view.ts";
 
@@ -106,6 +107,11 @@ document.addEventListener("visibilitychange", () => {
 });
 // Reads `world` when clicked rather than now, because a regenerate replaces it.
 hud.onEndSummer(() => world.endSummer());
+// The build menu owns the choosing; the world owns what is chosen.
+const buildMenu = new BuildMenu();
+buildMenu.onChoose = (build) => {
+  world.buildMode = build;
+};
 // The same from the keyboard, on the same terms as the button: only at camp,
 // and not while paused, when the button is under the card.
 addEventListener("keydown", (e) => {
@@ -202,6 +208,7 @@ function exposeGame(): void {
     view,
     pause,
     hud,
+    buildMenu,
     world,
     camera,
     props,
@@ -272,8 +279,9 @@ app.ticker.add(({ deltaMS }) => {
   // props standing on it.
   for (let i = seenEvents; i < world.events.length; i++) {
     const type = world.events[i]!.type;
-    if (type === "harvested" || type === "summerStarted") props.invalidate();
-    else if (type === "cut" || type === "built") {
+    if (type === "harvested" || type === "summerStarted" || type === "dug" || type === "cached") {
+      props.invalidate();
+    } else if (type === "cut" || type === "built" || type === "felled") {
       tiles.invalidate();
       props.invalidate();
     }
@@ -294,8 +302,10 @@ app.ticker.add(({ deltaMS }) => {
     playerTexture(),
     frameSec,
     world.springs,
+    world.caches,
   );
   marker.update(camera, targetTile(world.availableAction()));
+  buildMenu.update(world.buildOptions(), world.buildMode);
   // The prompt and the toasts hang off the player, and the arrow points at
   // camp, so the HUD needs the one thing the simulation cannot tell it: where
   // those are in the view.
@@ -312,6 +322,6 @@ console.log(
   `${mapName ? `map "${mapName}"` : `seed ${seed}`} | pack "${pack.id}" @${pack.tileSize}px | ` +
     `${world.map.width}x${world.map.height} | ${world.nodes.length} nodes | ` +
     `renderer ${app.renderer.name} | WASD move, ` +
-    `E/Space gather, drink, cut, bridge and bank, P pause, ` +
+    `E/Space gather, drink, cut, fell, build and bank, B build menu, P pause, ` +
     `\` debug panel | view ${view.size.width}x${view.size.height} at x${view.scale}`,
 );

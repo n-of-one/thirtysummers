@@ -239,10 +239,12 @@ file.** Candidates are every walkable non-bridge tile touching the stream on
 any of its eight sides, outside the camp's clearing and off node tiles. They
 are shuffled from the seed on their own stream of numbers, so springs never
 move a resource, and taken with `SPRING_SPACING_TILES` between them, so they
-sit along the water the way the discovery test's water nodes did. A
-hand-edited map has no seed, so the same pass
-runs over it with `MAP_SPRING_SEED` and gives the same springs every load.
-The map format carries none.
+sit along the water the way the discovery test's water nodes did. A map file
+has no seed, so the same pass runs over it with `MAP_SPRING_SEED` and gives
+the same springs every load. The layout pass uses that same fixed seed for the
+same reason, so a dump and the world it came from agree. The map format
+carries no spring, only a well, which is not on a bank and could not be placed
+again.
 
 **Fog is CSS, not Pixi, and it moves without repainting.** It is a layer
 between the canvas and the HUD, twice the view each way, with a radial
@@ -359,6 +361,52 @@ every tick inside a frame sees the same input object.
 **Ties in `nearestNodeWithin` break on the lower id.** Standing exactly between
 two nodes would otherwise pick a different one each tick, reset the progress
 every time, and make the hold impossible to finish.
+
+**One table describes a resource.** `sim/resources.ts` gives each kind its
+glyph, the ground it grows on, the slots it takes, its price, whether it comes
+back each winter, and what banking does with it. Those six facts were about to
+be spread across the map format, the inventory, the HUD and winter, and a kind
+added in one place and forgotten in another is the kind of bug that only shows
+up as a map that will not load. The map format reads its glyphs from the table,
+so adding a kind is one row.
+
+**The backpack counts slots, not items.** A log takes two of the ten, which is
+the design's one bulky kind, so `carried` is a sum over the table and `fits`
+asks whether there is room for one more of a particular kind rather than
+whether the pack is full. Felling with nine slots used is refused for that
+reason, and the refusal names the pack rather than the axe.
+
+**What the year hands over is a table in config.** The axe, the cart and the
+well arrive at the start of summers 2, 3 and 4 so the map can be played through
+before a shop exists to sell them. It is one `YEAR_GRANTS` table rather than
+logic, so M10 deletes a table instead of unpicking conditions, and a grant is
+an event like anything else, which is what puts "You have an axe" on screen
+without the HUD knowing what a year is.
+
+**Building is chosen, never guessed.** What to build used to be inferred from
+the pack, and three sticks can only mean a cache, so a player saving for a well
+was offered a cache on every patch of grass and had no way to say otherwise.
+`world.buildMode` is set from the build menu and is the only thing the tile
+ahead will build; the tools, which act on what is actually there, are
+unaffected. The design reason is in [../design/summer.md](../design/summer.md);
+the code consequence is that `availableAction` answers "what does E do here"
+without consulting the pack about intentions, and that open grass is silent.
+
+The menu writes no simulation state. It draws `world.buildOptions()` and reports
+a choice back through a callback, which keeps rendering one-way even though the
+menu is the one piece of HUD that is not a readout.
+
+**A well asks the map, once per tick, whether there is water about.** The
+clearance is a Chebyshev scan of the square around the tile ahead, which is a
+thousand tiles at the configured sixteen. It only runs while a well is the
+chosen build, which is the cheap half of a rule that could have been an index
+to maintain against every spring dug and every stream bridged.
+
+**A cache is an inventory with no capacity, and the same key both ways.** A
+press with anything in the pack puts all of it in; a press with an empty pack
+takes back what fits, in table order. The two-press round trip that follows,
+needed when something is carried and something else is wanted out, is the known
+rough edge of that simplicity.
 
 **A new seed is built in place.** Until M6 it reloaded the page. Rebuilding means
 new render layers, because each one holds the map it was built with, and that is
@@ -516,12 +564,12 @@ question the screen has answered.
 ## Maps as text
 
 **The dump became the format.** `npm run map` has printed one character per tile
-since M1. Reading it back is about half an evening of work and it is what makes
-the discovery test possible at all: the chain of barriers can be edited into a
-generated map by hand, and the alternative, teaching the generator to build the
-chain, is several evenings plus open-ended tuning against seeds that pass a
-validator and are still dull. The edited maps become the fixtures for that
-generator pass if the verdict ever calls for one.
+since M1. Reading it back is about half an evening of work and it is what made
+the discovery test possible at all: a chain of barriers could be edited into a
+generated map by hand long before the generator could build one. It still earns
+its place now that the generator does build one, because a map that plays badly
+can be opened in a text editor and changed, and because a playtest can be
+repeated exactly.
 
 `formatMap` and `parseMap` live in `sim/` rather than in the script, so the round
 trip is testable and the script is just a caller. The stats the script used to
@@ -538,32 +586,85 @@ something an editor should not be adjusting one character at a time.
 typo that silently became grass is a barrier quietly missing from a playtest.
 Every complaint names the line and column.
 
-**The chain is checked by flood-filling three ways.** `npm run map:check` runs
-the fill as the player is, then as if the thicket were not there, then as if the
-stream were not there, and compares the three answers with what the chain
-requires: vines on foot, sticks only once cut, gold only once bridged. It also
-re-runs stream thickening on a copy, which must change nothing: an edited
-stream pinched to one tile across is a wall with a hole in it.
+## The five-summer map
 
-"Gold is not reachable" is not enough on its own, and asking only that was the
-first version's bug: a pocket sealed behind a forest is also not reachable, and
-gold in one would simply never be found. The far bank is defined as what opens up
-when the stream is crossed and not before.
+**The table is stamped on, not grown.** Noise does not produce a chain where
+each summer opens exactly one thing and each barrier is short in the one
+currency the summer before supplied. `worldgen/layout.ts` therefore paints the
+generator's landscape, takes its own streams and walls back out, and stamps the
+table onto it: the half circle of stream round camp, the near ring inside it,
+the stand and the mud pocket, the ore field, the copse and the field it hides,
+the dry pocket, the wall into the last pocket, and the route a cart could run.
+What a map feels like to walk across is still the generator's; what it asks of
+the player is the table's.
 
-**The maps are generated, cropped and then edited.** Each runs the generator's
-own terrain steps, stops before ford carving, crops a 64x64 window around the
-camp, since a 5-minute summer is not 128 tiles wide, and then has the chain edited
-in: a mud pocket of vines, a stand walled in thicket, gold on the far bank, and
-one short wall near camp already cut through. What a map feels like to walk
-across is still the generator's.
+Hand-stamping the five maps with a throwaway script came first and worked, and
+is exactly what made the next change expensive: "the starting area should be six
+times larger" is one constant in a generator and five rebuilt files otherwise.
+The maps in `public/maps/` are now dumps of particular seeds, which is the
+property worth keeping from the hand-edited era.
 
-Two things went wrong doing it and are worth not repeating. Placing a feature
-"about nine tiles from camp" by taking the best-scoring tile puts it next to the
-camp when nothing at nine tiles qualifies. The first run walled the camp in
-completely, and the flood fill reported one reachable tile. And scoring on
-distance alone makes the scan order the tiebreak, so every seed put its pocket in
-the same corner; the layouts only became per-map once the score carried a
-per-seed jitter.
+**A barrier is measured by what it costs to cross, not by where it is.**
+`worldgen/rows.ts` fills the map from camp with a 0-1 breadth-first search that
+charges one for a thicket tile and nothing for walkable ground, with the stream
+and the saplings opened or not. A thin ring and a twelve-tile wall are then told
+apart by the depth of the cut rather than by their coordinates, which is what
+lets the same check hold a generated map and an edited one to the same table.
+Each row of the table is one entry: fruit and feathers on foot, vines waded to
+and sticks behind thin thicket, springs on both banks, ore only across the
+water, a field behind the copse, a cart route that has to be cut, shells too far
+from water to work without a well, and a pocket behind twelve tiles of thicket
+with nothing in between. It also re-runs stream thickening on a copy, which must
+change nothing: a stream pinched to one tile across is a wall with a hole in it.
+
+Those rows have three readers: `npm run map:check` over a file, `npm run map`
+after a dump, and the layout's own tests over a spread of seeds. One definition
+means a map cannot pass the checker and fail the tests.
+
+"Gold is not reachable" is not enough on its own, and asking only that was an
+early bug: a pocket sealed behind a forest is also not reachable, and gold in
+one would simply never be found. Every row is written as what opens when one
+particular thing is done, and not before.
+
+**The tests found two bugs the checker could not.** The rows ask whether the
+map holds the chain; they do not ask whether each thing is where it should be.
+Scattering the near ring's fruit over the whole ring put some of it inside the
+walled stand, visible from outside and unreachable in the first summer, and
+scattering sticks inside the stand let the stand's own saplings box one in,
+which is a wall until the axe arrives a year later. Both are now rules in the
+scatter: the near ring avoids what is walled off, and a stick only goes on
+ground that joins the wall without a sapling in the way.
+
+**A scatter that cannot fit what it was asked for closes up rather than
+placing fewer.** Spacing is what the near ring is for, but a stand that came out
+mostly saplings, or a ring whose noise left little open grass, will not take ten
+nodes seven tiles apart. Placing eight and saying nothing means the summer is
+quietly worth less on that seed. It tries the spacing it wants, then a smaller
+one, then none.
+
+**A dump and the world it came from have the same springs.** The file carries
+no springs: reading it back places them again from the map, on a fixed seed. The
+layout therefore places its own with that same fixed seed rather than the
+world's, or `public/maps/f.txt` would be a subtly different map from the seed
+that wrote it. The layout's round-trip test is what caught that.
+
+Two things went wrong placing features and are worth not repeating. Placing a
+feature "about nine tiles from camp" by taking the best-scoring tile puts it
+next to the camp when nothing at nine tiles qualifies; an early run walled the
+camp in completely, and the flood fill reported one reachable tile. And scoring
+on distance alone makes the scan order the tiebreak, so every seed put its
+pocket in the same corner. The layout places by polar offset from camp with a
+per-seed jitter and a mirror, which is the same lesson applied at the start.
+
+**Geometry that overlaps is geometry that leaks.** The cart route is only a
+summer's work if no grass path reaches the far field without cutting, so the
+copse is ringed by a band of underbrush with the route the one way through and a
+hedge across it. The first version leaked: the ore field's clearing was large
+enough to touch that band, so grass ran round the hedge. The fields are now far
+enough apart that their discs cannot meet, and the route crosses the band once,
+dead straight, with the hedge on it. The row check reported this as "cart
+reaches 36 of 36 uncut", which is the kind of failure that is invisible in a
+screenshot.
 
 ## Drawing the new terrain
 
@@ -611,8 +712,30 @@ grows in, and the stick is the pale birch pickup from the logging sheet.
 
 **Ore stood in for feathers.** The discovery test's sellable was meant to be
 feathers, and the crafting pack has good ore art and none. The five summers
-bring feathers back as their own kind, so they need a sprite from another pack
-or one drawn in the same style.
+brought feathers back as their own kind, and the packs still have none, so the
+feather is drawn from a pixel table in `minifantasy.sheets.ts`: a white quill
+with the packs' own black outline, slanted like the stick beside it.
+
+**The sapling is drawn too, because every tree in the packs is a grown one.**
+The birch from the logging sheet was tried first and has exactly the contrast a
+copse wants, an orange canopy against green woods. It is also four tiles wide
+and eight tall, and a copse with one on every tile is a solid mass of canopy
+with no ground to see, no gaps to read, and nothing to aim a fell at. The drawn
+one is a tile wide and two tall, a pale trunk under a small crown in a yellower
+green, so a stand reads as young trees from across the ring and still shows the
+ground it stands on. Saplings occlude the player like trees, since they are
+drawn taller than their tile.
+
+**The log is the oak, not the birch.** The birch log is pale and round on the
+sheet and sits in the pack beside the pale birch stick, where it reads as an
+egg. The oak's brown end-on log cannot be confused with it.
+
+**Wells and caches are props on a tile, not terrain.** A well is an entry in
+`world.springs` with a flag, so everything that already knew how to drink at a
+spring drinks at a well with no change, and the map format writes it as its own
+glyph because it is not on a bank and cannot be placed again from the map. A
+cache is a position and an inventory. Neither blocks the tile: walking over what
+you built is not a barrier worth having.
 
 ## Method
 
@@ -623,3 +746,19 @@ conclusions in this document reversed under measurement: the water "not
 scrolling" (the sample included static bank pixels), the tap artefact blamed on
 snap direction, the assumption that the walk sheet had two facings. Sheet layouts
 are decoded from pixels rather than from documentation.
+
+**What has no unit test gets a protocol test.** There is no DOM in the test run,
+so the build menu is driven as a player drives it: B, a number key, E held until
+the world changes, with the prompts and the pill read back from the page. The
+five-summer run is the same idea at length, playing five summers on each shipped
+map with real keystrokes and reading back that each row opened. Taking the axe
+out of the year table makes summer 2 fail there, which is what says the run
+means anything.
+
+**A driver that fails is usually the driver.** Every failure in that run so far
+has been the harness rather than the game: keys sent to a page that was still
+paused from losing focus, an arrow press that walked the player two tiles because
+the ground ahead was open, a key pressed while the "Next summer" button still had
+focus, and a route followed past a barrier a player would have walked around.
+Each one is a lesson about driving rather than about the game, and each is worth
+checking before believing a failure.

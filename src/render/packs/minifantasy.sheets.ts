@@ -10,7 +10,7 @@
  * Splitting it from the loader means pointing the pack at different art is an
  * edit to this file alone.
  */
-import type { Facing } from "../../sim/types.ts";
+import type { Facing, ResourceKind } from "../../sim/types.ts";
 
 const ROOT = "/assets/minifantasy";
 const FP = `${ROOT}/Minifantasy_ForgottenPlains_v3.6_Commercial_Version/Minifantasy_ForgottenPlains_Assets`;
@@ -242,7 +242,85 @@ export const RESOURCE_CELL = {
   ore: ["mining", 13, 1],
   vine: ["fibres", 9, 1],
   stick: ["logging", 23, 11],
-} as const satisfies Record<string, readonly [SheetName, number, number]>;
+  // The oak log, seen end-on. Brown and chunky, so it is not taken for the
+  // pale birch stick beside it in the pack.
+  log: ["logging", 2, 13],
+  // A low heap of the pale blue-white ore, the lightest thing on the mining
+  // sheet, standing in for shells: there are none in the packs.
+  shell: ["mining", 11, 9],
+} as const satisfies Record<Exclude<ResourceKind, "feather">, readonly [SheetName, number, number]>;
+
+/**
+ * The feather, drawn here because no pack has one: a white quill with the
+ * packs' black outline, slanted like the stick. One character per pixel of an
+ * 8x8 cell: `.` clear, `k` outline, `w` vane, `g` its shade, `b` the shaft.
+ */
+export const FEATHER_PIXELS: readonly string[] = [
+  "......kk",
+  ".....kwk",
+  "....kwgk",
+  "...kwgk.",
+  "..kwgk..",
+  ".kwgk...",
+  ".kbk....",
+  "kbk.....",
+];
+export const FEATHER_COLORS: Readonly<Record<string, readonly [number, number, number]>> = {
+  k: [0, 0, 0],
+  w: [244, 242, 232],
+  g: [184, 180, 166],
+  b: [120, 96, 70],
+};
+
+/**
+ * A sapling, drawn here: every tree in the packs is a grown one, three to four
+ * tiles across and up to eight tall, and a copse with one on every tile is
+ * then a wall of canopy with no ground to see or to aim at. This is one tile
+ * wide and two tall, a thin pale trunk under a small crown, in a yellower
+ * green than the woods, so a copse reads as young trees an axe could clear.
+ *
+ * One character per pixel, bottom row last: `.` clear, `k` outline, `l` the
+ * lit crown, `c` its body, `s` its shade, `t` trunk, `b` the trunk's shade.
+ */
+export const SAPLING_PIXELS: readonly string[] = [
+  "...kk...",
+  "..klck..",
+  ".klccsk.",
+  "kllccssk",
+  "klcccssk",
+  ".kcctsk.",
+  "..kktk..",
+  "...ktk..",
+  "...ktk..",
+  "..klctk.",
+  "..kctbk.",
+  "...ktbk.",
+  "...ktb..",
+  "...ktb..",
+  "..kttbk.",
+  "..kkkk..",
+];
+export const SAPLING_COLORS: Readonly<Record<string, readonly [number, number, number]>> = {
+  k: [26, 40, 20],
+  l: [168, 196, 72],
+  c: [124, 162, 52],
+  s: [86, 122, 40],
+  t: [196, 186, 160],
+  b: [138, 128, 106],
+};
+
+/** The cache: the farm's small chest. The camp is its large one. */
+export const CACHE_CELL = ["farmProps", 18, 5] as const satisfies readonly [
+  SheetName,
+  number,
+  number,
+];
+
+/**
+ * A well: the farm's water trough, standing upright, one tile wide and two
+ * tall. Water in a built thing, so it reads apart from the reeds of a spring.
+ */
+export const WELL_CELL = ["farmProps", 18, 2, 1, 2] as const;
 
 /**
  * A spring on the bank: the reeds the discovery test drew its water nodes with.

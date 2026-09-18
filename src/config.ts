@@ -142,10 +142,26 @@ export const FOG_STOPS: readonly (readonly [number, number])[] = [
 
 // ----------------------------------------------------------------- items ----
 
-/** [DOC] The backpack holds 10 items, counting every resource type together. */
+/**
+ * [DOC] The backpack holds 10 slots, counting every resource type together.
+ * A bulky kind takes two; how many each takes, and what each sells for, is the
+ * resource table in sim/resources.ts.
+ */
 export const BACKPACK_CAPACITY = 10;
-/** [DOC] Each ore chunk is worth 1 gold (the doc says feather; you asked for ore). */
-export const ORE_GOLD = 1;
+
+// ----------------------------------------------------------------- years ----
+
+/**
+ * [DOC] What the start of each summer hands over, by year, until the shop
+ * sells it: the axe for summer 2, the cart for summer 3, the well for summer 4.
+ * Every map follows the same five-summer table, so this is one table and not
+ * one per map. Anything granted stays granted.
+ */
+export const YEAR_GRANTS: Readonly<Record<number, readonly ("axe" | "cart" | "well")[]>> = {
+  2: ["axe"],
+  3: ["cart"],
+  4: ["well"],
+};
 
 // -------------------------------------------------------------------- HUD ----
 // Purely cosmetic thresholds: when a readout turns from calm to alarming.
@@ -195,6 +211,14 @@ export const PROMPT_OFFSET_PX = 44;
 export const PROMPT_EDGE_MARGIN_PX = 16;
 /** The key that ends the summer at camp, as `KeyboardEvent.key`, lower case. */
 export const END_SUMMER_KEY = "q";
+/**
+ * The key that opens the build menu, and closes it again. The menu is where a
+ * build is chosen; the clock keeps running while it is open, because choosing
+ * what to build is part of what a summer is spent on.
+ */
+export const BUILD_MENU_KEY = "b";
+/** The key that drops what is being built, along with the menu key itself. */
+export const BUILD_CANCEL_KEY = "escape";
 
 // ---------------------------------------------------------- interaction ----
 
@@ -223,6 +247,26 @@ export const CUT_LEAVES = "grass" as const;
 /** [DOC] Sticks and vines one bridge tile costs. */
 export const BRIDGE_STICKS = 1;
 export const BRIDGE_VINES = 1;
+
+/** [GUESS] Seconds of holding the key to fell one sapling with the axe. */
+export const FELL_TIME = 2;
+
+/** [GUESS] Logs and sticks a well costs. */
+export const WELL_LOGS = 2;
+export const WELL_STICKS = 2;
+/** [GUESS] Seconds of holding the key to dig a well. */
+export const WELL_TIME = 6;
+/**
+ * [GUESS] Closest a well may be dug to water, in tiles counting diagonals:
+ * to a stream tile, a spring, or another well. A well is for where there is
+ * no water, so nearer than this it is refused.
+ */
+export const WELL_WATER_CLEARANCE = 16;
+
+/** [GUESS] Sticks a cache costs. */
+export const CACHE_STICKS = 3;
+/** [GUESS] Seconds of holding the key to build a cache. */
+export const CACHE_TIME = 3;
 
 // ------------------------------------------------------------- worldgen ----
 
@@ -286,9 +330,112 @@ export const SPRING_CAMP_CLEARANCE = 3;
  */
 export const MAP_SPRING_SEED = 1;
 
-/** How many of each resource to scatter. */
+/** How many of each resource to scatter on a plain noise map. */
 export const FRUIT_NODES = 45;
 export const ORE_NODES = 140;
+
+// ------------------------------------------------- the five-summer layout ----
+// The pass that stamps the table of the first five summers onto a noise map:
+// the half circle of stream round camp, the near ring inside it, and the
+// pockets beyond. Everything here is [GUESS] unless it says otherwise, and
+// what each summer has to open is [DOC], from docs/current/five-summers.md.
+
+/**
+ * The laid-out map, which is larger than the plain noise one: the near ring
+ * alone is about six times the area it was, so that the first summer has
+ * somewhere to explore rather than a clearing to sweep.
+ */
+export const LAYOUT_W = 200;
+export const LAYOUT_H = 180;
+/**
+ * The rock border on a laid-out map. Thin, because the camera is allowed to
+ * stop at the edge of play here: these maps are walked, not generated around.
+ */
+export const LAYOUT_BORDER = 2;
+/** Tiles between the camp and the bottom border. */
+export const CAMP_FROM_BOTTOM = 12;
+
+/**
+ * [DOC] The first stream: a half circle round camp, with springs along both
+ * sides, run down to the border so the ring it makes is closed. This is its
+ * radius, and everything inside it is the near ring.
+ */
+export const NEAR_RING_RADIUS = 58;
+/** Half the stream's width, in tiles, before the generator's own thickening. */
+export const STREAM_HALF_WIDTH = 1.5;
+/** The camp's own clearing, cut out of whatever the noise put there. */
+export const CAMP_CLEARING = 4;
+
+/** The sapling stand in the near ring: sticks behind a thin wall of thicket. */
+export const STAND_RADIUS = 6;
+/** [DOC] "about three tiles" of thicket, which is a first-summer job. */
+export const STAND_WALL = 3;
+/** Share of the stand's own tiles that are saplings rather than open ground. */
+export const STAND_SAPLING_SHARE = 0.3;
+/**
+ * The mud pocket in the near ring: vines in mud, and no thicket round it. The
+ * mud is the whole barrier, and it only costs time.
+ */
+export const MUD_POCKET_RADIUS = 8;
+
+/** The ore field across the stream, as tiles beyond the stream's radius. */
+export const ORE_FIELD_BEYOND = 16;
+export const ORE_FIELD_RADIUS = 10;
+/** The field the copse hides, and the copse: a wall of saplings round it. */
+export const FAR_FIELD_BEYOND = 44;
+export const FAR_FIELD_SIDE = 36;
+export const FAR_FIELD_RADIUS = 9;
+export const COPSE_WALL = 3;
+/**
+ * A band of underbrush round the copse, so the only grass into the far field
+ * is the route: the cart runs on grass and bridge, and a road that is already
+ * there is not a summer's work.
+ */
+export const COPSE_MOAT = 5;
+/** Where the hedge sits on that route, as tiles out from the far field. */
+export const HEDGE_FROM_FIELD = 14;
+export const HEDGE_RADIUS = 2.5;
+/**
+ * Where the route bends on its way in, as tiles out from the far field. Far
+ * enough past the band of underbrush that the last leg crosses it once, dead
+ * straight, with the hedge on it.
+ */
+export const ROUTE_BEND_FROM_FIELD = 30;
+
+/** The dry pocket, far enough past the stream that hydration is the barrier. */
+export const DRY_POCKET_BEYOND = 88;
+export const DRY_POCKET_SIDE = 40;
+export const DRY_POCKET_RADIUS = 7;
+
+/** The last pocket, behind [DOC] twelve tiles of thicket. */
+export const LAST_POCKET_SIDE = 70;
+export const LAST_POCKET_FROM_TOP = 16;
+export const LAST_POCKET_RADIUS = 7;
+export const LAST_POCKET_WALL = 13;
+
+/** How many of each kind the layout scatters, by where it goes. */
+export const LAYOUT_NODES = {
+  nearRingFruit: 8,
+  nearRingFeathers: 10,
+  standSticks: 10,
+  pocketVines: 10,
+  oreFieldOre: 28,
+  oreFieldFruit: 5,
+  oreFieldFeathers: 3,
+  farFieldOre: 30,
+  farFieldFruit: 6,
+  dryPocketShells: 12,
+  lastPocketShells: 8,
+  lastPocketOre: 12,
+} as const;
+/**
+ * Closest two nodes of the near ring may stand, in tiles. The ring is large
+ * and its handful of nodes are what there is to find in it, so they are held
+ * apart rather than left to clump where the grass happens to be.
+ */
+export const NEAR_RING_SPACING = 7;
+/** The same inside a field or a pocket, where a gathering run is the point. */
+export const FIELD_SPACING = 2;
 
 // ------------------------------------------------------------- animation ----
 

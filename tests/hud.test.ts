@@ -66,6 +66,8 @@ describe("hudModel", () => {
       capacity: C.BACKPACK_CAPACITY,
       gold: 0,
       storedFruit: 0,
+      tools: "knife",
+      building: null,
       secondsLeft: C.SUMMER_LENGTH_SEC,
       year: 1,
       homeward: false,
@@ -202,16 +204,16 @@ describe("the action prompt", () => {
     w.player.y = 1.5;
     w.inventory.add("ore", 6);
     expect(hudModel(w).prompt).toEqual({
-      text: "Press E to bank 6 ore",
+      text: "Press E to sell 6",
       progress: 0,
       blocked: false,
     });
 
     w.inventory.add("fruit", 2);
-    expect(hudModel(w).prompt?.text).toBe("Press E to bank 6 ore and 2 fruit");
+    expect(hudModel(w).prompt?.text).toBe("Press E to sell 6 and store 2 fruit");
 
-    w.inventory.depositOre();
-    expect(hudModel(w).prompt?.text).toBe("Press E to bank 2 fruit");
+    w.inventory.sell();
+    expect(hudModel(w).prompt?.text).toBe("Press E to store 2 fruit");
 
     w.inventory.remove("fruit", 2);
     expect(hudModel(w).prompt).toEqual({ text: "Nothing to bank", progress: 0, blocked: true });
@@ -328,7 +330,7 @@ describe("backpackText", () => {
     bag.add("fruit", 2);
     expect(backpackText(bag)).toBe("fruit 2, ore 5");
     bag.add("vine", 1);
-    expect(backpackText(bag)).toBe("fruit 2, ore 5, vine 1");
+    expect(backpackText(bag)).toBe("fruit 2, vine 1, ore 5");
   });
 
   it("drops a kind again once the last of it is used", () => {
@@ -343,14 +345,23 @@ describe("backpackText", () => {
 describe("toastFor", () => {
   it("puts every kind of event into words", () => {
     expect(toastFor({ type: "harvested", kind: "ore", at: 0 })).toBe("+1 ore");
-    expect(toastFor({ type: "deposited", ore: 5, fruit: 0, gold: 5, at: 0 })).toBe("Banked 5 gold");
-    expect(toastFor({ type: "deposited", ore: 5, fruit: 2, gold: 5, at: 0 })).toBe(
+    expect(toastFor({ type: "deposited", sold: 5, fruit: 0, gold: 5, at: 0 })).toBe("Banked 5 gold");
+    expect(toastFor({ type: "deposited", sold: 5, fruit: 2, gold: 5, at: 0 })).toBe(
       "Banked 5 gold and 2 fruit",
     );
-    expect(toastFor({ type: "deposited", ore: 0, fruit: 2, gold: 0, at: 0 })).toBe("Banked 2 fruit");
+    expect(toastFor({ type: "deposited", sold: 0, fruit: 2, gold: 0, at: 0 })).toBe("Banked 2 fruit");
     expect(toastFor({ type: "drank", at: 0 })).toBe("Drank your fill");
     expect(toastFor({ type: "blocked", reason: "backpackFull", at: 0 })).toBe("Backpack full");
-    expect(toastFor({ type: "summerEnded", away: false, ore: 0, fruit: 0, gold: 0, at: 0 })).toBe(
+    expect(toastFor({ type: "blocked", reason: "noAxe", at: 0 })).toBe(
+      "Felling a sapling needs an axe",
+    );
+    expect(toastFor({ type: "felled", x: 0, y: 0, at: 0 })).toBe("Felled a sapling, +1 log");
+    expect(toastFor({ type: "dug", x: 0, y: 0, at: 0 })).toBe("Dug a well");
+    expect(toastFor({ type: "cached", x: 0, y: 0, at: 0 })).toBe("Built a cache");
+    expect(toastFor({ type: "stashed", x: 0, y: 0, items: 4, at: 0 })).toBe("Put 4 in the cache");
+    expect(toastFor({ type: "fetched", x: 0, y: 0, items: 3, at: 0 })).toBe("Took 3 from the cache");
+    expect(toastFor({ type: "granted", what: "axe", at: 0 })).toBe("You have an axe");
+    expect(toastFor({ type: "summerEnded", away: false, sold: 0, fruit: 0, gold: 0, at: 0 })).toBe(
       "Summer over",
     );
   });

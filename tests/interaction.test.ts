@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import * as C from "../src/config.ts";
 import { NO_INPUT, type InputState } from "../src/input/keyboard.ts";
 import { nearestNodeWithin, withinReach } from "../src/sim/interaction.ts";
+import { RESOURCES } from "../src/sim/resources.ts";
 import { summarise } from "../src/sim/summary.ts";
 import { TileMap } from "../src/sim/tilemap.ts";
 import type { ResourceKind, ResourceNode } from "../src/sim/types.ts";
@@ -166,38 +167,51 @@ describe("harvesting", () => {
   });
 });
 
-describe("banking ore at camp", () => {
+describe("banking at camp", () => {
   it("turns the whole load into gold on a press", () => {
     const world = worldWith([]);
     world.inventory.add("ore", 4);
     world.player.x = 1.5;
     world.player.y = 1.5;
 
-    expect(world.availableAction()).toEqual({ type: "deposit", ore: 4, fruit: 0, blocked: null });
+    expect(world.availableAction()).toEqual({ type: "deposit", sold: 4, fruit: 0, blocked: null });
     tap(world, INTERACT);
-    expect(world.inventory.gold).toBe(4 * C.ORE_GOLD);
+    expect(world.inventory.gold).toBe(4 * RESOURCES.ore.price);
     expect(world.inventory.count("ore")).toBe(0);
     expect(world.events).toEqual([
-      { type: "deposited", ore: 4, fruit: 0, gold: 4, at: expect.any(Number) },
+      { type: "deposited", sold: 4, fruit: 0, gold: 4 * RESOURCES.ore.price, at: expect.any(Number) },
     ]);
   });
 
-  it("puts fruit in the store in the same press, and leaves sticks and vines", () => {
+  it("sells feathers and shells at their own prices", () => {
+    const world = worldWith([]);
+    world.inventory.add("feather", 2);
+    world.inventory.add("shell", 3);
+    world.player.x = 1.5;
+    world.player.y = 1.5;
+    tap(world, INTERACT);
+    expect(world.inventory.gold).toBe(2 * RESOURCES.feather.price + 3 * RESOURCES.shell.price);
+    expect(world.inventory.carried).toBe(0);
+  });
+
+  it("puts fruit in the store in the same press, and leaves sticks, vines and logs", () => {
     const world = worldWith([]);
     world.inventory.add("ore", 3);
     world.inventory.add("fruit", 2);
     world.inventory.add("stick", 1);
     world.inventory.add("vine", 1);
+    world.inventory.add("log", 1);
     world.player.x = 1.5;
     world.player.y = 1.5;
 
-    expect(world.availableAction()).toEqual({ type: "deposit", ore: 3, fruit: 2, blocked: null });
+    expect(world.availableAction()).toEqual({ type: "deposit", sold: 3, fruit: 2, blocked: null });
     tap(world, INTERACT);
-    expect(world.inventory.gold).toBe(3 * C.ORE_GOLD);
+    expect(world.inventory.gold).toBe(3 * RESOURCES.ore.price);
     expect(world.store.count("fruit")).toBe(2);
     expect(backpackOf(world)).toEqual({ fruit: 0, ore: 0 });
     expect(world.inventory.count("stick")).toBe(1);
     expect(world.inventory.count("vine")).toBe(1);
+    expect(world.inventory.count("log")).toBe(1);
   });
 
   it("banks fruit alone, with no ore in the pack", () => {
@@ -217,7 +231,7 @@ describe("banking ore at camp", () => {
     world.player.y = 1.5;
     expect(world.availableAction()).toEqual({
       type: "deposit",
-      ore: 0,
+      sold: 0,
       fruit: 0,
       blocked: "nothingToBank",
     });
@@ -229,7 +243,7 @@ describe("banking ore at camp", () => {
     world.player.x = 1.5;
     world.player.y = 1.5;
     hold(world, INTERACT, 2);
-    expect(world.inventory.gold).toBe(3);
+    expect(world.inventory.gold).toBe(3 * RESOURCES.ore.price);
     expect(types(world)).toEqual(["deposited"]);
   });
 
@@ -239,7 +253,7 @@ describe("banking ore at camp", () => {
     world.player.y = 1.5;
     expect(world.availableAction()).toEqual({
       type: "deposit",
-      ore: 0,
+      sold: 0,
       fruit: 0,
       blocked: "nothingToBank",
     });
@@ -268,7 +282,7 @@ describe("banking ore at camp", () => {
     // is not picked by the same hold.
     hold(world, INTERACT, C.HARVEST_TIME * 1.1);
     expect(fruit.harvested).toBe(false);
-    expect(world.inventory.gold).toBe(2);
+    expect(world.inventory.gold).toBe(2 * RESOURCES.ore.price);
 
     // Release and press again, and now there is no ore, so it picks.
     world.step(C.TICK_SEC, NO_INPUT);
@@ -301,6 +315,7 @@ describe("drinking", () => {
   it("drinks at the stream only where there is a spring", () => {
     const world = worldWith([]);
     world.map.set(9, 8, "stream");
+    world.buildMode = "bridge";
     world.stats.hydration = 30;
     expect(world.availableAction()).toMatchObject({ type: "build", blocked: "noMaterials" });
   });
@@ -308,6 +323,7 @@ describe("drinking", () => {
   it("on a spring's tile beside the stream, drinks when thirsty and bridges otherwise", () => {
     const world = worldWith([]);
     world.map.set(9, 8, "stream");
+    world.buildMode = "bridge";
     world.springs.push({ x: 8, y: 8 });
     world.stats.hydration = 30;
     expect(world.availableAction()).toMatchObject({ type: "drink", x: 8, y: 8 });
@@ -358,10 +374,18 @@ describe("a summer played end to end", () => {
     tap(world, INTERACT);
 
     const summer = summarise(world);
-    expect(summer.gold).toBe(2);
-    expect(summer.harvested).toEqual({ ore: 2, fruit: 1, vine: 0, stick: 0 });
+    expect(summer.gold).toBe(2 * RESOURCES.ore.price);
+    expect(summer.harvested).toEqual({
+      fruit: 1,
+      feather: 0,
+      stick: 0,
+      vine: 0,
+      ore: 2,
+      log: 0,
+      shell: 0,
+    });
     expect(summer.drinks).toBe(1);
-    expect(summer.oreBankedAtEnd).toBe(0);
+    expect(summer.soldAtEnd).toBe(0);
     // The fruit went into the store with the ore.
     expect(summer.fruitStored).toBe(1);
     expect(backpackOf(world)).toEqual({ fruit: 0, ore: 0 });
@@ -373,8 +397,8 @@ describe("a summer played end to end", () => {
     world.inventory.add("fruit", 2);
     world.inventory.add("vine", 1);
     world.endSummer();
-    expect(summarise(world).oreBankedAtEnd).toBe(3);
-    expect(summarise(world).gold).toBe(3 * C.ORE_GOLD);
+    expect(summarise(world).soldAtEnd).toBe(3);
+    expect(summarise(world).gold).toBe(3 * RESOURCES.ore.price);
     expect(summarise(world).fruitStored).toBe(2);
     expect(summarise(world).endedAway).toBe(true);
     expect(world.inventory.count("fruit")).toBe(0);
@@ -387,12 +411,15 @@ describe("a summer played end to end", () => {
       year: 1,
       gold: 0,
       fruitStored: 0,
-      harvested: { fruit: 0, ore: 0, vine: 0, stick: 0 },
+      harvested: { fruit: 0, feather: 0, stick: 0, vine: 0, ore: 0, log: 0, shell: 0 },
       drinks: 0,
-      oreBankedAtEnd: 0,
+      soldAtEnd: 0,
       endedAway: false,
       tilesCut: 0,
       bridgesBuilt: 0,
+      saplingsFelled: 0,
+      wellsDug: 0,
+      cachesBuilt: 0,
       distanceWalked: 0,
     });
   });

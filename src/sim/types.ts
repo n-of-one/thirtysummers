@@ -11,16 +11,42 @@ export type TerrainKind =
   | "stream"
   | "rock"
   | "thicket"
-  | "bridge";
+  | "bridge"
+  | "sapling";
 
-export type ResourceKind = "fruit" | "ore" | "vine" | "stick";
+/** Every kind that is gathered. What each one is, is in `resources.ts`. */
+export type ResourceKind = "fruit" | "feather" | "stick" | "vine" | "ore" | "log" | "shell";
 
-export const RESOURCE_KINDS: readonly ResourceKind[] = [
-  "fruit",
-  "ore",
-  "vine",
-  "stick",
-];
+/**
+ * What the player owns beyond the pack. The knife is owned from the start;
+ * the axe and the cart come from the year table in config until the shop
+ * sells them.
+ */
+export type Tool = "knife" | "axe" | "cart";
+
+/**
+ * What the player knows how to build. The cache is known from the start; the
+ * well comes from the year table, as the tools do. A bridge needs no recipe:
+ * it is known from the first summer.
+ */
+export type Recipe = "cache" | "well";
+
+/**
+ * What the build menu can put you into build mode for. Building is always
+ * chosen, never guessed from what is in the pack.
+ */
+export type Build = "bridge" | "cache" | "well";
+
+export const BUILDS: readonly Build[] = ["bridge", "cache", "well"];
+
+/**
+ * A drinking spot, in integer tile coordinates. Reeds on a stream's bank, or
+ * a well dug where there is no stream, which drinks the same and is drawn
+ * differently.
+ */
+export interface Spring extends Vec2 {
+  well?: boolean;
+}
 
 /**
  * The character art is drawn in a three-quarter view, so there are no straight
@@ -43,7 +69,18 @@ export interface ResourceNode {
 }
 
 /** Why an attempted action did nothing. The HUD turns these into words. */
-export type BlockedReason = "backpackFull" | "nothingToBank" | "noMaterials";
+export type BlockedReason =
+  | "backpackFull"
+  | "nothingToBank"
+  | "noMaterials"
+  /** A sapling ahead and no axe to fell it with. */
+  | "noAxe"
+  /** A well on a spot too close to water to need one. */
+  | "nearWater"
+  /** A bridge on dry land, or a well or a cache on anything but open grass. */
+  | "wrongGround"
+  /** The tile ahead already has something standing on it. */
+  | "occupied";
 
 /**
  * Something the simulation did this tick, worth telling the player about.
@@ -56,20 +93,35 @@ export type BlockedReason = "backpackFull" | "nothingToBank" | "noMaterials";
 export type WorldEventPayload =
   | { type: "harvested"; kind: ResourceKind }
   | { type: "drank" }
-  /** Banked at camp: `ore` for `gold`, and `fruit` into the store. */
-  | { type: "deposited"; ore: number; fruit: number; gold: number }
+  /**
+   * Banked at camp: `sold` items sold for `gold`, and `fruit` into the store.
+   * Building material stays in the pack.
+   */
+  | { type: "deposited"; sold: number; fruit: number; gold: number }
   | { type: "blocked"; reason: BlockedReason }
   /** A thicket tile cut through, and a stream tile bridged. Both change the map. */
   | { type: "cut"; x: number; y: number }
   | { type: "built"; x: number; y: number }
+  /** A sapling felled with the axe, leaving grass and a log in the pack. */
+  | { type: "felled"; x: number; y: number }
+  /** A well dug on (x, y), which is a spring from now on. */
+  | { type: "dug"; x: number; y: number }
+  /** A cache built on (x, y). */
+  | { type: "cached"; x: number; y: number }
+  /** Everything in the pack put into the cache at (x, y), `items` of it. */
+  | { type: "stashed"; x: number; y: number; items: number }
+  /** `items` taken out of the cache at (x, y), as many as fit. */
+  | { type: "fetched"; x: number; y: number; items: number }
   /**
-   * The summer ended, by the clock or from camp. `ore` and `fruit` are what was
-   * still in the pack and was banked there and then, the ore for `gold`; `away`
-   * is whether it ended out of reach of camp.
+   * The summer ended, by the clock or from camp. `sold` and `fruit` are what
+   * was still in the pack and was banked there and then, sold for `gold`;
+   * `away` is whether it ended out of reach of camp.
    */
-  | { type: "summerEnded"; away: boolean; ore: number; fruit: number; gold: number }
+  | { type: "summerEnded"; away: boolean; sold: number; fruit: number; gold: number }
   /** A new summer began on the same map. Everything the player changed is kept. */
-  | { type: "summerStarted"; year: number };
+  | { type: "summerStarted"; year: number }
+  /** The year table handed over a tool or a recipe at the start of a summer. */
+  | { type: "granted"; what: Tool | Recipe };
 
 /** A payload, stamped with the second of the summer it happened at. */
 export type WorldEvent = WorldEventPayload & { at: number };

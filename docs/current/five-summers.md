@@ -1,9 +1,10 @@
 # The first five summers
 
 What the step being built now is: the first five summers of the first life,
-on one hand-edited map, with a winter between each. Milestones M8 to M11 in
-[PLAN.md](PLAN.md) build it, and the test maps are edited to the table at
-the end. The general rules are in [../design/](../design/README.md). This
+on one map, with a winter between each. Milestones M8 to M11 in
+[PLAN.md](PLAN.md) build it. The generator lays this table out itself, per
+seed, and the maps in `public/maps/` are dumps of particular seeds that can
+still be edited by hand. The general rules are in [../design/](../design/README.md). This
 document holds only what is particular to these five summers.
 
 ## What it tests
@@ -39,9 +40,12 @@ used, arranged like this:
 
 - **The first stream** is a half circle around camp, with springs along
   both sides. Inside it is the near ring.
-- **The near ring** holds a thin thicket, about three tiles, walling in the
-  sapling stand where the sticks are, and the mud pocket where the vines
-  are.
+- **The near ring** is large: some six thousand walkable tiles, a minute to
+  cross, so the first summer is explored rather than swept. Its fruit and
+  feathers are spread thinly across it, its mud pocket is open and the vines
+  in it are only waded to, and a thin thicket, about three tiles, walls in
+  the sapling stand where the sticks are. The stand's wall is the summer's
+  one cut; the mud is a barrier that costs nothing but time.
 - **Across the stream** is the ore field, and a sapling copse the axe fells,
   hiding a second field.
 - **The dry pocket** lies past any water. The shells are there, and a well
@@ -87,7 +91,7 @@ exactly one currency the previous summer supplied.
 
 | Summer | Opens | Key gained in the winter before | Short in |
 |---|---|---|---|
-| 1 | the near ring: thin thicket to the vine and stick pockets, mud; bridge the half-circle stream | none; this summer teaches the rules | nothing |
+| 1 | the near ring: mud to wade to the vines, thin thicket to the sapling stand and its sticks; bridge the half-circle stream | none; this summer teaches the rules | nothing |
 | 2 | across the stream: the ore field, and a sapling copse hiding a second field | the axe, paid in gold and something carried home | a tool |
 | 3 | the far field worked in bulk: a cache there, a cut route wide enough for the cart | the cart, paid in logs | logistics |
 | 4 | the dry pocket, far from water, where the shells are | the well, from logs and sticks | hydration |

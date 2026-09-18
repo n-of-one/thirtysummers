@@ -16,12 +16,17 @@ import type { Camera } from "./camera.ts";
 export interface TargetTile {
   x: number;
   y: number;
-  /** The right action here, but not possible: no materials for a bridge. */
+  /** The right action here, but not possible: no materials, no axe, water too near. */
   blocked: boolean;
 }
 
+/** The actions that work on the tile ahead: the tools, and what is built on grass. */
+const TILE_ACTIONS: ReadonlySet<Action["type"]> = new Set(["cut", "fell", "build", "dig", "cache"]);
+
 export function targetTile(action: Action | null): TargetTile | null {
-  if (!action || (action.type !== "cut" && action.type !== "build")) return null;
+  if (!action || !TILE_ACTIONS.has(action.type)) return null;
+  // Every tile action carries its tile; the set above is what says so.
+  if (!("x" in action)) return null;
   return { x: action.x, y: action.y, blocked: action.blocked !== null };
 }
 

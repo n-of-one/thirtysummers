@@ -1,5 +1,5 @@
 import { ImageSource, Rectangle, Texture } from "pixi.js";
-import { RESOURCE_KINDS } from "../../sim/types.ts";
+import { RESOURCE_KINDS } from "../../sim/resources.ts";
 import type { Facing, ResourceKind, TerrainKind } from "../../sim/types.ts";
 import { autotileIndex, E, FILL, N, S, TILE_COUNT, W } from "./autotile.ts";
 import type { AssetPack, AssetPackSource, Bounds, PropSprite } from "./pack.ts";
@@ -8,11 +8,17 @@ import {
   BLOCK_TILES,
   BRIDGE_PLANK,
   BRUSH_STENCIL,
+  CACHE_CELL,
   DIRT_NARROW,
+  FEATHER_COLORS,
+  FEATHER_PIXELS,
   REGIONS,
   RESOURCE_CELL,
+  SAPLING_COLORS,
+  SAPLING_PIXELS,
   SHEETS,
   SPRING_CELL,
+  WELL_CELL,
   SYNTH_NARROW,
   T,
   THICKET_TINT,
@@ -135,10 +141,13 @@ class MinifantasyPack implements AssetPack {
   private readonly bridge: Texture[];
   private readonly trees: PropSprite[];
   private readonly bushes: PropSprite[];
+  private readonly sapling: PropSprite;
   private readonly resources: Record<ResourceKind, PropSprite>;
   private readonly walks: Record<Facing, Texture[]>;
   readonly camp: PropSprite;
   readonly spring: PropSprite;
+  readonly well: PropSprite;
+  readonly cache: PropSprite;
 
   /**
    * Measured from the walk frames at load time rather than hard-coded: the
@@ -186,14 +195,19 @@ class MinifantasyPack implements AssetPack {
     this.bushes = [];
     for (let x = 12; x <= 18; x++) this.bushes.push(this.prop24("props", x, 5, 1, 2));
 
+    this.sapling = this.drawn(SAPLING_PIXELS, SAPLING_COLORS);
+
     this.resources = Object.fromEntries(
       RESOURCE_KINDS.map((kind) => {
+        if (kind === "feather") return [kind, this.drawn(FEATHER_PIXELS, FEATHER_COLORS)];
         const [sheet, tx, ty] = RESOURCE_CELL[kind];
         return [kind, this.prop24(sheet, tx, ty, 1, 1)];
       }),
     ) as Record<ResourceKind, PropSprite>;
     this.camp = this.prop24("farmProps", 15, 5, 2, 1);
     this.spring = this.prop24(SPRING_CELL[0], SPRING_CELL[1], SPRING_CELL[2], 1, 1);
+    this.well = this.prop24(...WELL_CELL);
+    this.cache = this.prop24(CACHE_CELL[0], CACHE_CELL[1], CACHE_CELL[2], 1, 1);
 
     this.walks = {} as Record<Facing, Texture[]>;
     for (const facing of Object.keys(WALK_ROWS) as Facing[]) {
@@ -233,6 +247,41 @@ class MinifantasyPack implements AssetPack {
     });
     this.made.push(texture);
     return texture;
+  }
+
+  /**
+   * A prop drawn from a pixel table rather than cut from a sheet, for art no
+   * pack has: one tile wide, as many tall as the table is. Anchored at the
+   * bottom centre of what it draws, as a cut prop is.
+   */
+  private drawn(
+    rows: readonly string[],
+    colors: Readonly<Record<string, readonly [number, number, number]>>,
+  ): PropSprite {
+    const h = rows.length;
+    const canvas = document.createElement("canvas");
+    canvas.width = T;
+    canvas.height = h;
+    const ctx = canvas.getContext("2d", { willReadFrequently: true })!;
+    const image = ctx.createImageData(T, h);
+    rows.forEach((row, y) => {
+      for (let x = 0; x < T; x++) {
+        const rgb = colors[row[x] ?? "."];
+        if (!rgb) continue;
+        const at = (y * T + x) * 4;
+        image.data.set([...rgb, 255], at);
+      }
+    });
+    ctx.putImageData(image, 0, 0);
+    const box = contentBox(ctx, 0, 0, T, h);
+    const anchorPxX = box ? (box.x0 + box.x1 + 1) / 2 : T / 2;
+    const anchorPxY = box ? box.y1 + 1 : h;
+    return {
+      texture: this.fromCanvas(canvas),
+      anchorX: anchorPxX / T,
+      anchorY: anchorPxY / h,
+      bounds: boundsFrom(box, anchorPxX, anchorPxY, T, h),
+    };
   }
 
   /** A texture backed by its own small canvas, for tiles built rather than cut. */
@@ -387,7 +436,9 @@ class MinifantasyPack implements AssetPack {
 
   ground(kind: TerrainKind, mask: number, variant: number, frame: number): Texture {
     switch (kind) {
+      // A sapling is a prop standing on open grass.
       case "grass":
+      case "sapling":
         return this.grass[variant % BLOCK_TILES]!;
       // A wood is a floor of undergrowth with trunks standing on it, so both
       // draw the same ground and autotile as one surface. Thicket joins them:
@@ -417,6 +468,7 @@ class MinifantasyPack implements AssetPack {
 
   prop(kind: TerrainKind, variant: number): PropSprite | null {
     if (kind === "tree") return this.trees[variant % this.trees.length]!;
+    if (kind === "sapling") return this.sapling;
     // A shrub on every single tile, with no gaps: the 45% of bare ground below
     // is exactly what makes underbrush read as something you can walk through,
     // so a thicket has to be the version without it.

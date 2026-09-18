@@ -5,9 +5,10 @@ does between summers, as [../design/winter.md](../design/winter.md)
 describes. After this the five-summer unit is complete and the log can say
 whether summers 2 to 5 held.
 
-**Depends on** M8: `world.awayAtEnd`. M9: the
-resource table and its prices, the cache, the five maps, and the year
-table's tool grants, which this milestone removes. `src/sim/trace.ts`, kept
+**Depends on** what M8 and M9 left: `world.awayAtEnd`, the resource table in
+`sim/resources.ts` with its prices and its `returns`, the cache, the layout
+pass that lays every seed out to the table, and `YEAR_GRANTS` in `config.ts`,
+which this milestone removes in favour of the shop. `src/sim/trace.ts`, kept
 on main by the chores, for trails.
 
 ## Steps
@@ -41,9 +42,10 @@ on main by the chores, for trails.
      summer only.
 4. **The start of a summer.** A small notice with the length and the
    upkeep, dismissed by the first movement key.
-5. **The shop sells the tools.** The year table's tool grants from M9 go.
-   The maps are checked again with the shop's prices against the ladder, so
-   winter 1 can afford the axe from a summer-1 haul.
+5. **The shop sells the tools.** `YEAR_GRANTS` goes, and the axe, the cart
+   and the well are bought instead. The maps are checked again with the
+   shop's prices against the ladder, so winter 1 can afford the axe from a
+   summer-1 haul.
 
 ## Verification
 

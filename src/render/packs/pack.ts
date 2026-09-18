@@ -54,6 +54,10 @@ export interface AssetPack {
   readonly camp: PropSprite;
   /** A spring on the bank, where the player drinks. */
   readonly spring: PropSprite;
+  /** A well, which drinks like a spring and stands where there is no stream. */
+  readonly well: PropSprite;
+  /** A cache, a box in the field. */
+  readonly cache: PropSprite;
 
   walk(facing: Facing): readonly Texture[];
   idle(facing: Facing): Texture;

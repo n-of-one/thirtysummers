@@ -33,6 +33,18 @@
           <span class="pill-note" id="backpack-contents">empty</span></div>
         <div class="pill">Gold <b id="gold-count">0</b>
           <span class="pill-note">fruit stored</span> <b id="store-fruit">0</b></div>
+        <div class="pill">Tools <span class="pill-note" id="tools">knife</span></div>
+        <div class="pill" id="build-pill" hidden>Building <b id="build-name"></b>
+          <span class="pill-note"><kbd>Esc</kbd> to stop</span></div>
+      </div>
+
+      <!-- What can be built, opened with B. The clock runs while it is up. -->
+      <div id="build-menu" hidden>
+        <div class="build-card">
+          <h2>Build</h2>
+          <ul id="build-list"></ul>
+          <p class="build-note">Number keys choose · <kbd>B</kbd> or <kbd>Esc</kbd> closes</p>
+        </div>
       </div>
 
       <div id="camp-arrow" hidden></div>

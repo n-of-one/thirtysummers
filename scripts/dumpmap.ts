@@ -5,23 +5,32 @@
  *   npm run map                      -- default seed, full map
  *   npm run map -- 42                -- seed 42
  *   npm run map -- 42 60             -- seed 42, cropped to 60x60 around camp
- *   npm run map -- 42 > public/maps/a.txt
+ *   npm run map -- 42 > public/maps/f.txt
+ *   npm run map -- 42 --noise        -- the landscape alone, with no layout
  *
- * The map goes to stdout and everything about it to stderr, so that last form
- * writes a file the loader can read back rather than a file with a paragraph of
- * statistics stuck on the end. A crop is for looking at, not for playing: it
- * moves the camp and cuts the border.
+ * What it prints is what the game plays: a seed laid out to the five-summer
+ * table. `--noise` prints the landscape the layout is stamped onto, which is
+ * the thing to look at when worldgen itself is being changed.
+ *
+ * The map goes to stdout and everything about it to stderr, so that redirected
+ * form writes a file the loader can read back rather than a file with a
+ * paragraph of statistics stuck on the end. A crop is for looking at, not for
+ * playing: it moves the camp and cuts the border.
  */
 import { formatMap, mapLegend } from "../src/sim/mapfile.ts";
-import { generateWorld } from "../src/sim/worldgen.ts";
+import { generateWorld, layoutSummerWorld } from "../src/sim/worldgen.ts";
+import { checkRows } from "../src/sim/worldgen/rows.ts";
 import { TERRAIN } from "../src/sim/terrain.ts";
 import * as C from "../src/config.ts";
 
-const seed = Number(process.argv[2] ?? C.DEFAULT_SEED);
-const crop = process.argv[3] ? Number(process.argv[3]) : 0;
+const args = process.argv.slice(2);
+const noise = args.includes("--noise");
+const numbers = args.filter((a) => !a.startsWith("--")).map(Number);
+const seed = Number.isFinite(numbers[0]) ? numbers[0]! : C.DEFAULT_SEED;
+const crop = numbers[1] ?? 0;
 
 const t0 = performance.now();
-const world = generateWorld(seed);
+const world = noise ? generateWorld(seed) : layoutSummerWorld(seed);
 const elapsed = performance.now() - t0;
 
 const text = formatMap(world);
@@ -58,3 +67,16 @@ camp       (${Math.floor(world.camp.x)}, ${Math.floor(world.camp.y)})
 resources  ${Object.entries(counts).map(([k, n]) => `${k} ${n}`).join("   ")}
 
 legend     ${mapLegend()}`);
+
+// A laid-out map is meant to hold the table, so it says whether it does. The
+// rows themselves are what `npm run map:check` reads over a file.
+if (!noise) {
+  const rows = checkRows(world);
+  console.error(
+    `\ntable      ${rows.every((r) => r.ok) ? "holds every row" : "DOES NOT HOLD"}` +
+      rows
+        .filter((r) => !r.ok)
+        .map((r) => `\n  FAIL     ${r.summer}: ${r.label}  ${r.detail}`)
+        .join(""),
+  );
+}

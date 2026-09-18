@@ -10,19 +10,24 @@ npm run dev         # Vite dev server on :5173
 npm run test        # vitest run
 npm run typecheck   # tsc --noEmit
 npm run build
-npm run map         # ASCII dump of a generated map, for eyeballing worldgen
+npm run map         # ASCII dump of a seed laid out to the five-summer table
 npm run map -- 42 > public/maps/x.txt   # ...and the same dump as a playable map
-npm run map:check public/maps/*.txt     # does each edited map still hold the chain?
+npm run map -- 42 --noise               # the landscape alone, with no layout on it
+npm run map:check public/maps/*.txt     # does each map still hold the five-summer table?
 ```
 
 `npm run map` writes the map to stdout and its statistics to stderr, so a
-redirected dump is a map the game can load. The format is one character per
+redirected dump is a map the game can load. Its statistics end with whether
+the map holds every row of the table, and which rows it does not. The
+landscape is the generator's; the barriers are stamped on by
+`sim/worldgen/layout.ts`, which is also what `?seed=<n>` plays.
+The format is one character per
 tile. Its legend is in the dump's footer.
 
 ## URL parameters
 
 - `?map=<name>` plays `public/maps/<name>.txt` instead of a generated world.
-- `?seed=<n>` picks the generated world.
+- `?seed=<n>` picks the generated world, laid out to the five-summer table.
 - `?pack=placeholder` runs without the paid art.
 - `?debug=1` starts with the debug overlay open.
 - `?view=1280x720` draws the game in a logical view of that size instead
@@ -38,9 +43,21 @@ gitignored. Without them the code-drawn placeholder pack draws everything.
 
 ## Controls
 
-WASD or arrows to move. E or Space to gather, cut, build and bank ore and
-fruit, and, held beside a spring, to drink. Cutting and building act on the
-tile next to the player's in the direction last walked, and only that tile.
+WASD or arrows to move. E or Space to gather, cut, fell and bank; held beside
+a spring or a well, to drink. At camp a press sells feathers, ore and shells
+and stores fruit; sticks, vines and logs stay in the pack. At a cache a press
+puts the whole pack in, and a press with an empty pack takes back what fits.
+
+B opens the build menu: a bridge tile, a cache, a well, with what each costs.
+The number keys choose, B or Esc closes, and Esc with the menu down puts the
+build away again. E never builds on its own: with something chosen, holding E
+builds it on the tile ahead, and the pill by the backpack says what is being
+built. The clock runs while the menu is open, and a choice does not survive
+the summer.
+
+Cutting, felling and building act on the tile next to the player's in the
+direction last walked, and only that tile. The axe, the cart and the well come
+with summers 2, 3 and 4.
 P pauses, and so does the window losing focus; any key resumes, and does
 nothing else. At camp an "End summer" button under the player, or Q, ends the
 summer early.
@@ -99,11 +116,15 @@ ones.
   pixel snapping, the view's scale steps, the fixed-step clock under a
   stall, the scroll window,
   both layers against the stub pack, the stat rules over simulated time, the
-  backpack and the store, the HUD model with the last minute's notice, dusk
-  and camp arrow, aiming, spring placement, the map file round trip and
-  every way it refuses
-  a bad one, every action in the loop and every way it refuses, next summer,
-  and the debug overlay's arithmetic.
+  backpack's slots, the store and the cache, the HUD model with the last
+  minute's notice, dusk and camp arrow, aiming, spring placement, the map
+  file round trip with the resource table and wells and every way it
+  refuses a bad one, every action in the loop and every way it refuses,
+  felling, the well and the cache, the build menu's contents and what it
+  refuses, the year table, next summer, the layout pass over several seeds
+  against every row of the table, and the debug overlay's arithmetic.
+  The menu's own markup has no test: there is no DOM in the test run, so it
+  is checked over the protocol instead.
 - `npm run map:check public/maps/*.txt` passes on every shipped map. Run it
   after editing one by hand.
 - `?pack=placeholder` still draws every terrain.

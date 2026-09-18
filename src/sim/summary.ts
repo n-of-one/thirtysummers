@@ -1,4 +1,5 @@
-import { RESOURCE_KINDS, type ResourceKind, type WorldEvent } from "./types.ts";
+import { RESOURCE_KINDS } from "./resources.ts";
+import type { ResourceKind, WorldEvent } from "./types.ts";
 import type { World } from "./world.ts";
 
 /** What the summer came to. */
@@ -13,13 +14,17 @@ export interface SummerSummary {
   drinks: number;
   /** Fruit in the store at camp, across every summer so far. */
   fruitStored: number;
-  /** Ore still in the backpack when the summer ended, banked there and then. */
-  oreBankedAtEnd: number;
+  /** Items still in the backpack when the summer ended, sold there and then. */
+  soldAtEnd: number;
   /** The summer ended out of reach of camp. Winter will charge for the fetching. */
   endedAway: boolean;
-  /** Thicket tiles cut through, and bridge tiles laid. */
+  /** Thicket tiles cut through, bridge tiles laid, saplings felled. */
   tilesCut: number;
   bridgesBuilt: number;
+  saplingsFelled: number;
+  /** Wells dug and caches built. */
+  wellsDug: number;
+  cachesBuilt: number;
   /** Tiles covered on foot. */
   distanceWalked: number;
 }
@@ -58,7 +63,10 @@ export function summarise(world: World): SummerSummary {
   let drinks = 0;
   let tilesCut = 0;
   let bridgesBuilt = 0;
-  let oreBankedAtEnd = 0;
+  let saplingsFelled = 0;
+  let wellsDug = 0;
+  let cachesBuilt = 0;
+  let soldAtEnd = 0;
   let endedAway = false;
 
   const events = world.events as readonly WorldEvent[];
@@ -68,8 +76,11 @@ export function summarise(world: World): SummerSummary {
     else if (event.type === "drank") drinks++;
     else if (event.type === "cut") tilesCut++;
     else if (event.type === "built") bridgesBuilt++;
+    else if (event.type === "felled") saplingsFelled++;
+    else if (event.type === "dug") wellsDug++;
+    else if (event.type === "cached") cachesBuilt++;
     else if (event.type === "summerEnded") {
-      oreBankedAtEnd = event.ore;
+      soldAtEnd = event.sold;
       endedAway = event.away;
     }
   }
@@ -80,10 +91,13 @@ export function summarise(world: World): SummerSummary {
     fruitStored: world.store.count("fruit"),
     harvested,
     drinks,
-    oreBankedAtEnd,
+    soldAtEnd,
     endedAway,
     tilesCut,
     bridgesBuilt,
+    saplingsFelled,
+    wellsDug,
+    cachesBuilt,
     distanceWalked: world.player.distanceWalked,
   };
 }

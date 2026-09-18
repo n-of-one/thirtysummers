@@ -270,6 +270,46 @@ kbd {
 .summary-card dd { margin: 0; text-align: right; font-variant-numeric: tabular-nums; }
 .summary-card dd.gold { color: var(--gold); }
 
+/* --- the build menu ------------------------------------------------------ */
+
+/* Above the HUD, near the bottom so it does not cover the player, and it does
+   not dim the world behind it: the clock is still running. */
+#build-menu {
+  position: fixed;
+  inset: auto 0 96px 0;
+  display: grid;
+  place-items: center;
+  pointer-events: auto;
+}
+#build-menu[hidden] { display: none; }
+
+.build-card {
+  background: #15180f;
+  border: 1px solid var(--edge);
+  border-radius: 10px;
+  padding: 16px 20px;
+  min-width: 340px;
+}
+.build-card h2 { margin: 0 0 10px; font-size: 15px; letter-spacing: 0.05em; }
+.build-card ul { margin: 0; padding: 0; list-style: none; }
+.build-card li {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  padding: 5px 8px;
+  border-radius: var(--radius);
+  cursor: pointer;
+}
+.build-card li:hover { background: #242a18; }
+.build-card li.is-chosen { background: #2f3a1d; }
+/* Still choosable: you may pick what you are about to go and gather for. */
+.build-card li.is-short { color: var(--ink-dim); }
+.build-card li.is-short .build-cost { color: var(--warn); }
+.build-card .build-key { color: var(--ink-dim); }
+.build-card .build-what { flex: 1; }
+.build-cost { font-variant-numeric: tabular-nums; }
+.build-note { margin: 10px 0 0; color: var(--ink-dim); font-size: 12px; }
+
 button {
   font: inherit;
   color: var(--ink);

@@ -4,6 +4,7 @@ import { NO_INPUT, type InputState } from "../src/input/keyboard.ts";
 import { tileAhead } from "../src/sim/interaction.ts";
 import { headingFor } from "../src/sim/player.ts";
 import { parseMap } from "../src/sim/mapfile.ts";
+import { RESOURCES } from "../src/sim/resources.ts";
 import { summarise } from "../src/sim/summary.ts";
 import { TileMap } from "../src/sim/tilemap.ts";
 import type { ResourceKind, ResourceNode } from "../src/sim/types.ts";
@@ -98,6 +99,7 @@ describe("aiming a tool along the heading", () => {
 
   it("takes the next tile along from anywhere on the bridge tile, never one beside it", () => {
     const world = midBridge();
+    world.buildMode = "bridge";
     // Walked east, as a player would, into the end of the bridge.
     hold(world, { ...NO_INPUT, moveX: 1 }, 1);
     // Collision stops a tick short of the stream, not flush against it.
@@ -128,6 +130,7 @@ describe("aiming a tool along the heading", () => {
 
   it("aims from where the input pointed, kept while standing still", () => {
     const world = midBridge();
+    world.buildMode = "bridge";
     world.player.x = 7.5;
     // Pressing south into the stream moves nothing but still says which tile.
     hold(world, { ...NO_INPUT, moveY: 1 }, C.TICK_SEC * 2);
@@ -214,7 +217,12 @@ describe("harvesting versus cutting", () => {
 });
 
 describe("laying a bridge", () => {
-  const withStream = () => arena((map) => map.set(9, 8, "stream"));
+  /** Water ahead, and the build menu set to a bridge, as a player would set it. */
+  const withStream = () => {
+    const world = arena((map) => map.set(9, 8, "stream"));
+    world.buildMode = "bridge";
+    return world;
+  };
 
   function stocked(): World {
     const world = withStream();
@@ -223,10 +231,30 @@ describe("laying a bridge", () => {
     return world;
   }
 
+  it("is not built by the interact key alone, which says what to press", () => {
+    const world = arena((map) => map.set(9, 8, "stream"));
+    world.inventory.add("stick", C.BRIDGE_STICKS);
+    world.inventory.add("vine", C.BRIDGE_VINES);
+    expect(world.availableAction()).toBeNull();
+    expect(world.buildHint()).toBe("bridge");
+    expect(hudModel(world).prompt?.text).toBe("Press B to build a bridge tile");
+
+    hold(world, INTERACT, C.BUILD_TIME * 2);
+    expect(world.map.get(9, 8)).toBe("stream");
+    expect(world.inventory.count("stick")).toBe(C.BRIDGE_STICKS);
+  });
+
+  it("says the price at the water's edge with nothing chosen and nothing carried", () => {
+    const world = arena((map) => map.set(9, 8, "stream"));
+    expect(hudModel(world).prompt?.text).toBe(
+      "A bridge tile needs 1 stick and 1 vine. Press B to build",
+    );
+  });
+
   it("refuses without the materials, and says why once", () => {
     const world = withStream();
     expect(world.availableAction()).toEqual({ type: "build", x: 9, y: 8, blocked: "noMaterials" });
-    expect(hudModel(world).prompt?.text).toBe("A bridge tile needs 1 vine and 1 stick");
+    expect(hudModel(world).prompt?.text).toBe("A bridge tile needs 1 stick and 1 vine");
     expect(hudModel(world).prompt?.blocked).toBe(true);
 
     hold(world, INTERACT, C.BUILD_TIME * 2);
@@ -239,7 +267,7 @@ describe("laying a bridge", () => {
   it("offers the build once the materials are in the pack", () => {
     const world = stocked();
     expect(world.availableAction()).toEqual({ type: "build", x: 9, y: 8, blocked: null });
-    expect(hudModel(world).prompt?.text).toBe("Hold E to lay a bridge tile");
+    expect(hudModel(world).prompt?.text).toBe("Hold E to lay a bridge tile (1 stick and 1 vine)");
   });
 
   it("does not build before the full time is held", () => {
@@ -290,13 +318,13 @@ describe("the next summer", () => {
   it("keeps the map the player changed, and the gold they banked", () => {
     const world = played();
     expect(world.map.get(9, 8)).toBe(C.CUT_LEAVES);
-    expect(world.inventory.gold).toBe(1);
+    expect(world.inventory.gold).toBe(RESOURCES.ore.price);
 
     world.nextSummer();
 
     expect(world.map.get(9, 8)).toBe(C.CUT_LEAVES);
     expect(world.map.get(4, 4)).toBe("stream");
-    expect(world.inventory.gold).toBe(1);
+    expect(world.inventory.gold).toBe(RESOURCES.ore.price);
   });
 
   it("regrows every node, refills hydration and restarts the clock", () => {
@@ -324,7 +352,7 @@ describe("the next summer", () => {
     expect(world.year).toBe(2);
     expect(world.player.x).toBe(world.camp.x);
     expect(world.player.y).toBe(world.camp.y);
-    expect(world.events[world.events.length - 1]).toMatchObject({
+    expect(world.events.find((e) => e.type === "summerStarted")).toMatchObject({
       type: "summerStarted",
       year: 2,
     });
@@ -343,7 +371,7 @@ describe("the next summer", () => {
     expect(summer.tilesCut).toBe(0);
     // Gold is the score, so it carries: it is the one number that is not a
     // record of what happened between this summer's start and its end.
-    expect(summer.gold).toBe(1);
+    expect(summer.gold).toBe(RESOURCES.ore.price);
   });
 
   it("does not carry a held key into the new summer", () => {
