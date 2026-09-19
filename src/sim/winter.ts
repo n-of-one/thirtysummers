@@ -194,6 +194,35 @@ export function initialKeep(store: Amounts): Amounts {
   return keep;
 }
 
+/**
+ * Hold back less material until the winter can be paid for, and no further.
+ *
+ * The cheapest kinds go first, so a log worth three is not sold to raise one.
+ * What a purchase has spoken for is never touched, and a winter that cannot
+ * be covered at all sells everything it can and stops. Returns the new keep,
+ * for the caller to put back into its input.
+ */
+export function sellToCover(input: WinterInput): Amounts {
+  const byPrice = RESOURCE_KINDS.filter((kind) => RESOURCES[kind].atCamp === "keep").sort(
+    (a, b) => RESOURCES[a].price - RESOURCES[b].price,
+  );
+  let keep = { ...input.keep };
+  // One unit at a time, re-reckoned each time: selling changes the shop's
+  // material as well as the purse, and this way the rule is simply "stop as
+  // soon as it is paid for".
+  for (;;) {
+    const model = winterModel({ ...input, keep });
+    if (model.balance >= 0) return keep;
+    // Cheapest first, which is the order of `byPrice`, not the order the
+    // lines are drawn in.
+    const line = byPrice
+      .map((kind) => model.lines.find((l) => l.kind === kind))
+      .find((l) => l !== undefined && l.kept > l.committed);
+    if (!line) return keep;
+    keep = { ...keep, [line.kind]: line.kept - 1 };
+  }
+}
+
 /** Every number the winter screen shows, from what the player has chosen so far. */
 export function winterModel(input: WinterInput): WinterModel {
   const bought = input.bought.map((id) => SHOP_BY_ID[id]);

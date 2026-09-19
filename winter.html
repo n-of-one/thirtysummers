@@ -31,6 +31,13 @@
             gained, a row of food -- moves nothing else.
           -->
           <div class="winter-cols">
+            <section class="winter-panel winter-town" id="winter-town">
+              <h2>Shop</h2>
+              <ul class="winter-shop" id="winter-shop"></ul>
+            </section>
+
+            <hr class="winter-rule" id="winter-rule" />
+
             <section class="winter-panel winter-haul">
               <h2>Summer haul</h2>
               <ul class="winter-list" id="winter-sold"></ul>
@@ -52,16 +59,10 @@
               <ul class="winter-list winter-foot-list" id="winter-family-final"></ul>
               <ul class="winter-list" id="winter-family-total"></ul>
             </section>
-
-            <hr class="winter-rule" id="winter-rule" />
-
-            <section class="winter-panel winter-town" id="winter-town">
-              <h2>Shop</h2>
-              <ul class="winter-shop" id="winter-shop"></ul>
-            </section>
           </div>
 
           <footer class="winter-foot">
+            <span class="winter-warning" id="winter-warning" hidden></span>
             <button id="winter-next">Next summer</button>
           </footer>
         </div>

@@ -56,9 +56,9 @@
   display: grid;
   grid-template-columns: 1.15fr 0.95fr 1.1fr;
   grid-template-areas:
-    "haul winter family"
+    "town town   town"
     "rule rule   rule"
-    "town .      .";
+    "haul winter family";
   gap: 20px;
   align-items: start;
 }
@@ -67,8 +67,8 @@
 .winter-family { grid-area: family; }
 .winter-town { grid-area: town; }
 
-/* The rule the town hangs from: it runs the width of the screen, so the town
-   belongs to the winter rather than to the haul above it. */
+/* The rule under the shop: it runs the width of the screen, so what the town
+   sells is set apart from the ledger that pays for it. */
 .winter-rule {
   grid-area: rule;
   width: 100%;
@@ -148,6 +148,9 @@
 /* A consequence carries no money: the row is the sentence, under the total
    it follows from. */
 .w-consequence {
+  display: flex;
+  align-items: center;
+  gap: 14px;
   color: var(--ink-dim);
   padding: 6px 6px 0;
 }
@@ -242,20 +245,32 @@
 
 /* --- the town ------------------------------------------------------------ */
 
-.winter-shop { margin: 0; padding: 0; list-style: none; }
-.w-shop-row {
+/* The shop is read across, not down: four things side by side, like a window
+   rather than a list. */
+.winter-shop {
+  margin: 0;
+  padding: 0;
+  list-style: none;
   display: grid;
-  grid-template-columns: minmax(0, 1fr) auto auto;
+  grid-template-columns: repeat(4, 1fr);
+}
+/* Each one reads as a price tag: the thing, what it costs, and the way to
+   have it, close enough together to be one object. */
+.w-shop-row {
+  display: flex;
   align-items: center;
-  gap: 12px;
-  padding: 10px 8px;
+  gap: 14px;
+  padding: 10px 18px;
   border-radius: var(--radius);
 }
-.w-shop-row + .w-shop-row { border-top: 2px solid var(--w-panel-lit); }
+/* Divided down, since they now stand beside each other. */
+.w-shop-row + .w-shop-row { border-left: 2px solid var(--w-panel-lit); }
 .w-shop-what { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
 .w-shop-note { color: var(--ink-dim); }
 /* The price never wraps: it is one line of money, and a wrapped one reads as
    two prices. What gives instead is the note beside it. */
+/* In the shop band the price sits right beside the name, not across the
+   cell: a tag, not a table row. */
 .w-shop-price {
   display: flex;
   flex-direction: column;
@@ -301,5 +316,12 @@
 
 /* --- next summer --------------------------------------------------------- */
 
-.winter-foot { display: flex; justify-content: flex-end; }
+/* The warning travels with the button: what pressing it costs is said where
+   it is pressed, in the same words the ledger used. */
+.winter-foot { display: flex; align-items: center; justify-content: flex-end; gap: 16px; }
+.winter-warning { color: var(--warn); }
+.winter-warning[hidden] { display: none; }
+
+/* The way out of a winter that cannot be paid for, on the line that says so. */
+#winter button.w-cover-button { padding: 2px 10px; white-space: nowrap; }
 .winter-foot button { padding: 12px 28px; font-size: 15px; }

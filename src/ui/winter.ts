@@ -1,7 +1,13 @@
 import type { IconName, Icons } from "../render/packs/icons.ts";
 import type { ShopItem, ShopItemId } from "../sim/shop.ts";
 import type { ResourceKind } from "../sim/types.ts";
-import { winterModel, type ShopLine, type StoreLine, type WinterInput } from "../sim/winter.ts";
+import {
+  sellToCover,
+  winterModel,
+  type ShopLine,
+  type StoreLine,
+  type WinterInput,
+} from "../sim/winter.ts";
 import { need } from "./hud.ts";
 
 /**
@@ -33,6 +39,7 @@ export class WinterScreen {
   private readonly totals: HTMLElement;
   private readonly balance: HTMLElement;
   private readonly next: HTMLButtonElement;
+  private readonly warning: HTMLElement;
 
   private input: WinterInput;
   private onNext: () => void = () => {};
@@ -62,6 +69,7 @@ export class WinterScreen {
     this.totals = need(root, "#winter-totals");
     this.balance = need(root, "#winter-balance");
     this.next = need(root, "#winter-next");
+    this.warning = need(root, "#winter-warning");
     this.next.onclick = () => this.onNext();
     this.input = EMPTY;
   }
@@ -159,12 +167,25 @@ export class WinterScreen {
     // What it all came to, on its own, because it is the one number the
     // player leaves the screen with. The line under it is always there, so
     // the panel does not grow a row the moment the balance goes negative.
+    // The way out goes on the line that states the problem, rather than in
+    // the balance row, whose label is long enough already.
+    const tired = consequence(
+      m.balance < 0 ? "Next summer: tired" : "Next summer: normal",
+      m.balance < 0 ? "is-short" : "",
+    );
+    if (m.balance < 0) {
+      const press = button("Sell to cover", () => this.change({ keep: sellToCover(this.input) }));
+      press.classList.add("w-cover-button");
+      tired.append(press);
+    }
     this.balance.replaceChildren(
       total("Balance, invested in family", this.gold(m.balance), m.balance < 0),
-      m.balance < 0
-        ? consequence("Next summer: tired", "is-short")
-        : consequence("Next summer: normal"),
+      tired,
     );
+
+    // The same sentence again, where the summer is actually started.
+    text(this.warning, m.balance < 0 ? "Next summer: tired" : "");
+    this.warning.hidden = m.balance >= 0;
 
     // No shop at all until the family is known in the town: the panel and
     // the rule it hangs from both go.
