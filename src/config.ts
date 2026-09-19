@@ -149,6 +149,34 @@ export const FOG_STOPS: readonly (readonly [number, number])[] = [
  */
 export const BACKPACK_CAPACITY = 10;
 
+// ---------------------------------------------------------------- winter ----
+// What winter costs and what the surplus is worth. Everything here is a
+// [GUESS] until winter 1 has been played against a real summer-1 haul; what
+// the numbers have to hold is in docs/current/five-summers.md: winter 1 can
+// afford the axe from a first summer, and the near ring always has enough
+// fruit in reach to pay the food.
+
+/** [DOC] Upkeep is flat for all five winters, since none of the improvements
+ * is a structure. [GUESS] the two numbers: the fruit winter eats... */
+export const UPKEEP_FRUIT = 12;
+/** ...and the gold it wants besides. */
+export const UPKEEP_GOLD = 4;
+/**
+ * [GUESS] Extra gold owed for ending the summer away from camp. Enough to
+ * notice, not enough to ruin a winter.
+ */
+export const AWAY_GOLD_CHARGE = 3;
+/**
+ * [GUESS] What the town charges for one fruit. Above what fruit sells for, so
+ * buying food back is always the worse end of the deal.
+ */
+export const FRUIT_BUY_PRICE = 2;
+/**
+ * [GUESS] What the family's levels cost, as a running total of the surplus
+ * given over every winter. A level does nothing yet.
+ */
+export const FAMILY_LEVELS: readonly number[] = [10, 30, 60, 100, 150];
+
 // ----------------------------------------------------------------- years ----
 
 /**

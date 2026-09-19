@@ -47,3 +47,5 @@ the history.
   is the play log the discovery test's verdict came from.
 - [archive/decided-against.md](archive/decided-against.md) lists rejected
   ideas, one line of reason each.
+- [archive/coin-drawings.md](archive/coin-drawings.md) keeps the coins drawn
+  for the winter screen and not used, as their pixel grids.

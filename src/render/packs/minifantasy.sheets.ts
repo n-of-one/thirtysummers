@@ -323,6 +323,44 @@ export const CACHE_CELL = ["farmProps", 18, 5] as const satisfies readonly [
 export const WELL_CELL = ["farmProps", 18, 2, 1, 2] as const;
 
 /**
+ * The coin the HUD draws money with, in the same eight-by-eight cell as
+ * everything else, because no pack has money in it.
+ *
+ * Six pixels across and four tall: a coin lying at an angle. A round one
+ * needs seven or eight pixels to read as a circle rather than an octagon, and
+ * at that size it sits beside a number like a plate. It keeps the pack's own
+ * conventions -- pure black outline all the way round, lit from the
+ * north-west -- and the pack's own gold, sampled off the trinket sheet: white
+ * (255,255,255), light (232,205,109), mid (218,174,20). Only the shade is not
+ * sampled; it is the mid tone darkened, since the pack's gold has no fourth
+ * tone.
+ *
+ * The rounder, smaller and stacked coins that were drawn beside it, and the
+ * trinket sheet's own gold bead, are in docs/archive/coin-drawings.md.
+ *
+ * `.` clear, `k` outline, `w` the highlight, `l` the lit face, `g` the gold,
+ * `d` its shade.
+ */
+export const COIN_PIXELS: readonly string[] = [
+  "........",
+  "........",
+  "..kkkk..",
+  ".kwllgk.",
+  ".klggdk.",
+  "..kkkk..",
+  "........",
+  "........",
+];
+
+export const COIN_COLORS: Readonly<Record<string, readonly [number, number, number]>> = {
+  k: [0, 0, 0],
+  w: [255, 255, 255],
+  l: [232, 205, 109],
+  g: [218, 174, 20],
+  d: [150, 118, 12],
+};
+
+/**
  * A spring on the bank: the reeds the discovery test drew its water nodes with.
  * Upright green against the grass and the blue beside it, so it reads as
  * something standing at the water's edge rather than as more water.

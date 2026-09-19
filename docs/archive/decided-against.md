@@ -4,6 +4,9 @@ What we decided not to do, with the reason in a line, so it does not come
 back as a new idea. Anything here can be reopened, but on purpose, with the
 reason it was dropped in view.
 
+Art that was drawn and not used is in
+[coin-drawings.md](coin-drawings.md), as the pixels it was.
+
 Ideas that are only waiting are in [../design/ideas.md](../design/ideas.md).
 Technical alternatives that were tried and dropped, such as other engines,
 the animated river art or snapping the simulation position, are in

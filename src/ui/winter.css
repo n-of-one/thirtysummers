@@ -1,0 +1,275 @@
+/* The winter screen. The font is hud.css's; the colours are the map's own.
+   Every value below was sampled off the tilesets the world is drawn with --
+   the Forgotten Plains dirt block and the Farm planks -- so the screen between
+   two summers is made of the same earth and timber as the summers themselves.
+   Sampled, not invented: dirt (117,80,15) lit, (75,37,7) and (60,36,6) in
+   shade; plank (188,111,33) lit over (99,68,20); grass (111,164,48). */
+
+#winter {
+  --w-earth: #140d04;
+  --w-panel: #2c1b07;
+  --w-panel-lit: #3c2406;
+  --w-edge: #75500f;
+  --w-plank: #bc6f21;
+  --w-green: #6fa430;
+
+  position: fixed;
+  inset: 0;
+  display: grid;
+  /* Pinned to the top, not centred: a panel that grows a line would otherwise
+     shift every other panel on the screen. */
+  place-items: start center;
+  /* Winter is not the summer dimmed: it is its own place, and the map is not
+     behind it. */
+  background: var(--w-earth);
+  padding: 56px 40px 40px;
+  overflow: auto;
+}
+#winter[hidden] { display: none; }
+
+.winter-card {
+  width: 100%;
+  max-width: 1640px;
+  display: flex;
+  flex-direction: column;
+  gap: 22px;
+}
+
+.winter-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 20px;
+  border-bottom: 2px solid var(--w-edge);
+  padding-bottom: 14px;
+}
+.winter-head h1 { margin: 0; font-size: 30px; letter-spacing: 0.06em; font-weight: 500; }
+.winter-purse { margin: 0; color: var(--ink-dim); font-variant-numeric: tabular-nums; }
+
+/* The haul and what winter costs, side by side; the family beside them, as
+   tall as both; the town under them, as wide as both. Read across the top
+   row for the year's arithmetic, down the right for the life, and along the
+   bottom for what the year buys. */
+.winter-cols {
+  display: grid;
+  grid-template-columns: 1.15fr 0.95fr 1.1fr;
+  grid-template-areas:
+    "haul winter family"
+    "rule rule   rule"
+    "town .      .";
+  gap: 20px;
+  align-items: start;
+}
+.winter-haul { grid-area: haul; }
+.winter-winter { grid-area: winter; }
+.winter-family { grid-area: family; }
+.winter-town { grid-area: town; }
+
+/* The rule the town hangs from: it runs the width of the screen, so the town
+   belongs to the winter rather than to the haul above it. */
+.winter-rule {
+  grid-area: rule;
+  width: 100%;
+  height: 0;
+  margin: 2px 0;
+  border: 0;
+  border-top: 2px solid var(--w-edge);
+}
+
+.winter-panel {
+  background: var(--w-panel);
+  /* Lit on the top and left, shaded on the bottom and right: the packs light
+     everything from the north-west, and a panel that does not follow that
+     reads as a window laid over the game rather than a part of it. */
+  border: 2px solid var(--w-panel-lit);
+  border-top-color: var(--w-edge);
+  border-left-color: var(--w-edge);
+  border-radius: 4px;
+  padding: 18px 20px 20px;
+}
+.winter-panel h2 {
+  margin: 0 0 4px;
+  font-size: 15px;
+  letter-spacing: 0.06em;
+  font-weight: 500;
+}
+.winter-panel h2 + h2 { margin-top: 22px; }
+
+.winter-list { margin: 0; padding: 0; list-style: none; }
+
+/* The two halves of the sale: what is only ever money, then what a bridge is
+   made of. A rule between them, and nothing else -- the second list carries
+   steppers and the first does not, which is the difference. */
+#winter-materials { border-top: 2px solid var(--w-panel-lit); margin-top: 8px; padding-top: 8px; }
+/* A summer that brought nothing of a kind shows no row for it, and a half of
+   the haul with nothing in it shows no rule either. */
+#winter-materials:empty { border-top: 0; margin: 0; padding: 0; }
+
+/* What the column above comes to, ruled off like a balance sheet. */
+.winter-foot-list { border-top: 2px solid var(--w-edge); margin-top: 10px; padding-top: 8px; }
+/* A total is the same size as the rows above it, so its money lands in the
+   same column to the pixel; what sets it apart is the rule over it and the
+   brighter label. */
+.w-row.is-total .w-what { font-weight: 500; }
+/* The level's own row, with how far the family has got through it painted
+   behind the text: the bar is the row, so it costs no extra line. */
+.winter-list .w-row.is-level {
+  --through: 0%;
+  background:
+    linear-gradient(to right, rgba(111, 164, 48, 0.35) var(--through), transparent var(--through)),
+    rgba(0, 0, 0, 0.22);
+}
+/* What a level opened, under the bar that reached it. */
+.w-level-note { padding: 6px 6px 0; color: var(--ink-dim); }
+.w-level-note.is-gained { color: var(--w-green); }
+
+/* What the next level still wants is not money the player has. */
+.w-row.is-want .w-gold { color: var(--ink-dim); }
+
+/* A consequence carries no money: the row is the sentence, under the total
+   it follows from. */
+.w-consequence {
+  color: var(--ink-dim);
+  padding: 6px 6px 0;
+}
+.w-consequence.is-short { color: var(--warn); }
+.w-row.is-total .w-what { color: var(--ink); }
+
+/* Every row in every panel is the same four cells: what it is, the count
+   behind it, the control if it has one, and the money, hard right. That is
+   what makes the three panels read as one sheet. */
+.w-row {
+  display: grid;
+  grid-template-columns: 9.5em 8em minmax(0, 1fr) 5.5em;
+  align-items: center;
+  gap: 10px;
+  padding: 5px 6px;
+  border-radius: var(--radius);
+  font-variant-numeric: tabular-nums;
+}
+/* Only the haul has steppers, so only the haul needs a column held open for
+   them. The ledgers give that room to the count instead, which is where
+   "6 of 12 stored" lives. */
+#winter-upkeep .w-row,
+#winter-totals .w-row,
+#winter-balance .w-row,
+#winter-family .w-row,
+#winter-family-gold .w-row,
+#winter-family-final .w-row,
+#winter-family-total .w-row {
+  /* Wider labels here: this panel names things in full -- "Needed for next
+     level" -- rather than in the ledger's one-word column. */
+  grid-template-columns: 16em minmax(0, 1fr) 0 5.5em;
+}
+.w-row:nth-child(odd) { background: rgba(0, 0, 0, 0.22); }
+.w-row.is-empty { color: var(--ink-dim); }
+.w-row.is-empty .w-gold { color: var(--ink-dim); }
+.w-gold { justify-content: flex-end; }
+.w-row.is-short .w-what,
+.w-row.is-short .w-detail,
+.w-row.is-short .w-gold { color: var(--warn); }
+
+/* The name of a thing, with the sprite the map draws it as. The icon is the
+   art at its own scale -- four screen pixels to the art's one, the same as the
+   world -- so it is never resized, only placed. */
+.w-what { display: flex; align-items: center; gap: 10px; }
+.w-icon {
+  image-rendering: pixelated;
+  flex: none;
+  /* Pixel art has no soft edge of its own, so a shadow gives it the ground
+     the props on the map get from theirs. */
+  filter: drop-shadow(0 2px 0 rgba(0, 0, 0, 0.45));
+}
+
+/* The count behind the money: "9 × 1", "6 of 12 stored". It gives way before
+   the label or the amount does, since it is the one cell that is never the
+   point of the row. */
+.w-detail {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  color: var(--ink-dim);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+/* One line of money, never two: a wrapped total reads as two numbers. */
+.w-gold { color: var(--gold); white-space: nowrap; }
+.w-note { color: var(--ink-dim); }
+
+/* The sell stepper: the only control on this half of the screen. */
+/* The steppers sit in the middle of the row, away from both the names and
+   the money, so a press is never next to a number it does not change. */
+.w-sell { display: flex; align-items: center; justify-content: center; gap: 6px; }
+.w-sell button {
+  width: 24px;
+  height: 24px;
+  padding: 0;
+  line-height: 1;
+  border-radius: 4px;
+}
+.w-sell-count { min-width: 5em; text-align: center; }
+
+/* --- the town ------------------------------------------------------------ */
+
+.winter-shop { margin: 0; padding: 0; list-style: none; }
+.w-shop-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto auto;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 8px;
+  border-radius: var(--radius);
+}
+.w-shop-row + .w-shop-row { border-top: 2px solid var(--w-panel-lit); }
+.w-shop-what { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.w-shop-note { color: var(--ink-dim); }
+/* The price never wraps: it is one line of money, and a wrapped one reads as
+   two prices. What gives instead is the note beside it. */
+.w-shop-price {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 2px;
+  color: var(--gold);
+  font-variant-numeric: tabular-nums;
+  text-align: right;
+  white-space: nowrap;
+}
+/* Gold in words, then each material as a count against its own sprite: what
+   the town wants is read the way the pack is read. */
+.w-shop-cost { display: flex; align-items: center; gap: 10px; }
+.w-cost-part { display: inline-flex; align-items: center; gap: 4px; }
+/* An amount of money: the number, right aligned on its last digit, then the
+   coin. Every column of money in every panel lines up because of this. */
+.w-coin { display: inline-flex; align-items: center; gap: 5px; color: var(--gold); }
+.w-coin-n { min-width: 2.5em; text-align: right; font-variant-numeric: tabular-nums; }
+/* A price quoted inside a line -- "6 x 2", "8 and 3 sticks" -- is part of a
+   sentence, not a column, so it takes only the room its digits need. */
+.w-detail .w-coin-n,
+.w-shop-cost .w-coin-n { min-width: 0; }
+.w-shop-known { color: var(--ink-dim); }
+
+/* Greyed, not hidden: the price of what cannot be bought yet is what next
+   summer aims at. */
+.w-shop-row.is-short { color: var(--ink-dim); }
+.w-shop-row.is-short .w-shop-price { color: var(--warn); }
+.w-shop-row.is-bought .w-shop-price { color: var(--accent); }
+
+/* Buttons are timber: the plank's own two tones, lit from the north-west like
+   the panels they sit on. */
+#winter button {
+  background: var(--w-panel-lit);
+  border: 2px solid #583a0c;
+  border-top-color: var(--w-plank);
+  border-left-color: var(--w-plank);
+  border-radius: 3px;
+}
+#winter button:hover:not(:disabled) { background: #55340a; }
+#winter button:disabled { opacity: 0.4; cursor: default; }
+#winter button:disabled:hover { background: var(--w-panel-lit); }
+
+/* --- next summer --------------------------------------------------------- */
+
+.winter-foot { display: flex; justify-content: flex-end; }
+.winter-foot button { padding: 12px 28px; font-size: 15px; }
