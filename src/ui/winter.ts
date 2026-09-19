@@ -24,6 +24,8 @@ export class WinterScreen {
   private readonly sales: HTMLElement;
   private readonly upkeep: HTMLElement;
   private readonly shopList: HTMLElement;
+  private readonly town: HTMLElement;
+  private readonly townRule: HTMLElement;
   private readonly family: HTMLElement;
   private readonly familyGold: HTMLElement;
   private readonly familyFinal: HTMLElement;
@@ -51,6 +53,8 @@ export class WinterScreen {
     this.sales = need(root, "#winter-sales");
     this.upkeep = need(root, "#winter-upkeep");
     this.shopList = need(root, "#winter-shop");
+    this.town = need(root, "#winter-town");
+    this.townRule = need(root, "#winter-rule");
     this.family = need(root, "#winter-family");
     this.familyGold = need(root, "#winter-family-gold");
     this.familyFinal = need(root, "#winter-family-final");
@@ -149,19 +153,23 @@ export class WinterScreen {
     this.totals.replaceChildren(
       row("Income", this.gold(m.income)),
       row("Upkeep", this.gold(-u.total)),
-      row("Town", this.gold(-m.spent)),
+      ...(m.family.shopOpen ? [row("Shop", this.gold(-m.spent))] : []),
     );
 
     // What it all came to, on its own, because it is the one number the
     // player leaves the screen with. The line under it is always there, so
     // the panel does not grow a row the moment the balance goes negative.
     this.balance.replaceChildren(
-      total("Balance", this.gold(m.balance), m.balance < 0),
+      total("Balance, invested in family", this.gold(m.balance), m.balance < 0),
       m.balance < 0
         ? consequence("Next summer: tired", "is-short")
         : consequence("Next summer: normal"),
     );
 
+    // No shop at all until the family is known in the town: the panel and
+    // the rule it hangs from both go.
+    this.town.hidden = !m.family.shopOpen;
+    this.townRule.hidden = !m.family.shopOpen;
     this.shopList.replaceChildren(...m.shop.map((line) => this.shopRow(line)));
 
     // The family, as a move: where they stood when the summer ended, what
@@ -175,24 +183,24 @@ export class WinterScreen {
     // What they had and what goes in, then -- under a rule -- what that
     // leaves them with and what the next level still wants.
     this.familyGold.replaceChildren(
-      row("Current wealth", this.gold(fam.before)),
-      row("Invested", this.gold(fam.given)),
+      familyRow("Current wealth", this.gold(fam.before)),
+      familyRow("Invested", this.gold(fam.given)),
     );
-    this.familyFinal.replaceChildren(
-      row("Final wealth", this.gold(fam.total)),
-      ...(fam.nextAt === null
-        ? []
-        : [row(`Needed for level ${fam.level + 1}`, this.gold(fam.toNext), "is-want")]),
-    );
-    // A level's benefit is named only once the family has it: what the next
-    // one would give is not something this screen promises.
+    // What the winter leaves the family with, against what the next level
+    // wants: one line, because it is one question -- how far along are we.
+    let of: HTMLElement | null = null;
+    if (fam.nextAt !== null) {
+      // The brackets are drawn by the stylesheet, so the coin inside them
+      // keeps its own spacing instead of being glued to the words.
+      of = span("w-of", "");
+      of.append(this.gold(fam.nextAt));
+    }
+    this.familyFinal.replaceChildren(familyRow("Final wealth", this.gold(fam.total), of));
+    // Only what this winter bought: a level announces itself the year it is
+    // reached and then stops being news.
     this.familyTotal.replaceChildren(
       meterRow(`Family: level ${fam.level}`, "", fam.progress, true),
-      ...(fam.gained.length > 0
-        ? fam.gained.map((g) => note(`level ${g.level}: ${g.unlocks}`, "is-gained"))
-        : fam.unlocked
-          ? [note(`level ${fam.level}: ${fam.unlocked}`)]
-          : []),
+      ...fam.gained.map((g) => note(`level ${g.level}: ${g.unlocks}`, "is-gained")),
     );
   }
 
@@ -365,6 +373,17 @@ function row(what: string, value: string | Node, cls = ""): HTMLElement {
   const amount = span("w-gold", "");
   amount.append(value);
   li.append(span("w-what", what), span("w-detail", ""), span("w-sell", ""), amount);
+  return li;
+}
+
+/**
+ * A row in the family's ledger, which has a fifth cell: the level the wealth
+ * is measured against. Empty on the rows that have no mark to reach, so all
+ * three amounts stand in the same column whatever is beside them.
+ */
+function familyRow(what: string, value: Node, extra: HTMLElement | null = null): HTMLElement {
+  const li = row(what, value);
+  li.append(extra ?? span("w-of-empty", ""));
   return li;
 }
 

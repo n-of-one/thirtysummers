@@ -139,8 +139,13 @@ export interface Family {
   finalLevel: number;
   /** Levels crossed this winter, in order, with what each one opens. */
   gained: readonly Gained[];
-  /** What the level the family now has opened, if it has one. */
-  unlocked: string | null;
+  /**
+   * The town will deal with a family of some standing, and not before. Read
+   * off the level the winter began with, not the one it ends with: what is
+   * bought comes out of what the family is given, so a shop that opened on
+   * the closing level could close itself the moment something was bought.
+   */
+  shopOpen: boolean;
 }
 
 export interface WinterModel {
@@ -360,7 +365,7 @@ function familyFrom(before: number, given: number): Family {
     toNext: nextAt === null ? 0 : nextAt - total,
     finalLevel: C.FAMILY_LEVELS.length,
     gained,
-    unlocked: FAMILY_UNLOCKS[level] ?? null,
+    shopOpen: levelBefore >= SHOP_FROM_LEVEL,
   };
 }
 
@@ -380,6 +385,9 @@ function progressAt(total: number): number {
   return to > from ? (total - from) / (to - from) : 1;
 }
 
+/** [GUESS] The family level the town starts dealing with. */
+export const SHOP_FROM_LEVEL = 1;
+
 /**
  * What each level opens.
  *
@@ -389,7 +397,7 @@ function progressAt(total: number): number {
  * is not settled.
  */
 export const FAMILY_UNLOCKS: Readonly<Record<number, string>> = {
-  1: "the axe, in the shop",
+  1: "the shop opens next winter",
   2: "the cart, in the shop",
   3: "boots, in the shop",
   4: "a bigger pack",

@@ -40,7 +40,9 @@
   align-items: baseline;
   justify-content: space-between;
   gap: 20px;
-  border-bottom: 2px solid var(--w-edge);
+  /* Darker than a rule inside a panel, like the one the shop hangs from: it
+     divides the screen, not a table. */
+  border-bottom: 2px solid var(--w-panel-lit);
   padding-bottom: 14px;
 }
 .winter-head h1 { margin: 0; font-size: 30px; letter-spacing: 0.06em; font-weight: 500; }
@@ -73,8 +75,9 @@
   height: 0;
   margin: 2px 0;
   border: 0;
-  border-top: 2px solid var(--w-edge);
+  border-top: 2px solid var(--w-panel-lit);
 }
+.winter-rule[hidden] { display: none; }
 
 .winter-panel {
   background: var(--w-panel);
@@ -105,6 +108,14 @@
    the haul with nothing in it shows no rule either. */
 #winter-materials:empty { border-top: 0; margin: 0; padding: 0; }
 
+/* The level the wealth above it buys: a section of the same panel rather than
+   a total of it, so it is divided the quiet way the haul's two halves are. */
+#winter-family-total {
+  border-top: 2px solid var(--w-panel-lit);
+  margin-top: 8px;
+  padding-top: 8px;
+}
+
 /* What the column above comes to, ruled off like a balance sheet. */
 .winter-foot-list { border-top: 2px solid var(--w-edge); margin-top: 10px; padding-top: 8px; }
 /* A total is the same size as the rows above it, so its money lands in the
@@ -123,7 +134,15 @@
 .w-level-note { padding: 6px 6px 0; color: var(--ink-dim); }
 .w-level-note.is-gained { color: var(--w-green); }
 
-/* What the next level still wants is not money the player has. */
+/* The wealth, and the level it is measured against: the second number is
+   dimmed, because it is a mark to reach rather than money in hand. */
+.w-final { display: inline-flex; align-items: center; gap: 8px; }
+.w-of { display: inline-flex; align-items: center; gap: 4px; color: var(--ink-dim); }
+
+.w-of::before { content: "of"; }
+.w-of .w-coin { color: var(--ink-dim); }
+.w-of .w-coin-n { min-width: 0; }
+/* Dimmed the same way wherever a row shows what is still wanted. */
 .w-row.is-want .w-gold { color: var(--ink-dim); }
 
 /* A consequence carries no money: the row is the sentence, under the total
@@ -151,14 +170,25 @@
    them. The ledgers give that room to the count instead, which is where
    "6 of 12 stored" lives. */
 #winter-upkeep .w-row,
-#winter-totals .w-row,
-#winter-balance .w-row,
-#winter-family .w-row,
+#winter-totals .w-row {
+  grid-template-columns: 12em minmax(0, 1fr) 0 5.5em;
+}
+
+/* The balance names where the money goes, which is longer than any label in
+   the ledger above it: it takes the whole row and leaves the amount where the
+   amounts already are. */
+#winter-balance .w-row { grid-template-columns: minmax(0, 1fr) 0 0 5.5em; }
+
+/* The family names things in full -- "Current wealth" -- so its labels are
+   wider, and its amounts carry a fifth cell for the level they are measured
+   against. That cell is a fixed width rather than its content's, so a row
+   with an "(of N)" and a row without put their amounts in the same place. */
 #winter-family-gold .w-row,
-#winter-family-final .w-row,
+#winter-family-final .w-row {
+  grid-template-columns: 16em minmax(0, 1fr) 0 5.5em 6.5em;
+}
+#winter-family .w-row,
 #winter-family-total .w-row {
-  /* Wider labels here: this panel names things in full -- "Needed for next
-     level" -- rather than in the ledger's one-word column. */
   grid-template-columns: 16em minmax(0, 1fr) 0 5.5em;
 }
 .w-row:nth-child(odd) { background: rgba(0, 0, 0, 0.22); }
