@@ -24,7 +24,8 @@ the history.
 
 - [current/PLAN.md](current/PLAN.md) is the status and order of the
   milestones, the chores, and what happens at the end of each milestone.
-- [current/m10-winter.md](current/m10-winter.md),
+- [current/pack.md](current/pack.md),
+  [current/m10-winter.md](current/m10-winter.md),
   [current/m11-cart.md](current/m11-cart.md) and
   [current/m12-fruit.md](current/m12-fruit.md) are the milestones still to
   build. A milestone's file is deleted when it is done.

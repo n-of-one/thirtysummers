@@ -15,7 +15,10 @@ for logs, wells and caches, a build menu on `B` because building guessed
 from the pack could not be told what you meant, and the five-summer table
 laid out by the generator itself rather than stamped into maps by hand.
 Five summers can be played back to back on any seed, with no winter yet.
-M10, winter, is next.
+The pack comes next, ahead of M10: camp refuses build material and the pack
+survives the winter, so a pack full of vines is a dead end for the whole
+run, and that blocks the map experiments M10 is waiting on. Winter follows
+it.
 
 | Milestone | What it adds | Status |
 |---|---|---|
@@ -23,11 +26,14 @@ M10, winter, is next.
 | M8: the body | hydration and fog, springs, the end of a summer, no sprint, no stamina | done |
 | QoL | a fixed view, the tile ahead for tools, the last minute with dusk, springs in the reeds, banking fruit, pause | done |
 | M9: the map | saplings, wells, caches, seven resources, the build menu, the layout pass | done |
+| [The pack](pack.md) | camp as the first cache, the transfer panel, dropping a kind on the ground | not started |
 | [M10: winter](m10-winter.md) | the store, the winter screen, upkeep, the shop, the map between summers | not started |
 | [M11: the cart](m11-cart.md) | the logistics experiment | not started |
 | [M12: fruit](m12-fruit.md) | eating a fruit for a burst of speed, in place of meals | not started |
 
-The order is what each needs from the one before. The body comes first,
+The order is what each needs from the one before. The pack jumps the queue
+because it is a dead end rather than a missing feature, and because the map
+cannot be played with properly until it is gone. The body comes first,
 because the map is played with it. The map is second, because winter sells
 what the map yields. The cart is near the end, because it is the experiment
 most likely to be cut. Fruit is last, because it needs a winter for eating
