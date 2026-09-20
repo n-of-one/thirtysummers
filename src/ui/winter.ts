@@ -1,9 +1,11 @@
 import type { IconName, Icons } from "../render/packs/icons.ts";
-import type { ShopItem, ShopItemId } from "../sim/shop.ts";
+import type { ShopItemId } from "../sim/shop.ts";
 import type { ResourceKind } from "../sim/types.ts";
 import {
+  canHoldBack,
   sellToCover,
   winterModel,
+  type Purse,
   type ShopLine,
   type StoreLine,
   type WinterInput,
@@ -31,6 +33,7 @@ export class WinterScreen {
   private readonly upkeep: HTMLElement;
   private readonly shopList: HTMLElement;
   private readonly town: HTMLElement;
+  private readonly spend: HTMLElement;
   private readonly townRule: HTMLElement;
   private readonly family: HTMLElement;
   private readonly familyGold: HTMLElement;
@@ -61,6 +64,7 @@ export class WinterScreen {
     this.upkeep = need(root, "#winter-upkeep");
     this.shopList = need(root, "#winter-shop");
     this.town = need(root, "#winter-town");
+    this.spend = need(root, "#winter-spend");
     this.townRule = need(root, "#winter-rule");
     this.family = need(root, "#winter-family");
     this.familyGold = need(root, "#winter-family-gold");
@@ -150,8 +154,8 @@ export class WinterScreen {
     // covered and what the town had to make up are the same question every
     // winter, and the answer moves between them.
     this.upkeep.replaceChildren(
-      this.foodRow("Food stored", `${f.fromStore} of ${f.needed}`, 0),
-      this.foodRow("Food bought", `${f.bought} ×`, -f.cost, f.buyPrice),
+      this.foodRow("food hauled", `${f.fromStore} of ${f.needed}`, 0),
+      this.foodRow("food bought", `${f.bought} ×`, -f.cost, f.buyPrice),
       row("Household", this.gold(-u.gold)),
       ...(u.away ? [row("Home late", this.gold(-u.away))] : []),
     );
@@ -192,6 +196,7 @@ export class WinterScreen {
     this.town.hidden = !m.family.shopOpen;
     this.townRule.hidden = !m.family.shopOpen;
     this.shopList.replaceChildren(...m.shop.map((line) => this.shopRow(line)));
+    this.spend.replaceChildren(this.purseLine(m.purse));
 
     // The family, as a move: where they stood when the summer ended, what
     // this winter puts in, and where that leaves them. The two bars are the
@@ -220,7 +225,7 @@ export class WinterScreen {
     // Only what this winter bought: a level announces itself the year it is
     // reached and then stops being news.
     this.familyTotal.replaceChildren(
-      meterRow(`Family: level ${fam.level}`, "", fam.progress, true),
+      meterRow(`Final level: ${fam.level}`, "", fam.progress, true),
       ...fam.gained.map((g) => note(`level ${g.level}: ${g.unlocks}`, "is-gained")),
     );
   }
@@ -253,16 +258,18 @@ export class WinterScreen {
   }
 
   /**
-   * An amount of money: the number against the coin, or the word "gold" when
-   * there are no icons to draw it with.
+   * An amount of money.
+   *
+   * No coin beside it: every number on this screen is gold, so a coin on each
+   * one marked nothing and was drawn twenty times. What says "money" instead
+   * is the colour and the column. The coin art is still in the pack, and
+   * `icons.url("gold")` still draws it, for wherever one is worth having.
    */
   private gold(n: number): HTMLElement {
     const el = span("w-coin", "");
-    const coin = this.icon("gold", 24);
-    // The number in a cell of its own so that every column of money lines up
-    // on its last digit, with the coin sitting at the same place beside it.
-    el.append(span("w-coin-n", coin ? `${n}` : `${n} gold`));
-    if (coin) el.append(coin);
+    // The number in a cell of its own, so every column of money lines up on
+    // its last digit.
+    el.append(span("w-coin-n", `${n}`));
     return el;
   }
 
@@ -290,26 +297,32 @@ export class WinterScreen {
     li.classList.toggle("is-empty", line.have === 0);
     li.dataset.kind = line.kind;
 
-    // What a purchase is holding back goes in with the count, not beside the
-    // stepper: the control column stays the same width on every row that way.
+    // The count is what is actually for sale, and what a purchase has taken
+    // is a second count beside it: "9x 1  3x shop" rather than a sentence
+    // that runs out of room.
     const detail = span("w-detail", "");
+    const forSale = line.have - line.committed;
     if (line.have > 0) {
-      // "9x" against the coin: the price is money, so it is drawn as money
-      // rather than said as a number the eye has to place.
-      detail.append(span("", `${line.have}×`), this.gold(line.price));
+      detail.append(span("", `${forSale} ×`), this.gold(line.price));
     }
     if (line.committed > 0) {
-      detail.append(
-        span("w-note", `${line.committed} for the ${line.committedTo.join(", ")}`),
-      );
+      detail.append(span("w-reserved", `${line.committed}× shop`));
     }
     li.append(this.what(line.kind, name(line.kind, line.have)), detail);
 
     if (line.material) {
       const sell = document.createElement("span");
       sell.className = "w-sell";
+      const fewer = button(
+        "−",
+        () => this.sell(line.kind, -1),
+        !canHoldBack(this.input, line.kind),
+      );
+      // Greyed for two different reasons, so it says which: nothing sold, or
+      // the sale is what is paying for what has been bought.
+      if (fewer.disabled && line.sold > 0) fewer.title = "Sold to pay for what is bought";
       sell.append(
-        button("−", () => this.sell(line.kind, -1), line.sold <= 0),
+        fewer,
         span("w-sell-count", `sell ${line.sold}`),
         button("+", () => this.sell(line.kind, +1), line.kept <= line.committed),
       );
@@ -323,17 +336,52 @@ export class WinterScreen {
   }
 
   /**
+   * What there is to spend here: the gold left over, and the material still
+   * in hand. Drawn the way a price is drawn, so the two lines can be read
+   * against each other.
+   */
+  private purseLine(purse: Purse): HTMLElement {
+    const el = span("w-shop-cost", "");
+    el.append(span("w-spend-label", "To spend"));
+    const money = span("w-cost-part", `${purse.gold}`);
+    const coin = this.icon("gold", 24);
+    if (coin) money.append(coin);
+    else money.append(span("", " gold"));
+    el.append(money);
+    for (const [kind, n] of Object.entries(purse.materials)) {
+      if (!n) continue;
+      const img = this.icon(kind as ResourceKind, 24);
+      const part = span("w-cost-part", img ? `${n}` : `${n} ${name(kind as ResourceKind, n)}`);
+      if (img) part.append(img);
+      el.append(part);
+    }
+    return el;
+  }
+
+  /**
    * What a line in the shop costs: the gold in words, and the material as a
    * count against its own sprite. With no icons loaded the words come back,
    * so the line still says what it wants.
    */
-  private costLine(item: ShopItem): HTMLElement {
+  private costLine(line: ShopLine): HTMLElement {
+    const { item } = line;
     const el = span("w-shop-cost", "");
-    if (item.gold > 0) el.append(this.gold(item.gold));
+    // This is the one place on the screen where gold stands beside another
+    // currency, so it is the one place the coin is drawn: the icon says what
+    // a number counts, and the colour says whether it can be paid.
+    if (item.gold > 0) {
+      const part = span("w-cost-part", `${item.gold}`);
+      part.classList.toggle("is-short", line.shortGold > 0);
+      const coin = this.icon("gold", 24);
+      if (coin) part.append(coin);
+      else part.append(span("", " gold"));
+      el.append(part);
+    }
     for (const [kind, n] of Object.entries(item.materials)) {
       if (!n) continue;
       const img = this.icon(kind as ResourceKind, 24);
       const part = span("w-cost-part", img ? `${n}` : `${n} ${name(kind as ResourceKind, n)}`);
+      part.classList.toggle("is-short", (line.shortMaterials[kind as ResourceKind] ?? 0) > 0);
       if (img) part.append(img);
       el.append(part);
     }
@@ -345,7 +393,12 @@ export class WinterScreen {
     const li = document.createElement("li");
     li.className = "w-shop-row";
     li.classList.toggle("is-bought", line.bought);
-    li.classList.toggle("is-short", !line.affordable && !line.bought);
+    // A recipe is never "unaffordable": it is known, and what it wants is
+    // said by the colour of its material. Only a thing for sale greys out.
+    li.classList.toggle(
+      "is-short",
+      line.item.kind === "buy" && !line.affordable && !line.bought,
+    );
     li.dataset.item = line.item.id;
 
     const what = document.createElement("div");
@@ -353,7 +406,7 @@ export class WinterScreen {
     what.append(span("w-shop-name", line.item.name));
     const price = document.createElement("div");
     price.className = "w-shop-price";
-    price.append(this.costLine(line.item));
+    price.append(this.costLine(line));
     li.append(what, price);
 
     if (line.item.kind === "recipe") {

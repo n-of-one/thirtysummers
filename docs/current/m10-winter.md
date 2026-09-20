@@ -44,8 +44,8 @@ on main by the chores, for trails.
    upkeep, dismissed by the first movement key.
 5. **The shop sells the tools.** `YEAR_GRANTS` goes, and the axe, the cart
    and the well are bought instead. The maps are checked again with the
-   shop's prices against the ladder, so winter 1 can afford the axe from a
-   summer-1 haul.
+   shop's prices against the ladder, so winter 2 can afford the axe from a
+   summer-2 haul.
 
 ## Verification
 

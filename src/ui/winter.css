@@ -162,7 +162,7 @@
    what makes the three panels read as one sheet. */
 .w-row {
   display: grid;
-  grid-template-columns: 9.5em 8em minmax(0, 1fr) 5.5em;
+  grid-template-columns: 9.5em 8em minmax(0, 1fr) 4em;
   align-items: center;
   gap: 10px;
   padding: 5px 6px;
@@ -174,13 +174,13 @@
    "6 of 12 stored" lives. */
 #winter-upkeep .w-row,
 #winter-totals .w-row {
-  grid-template-columns: 12em minmax(0, 1fr) 0 5.5em;
+  grid-template-columns: 12em minmax(0, 1fr) 0 4em;
 }
 
 /* The balance names where the money goes, which is longer than any label in
    the ledger above it: it takes the whole row and leaves the amount where the
    amounts already are. */
-#winter-balance .w-row { grid-template-columns: minmax(0, 1fr) 0 0 5.5em; }
+#winter-balance .w-row { grid-template-columns: minmax(0, 1fr) 0 0 4em; }
 
 /* The family names things in full -- "Current wealth" -- so its labels are
    wider, and its amounts carry a fifth cell for the level they are measured
@@ -188,11 +188,11 @@
    with an "(of N)" and a row without put their amounts in the same place. */
 #winter-family-gold .w-row,
 #winter-family-final .w-row {
-  grid-template-columns: 16em minmax(0, 1fr) 0 5.5em 6.5em;
+  grid-template-columns: 16em minmax(0, 1fr) 0 4em 5em;
 }
 #winter-family .w-row,
 #winter-family-total .w-row {
-  grid-template-columns: 16em minmax(0, 1fr) 0 5.5em;
+  grid-template-columns: 16em minmax(0, 1fr) 0 4em;
 }
 .w-row:nth-child(odd) { background: rgba(0, 0, 0, 0.22); }
 .w-row.is-empty { color: var(--ink-dim); }
@@ -201,6 +201,10 @@
 .w-row.is-short .w-what,
 .w-row.is-short .w-detail,
 .w-row.is-short .w-gold { color: var(--warn); }
+
+/* What a purchase has taken out of the sale, counted the same way the sale
+   is: it is not a note, it is the other half of the tally. */
+.w-reserved { color: var(--ink-dim); margin-left: 9px; }
 
 /* The name of a thing, with the sprite the map draws it as. The icon is the
    art at its own scale -- four screen pixels to the art's one, the same as the
@@ -245,6 +249,16 @@
 
 /* --- the town ------------------------------------------------------------ */
 
+/* The shop's heading and, at the other end of it, what there is to spend. */
+.winter-shop-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 20px;
+}
+.winter-spend { margin: 0 0 4px; }
+.w-spend-label { color: var(--ink-dim); }
+
 /* The shop is read across, not down: four things side by side, like a window
    rather than a list. */
 .winter-shop {
@@ -284,7 +298,11 @@
 /* Gold in words, then each material as a count against its own sprite: what
    the town wants is read the way the pack is read. */
 .w-shop-cost { display: flex; align-items: center; gap: 10px; }
+/* A price in the shop: the number, then what it is a number of. Red when
+   there is not enough of it -- the same warn colour a negative balance uses,
+   saying the same thing about a smaller number. */
 .w-cost-part { display: inline-flex; align-items: center; gap: 4px; }
+.w-cost-part.is-short { color: var(--warn); }
 /* An amount of money: the number, right aligned on its last digit, then the
    coin. Every column of money in every panel lines up because of this. */
 .w-coin { display: inline-flex; align-items: center; gap: 5px; color: var(--gold); }
@@ -298,8 +316,7 @@
 /* Greyed, not hidden: the price of what cannot be bought yet is what next
    summer aims at. */
 .w-shop-row.is-short { color: var(--ink-dim); }
-.w-shop-row.is-short .w-shop-price { color: var(--warn); }
-.w-shop-row.is-bought .w-shop-price { color: var(--accent); }
+.w-shop-row.is-bought .w-shop-price { color: var(--w-green); }
 
 /* Buttons are timber: the plank's own two tones, lit from the north-west like
    the panels they sit on. */

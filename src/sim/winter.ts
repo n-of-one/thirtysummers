@@ -148,6 +148,21 @@ export interface Family {
   shopOpen: boolean;
 }
 
+/**
+ * What is actually available to spend in the shop: the gold the winter has
+ * left after it has paid for itself, and the material that has been held back
+ * and is not already spoken for.
+ *
+ * This is the one thing the ledger cannot say on its own. Gold that is not
+ * spent goes to the family without being asked, so "what is left" and "what I
+ * can spend" are the same number -- and a player who has not worked that out
+ * has no idea what the shop is measuring them against.
+ */
+export interface Purse {
+  gold: number;
+  materials: Amounts;
+}
+
 export interface WinterModel {
   year: number;
   lines: StoreLine[];
@@ -173,6 +188,8 @@ export interface WinterModel {
   balance: number;
   /** What is left when everything is paid for: what the family gets. */
   left: number;
+  /** The same, as the shop sees it: gold to spend, and material in hand. */
+  purse: Purse;
   family: Family;
 }
 
@@ -192,6 +209,25 @@ export function initialKeep(store: Amounts): Amounts {
     if (RESOURCES[kind].atCamp === "keep") keep[kind] = amount(store, kind);
   }
   return keep;
+}
+
+/**
+ * May one more of this kind be held back from the sale?
+ *
+ * Not if something has been bought and the winter would then not pay for
+ * itself. Otherwise a player could sell the whole store to afford the axe,
+ * buy it, and put the sale back: the axe bought with money that was never
+ * earned, at the price of a tired summer that was going to happen anyway.
+ * Nothing is bought yet, so this is a rule about the screen, not a penalty --
+ * it is why the minus greys out rather than why a purchase is refused.
+ */
+export function canHoldBack(input: WinterInput, kind: ResourceKind): boolean {
+  const model = winterModel(input);
+  const line = model.lines.find((l) => l.kind === kind);
+  if (!line || line.sold <= 0) return false;
+  if (model.spent === 0) return true;
+  const next = winterModel({ ...input, keep: { ...input.keep, [kind]: line.kept + 1 } });
+  return next.balance >= 0;
 }
 
 /**
@@ -299,6 +335,14 @@ export function winterModel(input: WinterInput): WinterModel {
     shop,
     spent,
     left,
+    purse: {
+      gold: left,
+      materials: Object.fromEntries(
+        lines
+          .filter((line) => line.material && line.kept - line.committed > 0)
+          .map((line) => [line.kind, line.kept - line.committed]),
+      ),
+    },
     family: familyFrom(input.familySurplus, left),
   };
 }
