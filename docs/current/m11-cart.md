@@ -1,25 +1,39 @@
 # M11: the cart
 
-The logistics experiment, last because it is the one most likely to be cut
-by the log. The question it asks is in [five-summers.md](five-summers.md):
-does cutting a road so a cart can run feel like play, or like hauling?
+Summer 4 of [five-summers.md](five-summers.md): the cart, the field it is
+for, and the trail its route wears into. The question it asks: does making a
+road so a cart can run feel like play, or like hauling?
 
-**Depends on** M9: the cache, and the layout's summer-3 row, which already
-puts a cart route on every map and holds it to needing a cut.
-M10: the shop, which sells the cart in winter 2 for logs.
+**Depends on** M10: the cart bought in the shop at family level 2, the shell
+field behind the copse, the cart route the layout already lays and holds to
+needing a cut, and shells that do not come back, so summer 4 needs a field
+further out.
 
 ## Steps
 
-1. **A `cart` entity in `sim/`.** A position, pushed by walking into it. It
-   moves only onto grass and bridge and holds any amount. Banking into it
-   and out of it is the interact key when in reach.
-2. **Rendering** as a prop that moves, depth-sorted with the player.
-3. **The route as it is walked.** The layout already lays one and the rows
-   already hold it to needing a cut, so what is left is whether the route's
-   width and the hedge on it are right with a cart actually on them.
+1. **A `cart` in `sim/`.** A position, pushed by walking into it. It stores
+   like camp, with a press to put the whole pack in and a hold for the
+   transfer panel, and keeps everything over a winter but fruit. It moves
+   at walking speed on grass, bridge and planks, at `CART_ROUGH_SPEED_MUL`
+   on underbrush, and not at all into mud or thicket. While it is pushed,
+   hydration drains `CART_HYDRATION_MUL` times as fast.
+2. **Rendering** as a prop that moves, depth-sorted with the player, drawn
+   to the one-art-pixel rule.
+3. **Trails.** `src/sim/trace.ts` comes back from `itch-publish-1` with its
+   test, less stamina and sprint, and counts the tiles crossed each summer.
+   In `nextSummer`, underbrush crossed more than `TRAIL_CROSSINGS` times turns
+   to grass with `TRAIL_CHANCE`, seeded.
+4. **The field for summer 4.** A second shell field further out along the
+   route, larger than the first, through underbrush the cart crawls over,
+   and past it, seen and out of reach, a mud flat with the dry pocket
+   beyond, which M12 fills. Rows for both.
 
 ## Verification
 
-- The cart refuses mud, underbrush and thicket.
-- It follows a push, and keeps its contents across the summer.
-- One summer over the protocol, hauling a cache home.
+- The cart refuses mud and thicket, crawls on underbrush at the configured
+  speed, and runs at walking speed on grass and bridge, all read back.
+- It follows a push, keeps its contents across the summer and the winter
+  except fruit, and hydration drains faster while pushing.
+- Trails form over three simulated winters on a tile crossed often, and not
+  on one crossed once.
+- One summer over the protocol, hauling a parked cart home.

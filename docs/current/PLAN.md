@@ -20,7 +20,15 @@ be dropped on the ground and picked back up, so a full pack is never a dead
 end. What camp keeps is called camp, not the store. Building it also set a
 rule for all world art, in [../architecture.md](../architecture.md): one art
 pixel is one size, always on the grid. Five summers can be played back to
-back on any seed, with no winter yet. M10, winter, is next.
+back on any seed, with no winter yet.
+
+The progression was then redrawn, on 21 Sep, from playing the winter
+prototype: winter 1 has no shop, and the family's level is what opens it;
+ore is out and shells behind the copse never come back; the cache is parked
+and the cart does its job; and a list the player ticks in winter steers the
+summer. [five-summers.md](five-summers.md) tells it as a story. M10 is now
+the first three years, so they are fun before anything is built on them.
+M10 is next.
 
 | Milestone | What it adds | Status |
 |---|---|---|
@@ -29,22 +37,24 @@ back on any seed, with no winter yet. M10, winter, is next.
 | QoL | a fixed view, the tile ahead for tools, the last minute with dusk, springs in the reeds, banking fruit, pause | done |
 | M9: the map | saplings, wells, caches, seven resources, the build menu, the layout pass | done |
 | The pack | camp as the first cache, the transfer panel, dropping a kind on the ground | done |
-| [M10: winter](m10-winter.md) | what camp holds on the HUD, the winter screen, upkeep, the shop, the map between summers | next |
-| [M11: the cart](m11-cart.md) | the logistics experiment | not started |
-| [M12: fruit](m12-fruit.md) | eating a fruit for a burst of speed, in place of meals | not started |
+| [M10: the first three years](m10-three-years.md) | the map for summers 1 to 3, the winter screen, the shop by family level, the list, the map between summers | next |
+| [M11: the cart](m11-cart.md) | summer 4: the logistics experiment, and trails | not started |
+| [M12: planks and the well](m12-planks-well.md) | summer 5: planks on mud, the well, the dry pocket | not started |
+| [M13: fruit](m13-fruit.md) | eating a fruit for a burst of speed, in place of meals | not started |
 
 The order is what each needs from the one before. The pack jumped the queue
 because it was a dead end rather than a missing feature, and because the map
 could not be played with properly until it was gone. The body comes first,
 because the map is played with it. The map is second, because winter sells
-what the map yields. The cart is near the end, because it is the experiment
-most likely to be cut. Fruit is last, because it needs a winter for eating
-one to cost anything. Each milestone is playable on its own. Every number is
+what the map yields. The first three years come before the cart, so they
+are fun on their own before anything more complex goes on top. The cart and
+then planks and the well follow the summers that use them. Fruit is last,
+because it needs a winter for eating one to cost anything. Each milestone is playable on its own. Every number is
 a `[GUESS]` in `config.ts` unless five-summers.md gives it.
 
 ## Chores
 
-- `src/sim/trace.ts` and its test live only on `itch-publish-1`. M10's
+- `src/sim/trace.ts` and its test live only on `itch-publish-1`. M11's
   trails bring them back to main.
 
 ## At the end of each milestone
@@ -56,7 +66,7 @@ a `[GUESS]` in `config.ts` unless five-summers.md gives it.
    out until the fog closes in and drink at a spring, fill the backpack,
    drop a kind and pick it back up, store the load at camp, hold the key
    there to take something back out, and watch the clock run out to the
-   summary.
+   summary, and on through the winter screen into the next summer.
 4. With `?debug=1`, a summer run out at 10x in 30 seconds, the grid
    toggled, a teleport across the map, the bars frozen.
 5. Stop for review. Once accepted, delete the milestone file and mark it

@@ -12,7 +12,7 @@ being built now takes from this, and the numbers it uses, is in
 |---|---|
 | [map-arc.md](map-arc.md) | One map from the first summer to the road out: lives, domains, structures, the town, generations. |
 | [summer.md](summer.md) | One summer: the two bars, barriers and their keys, the resource ladder, tools, improvements, getting it home. |
-| [winter.md](winter.md) | Between summers: what comes back and what wears, the winter screen, upkeep, the shop, the family. |
+| [winter.md](winter.md) | Between summers: what comes back and what wears, the winter screen, upkeep, the shop, the family, the list. |
 | [ideas.md](ideas.md) | Open questions, parked ideas, and the first notes on spirits. Nothing there is decided. |
 
 ## What the project is for
@@ -41,11 +41,13 @@ In-game words, not game-design words.
   The next life is the **heir**'s.
 - **Hydration** is the one bar. A **tired** summer is the one after a
   missed upkeep.
-- **Upkeep** is what a winter costs, in fruit and gold. The **shop** is what
-  the town sells. **Camp** is also what is kept there: to **store** something
-  is to put it at camp or in a cache, and there is no noun "store", because a
-  store is a shop. A **cache** is a box in the field; camp is the first one.
-- The **family** takes the gold left over after upkeep and has **levels**.
+- **Upkeep** is what a winter costs, in fruit and gold; its gold is
+  **rent**. The **shop** is what the town sells. **Camp** is also what is
+  kept there: to **store** something is to put it at camp or in the cart,
+  and there is no noun "store", because a store is a shop.
+- The **family** takes the gold left over after upkeep and has **levels**,
+  which open the shop. The **list** is what the player means to bring home,
+  ticked in winter and carried through the summer.
 - A **domain** is an area of play: natural, animal, spiritual. A
   **structure** is something built in a domain, named for its result: a mine,
   a made clearing that pleases a spirit. Building one is a set of **tasks**.

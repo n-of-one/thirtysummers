@@ -38,14 +38,16 @@ what you did about it. Note every place you hesitated or turned back.
    like the last one again?
 2. Which summer felt best and which worst, and why?
 3. Each winter: what did you buy? Did the price of what you could not buy
-   yet give the next summer a goal?
-4. Did upkeep ever matter? If you missed it, what did that cost?
-5. Which wall took more than one summer, and did the second summer feel
+   yet give the next summer a goal? What did you untick, and why?
+4. Did the list steer you, or feel like a list of errands? Did you ever
+   ignore it to go and look at something?
+5. Did upkeep ever matter? If you missed it, what did that cost?
+6. Which wall took more than one summer, and did the second summer feel
    like continuing it or starting again?
-6. Did the fog ever push you back to water? Did the well change where you
+7. Did the fog ever push you back to water? Did the well change where you
    worked?
-7. The cart: did cutting a route for it feel like play or like hauling?
-8. What did you expect that did not happen? What happened that you did not
+8. The cart: did making a road for it feel like play or like hauling?
+9. What did you expect that did not happen? What happened that you did not
    expect?
 
 **Got in the way.** A key that did nothing, a prompt that said the wrong

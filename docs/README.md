@@ -24,12 +24,13 @@ the history.
 
 - [current/PLAN.md](current/PLAN.md) is the status and order of the
   milestones, the chores, and what happens at the end of each milestone.
-- [current/m10-winter.md](current/m10-winter.md),
-  [current/m11-cart.md](current/m11-cart.md) and
-  [current/m12-fruit.md](current/m12-fruit.md) are the milestones still to
+- [current/m10-three-years.md](current/m10-three-years.md),
+  [current/m11-cart.md](current/m11-cart.md),
+  [current/m12-planks-well.md](current/m12-planks-well.md) and
+  [current/m13-fruit.md](current/m13-fruit.md) are the milestones still to
   build. A milestone's file is deleted when it is done.
 - [current/five-summers.md](current/five-summers.md) is what the first five
-  summers are: the numbers, the barriers and resources, and the table the
+  summers are: the story, the numbers, the family and the shop, and what the
   generator lays every map out to.
 - [current/PLAYTEST.md](current/PLAYTEST.md) is the log for this step, one
   entry per play session.

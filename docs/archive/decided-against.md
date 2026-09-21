@@ -53,8 +53,8 @@ chosen instead.
   instead.
 - **Health on built things.** Wear removes a tile, so repair is half the work
   of building and no number needs tracking.
-- **Fruit surviving winter in a cache.** It rots wherever it is left; only
-  camp turns it into winter food. Store it at camp or eat it.
+- **Fruit surviving winter away from camp.** It rots wherever it is left;
+  only camp turns it into winter food. Store it at camp or eat it.
 - **Camp taking only what it sells.** Sticks, vines and logs were left in the
   pack, and the pack survives the winter, so a pack full of vines was a dead
   end for the whole run.
@@ -84,6 +84,19 @@ chosen instead.
 - **Missing upkeep slowing the walk on easy ground.** The walk is the part
   of a summer that is already routing. The penalty lands on the work.
 - **A list of what broke over winter.** The player meets the damage in play.
+- **The shop stocked by winter number**, the axe in winter 1 and the cart in
+  winter 2. It hands tools out on a timetable; stock opened by the family's
+  level makes bringing money home the way the town opens.
+- **A shop in the first winter.** With it on screen, spending there could
+  keep the family from the level that opens it, and a new player had too
+  much to read. The first winter is upkeep and the family.
+- **Tasks written by the game**, such as "bring 15 feathers". They say where
+  to go and turn exploring into errands. The list the player ticks in winter
+  replaced them.
+- **Shells and ore coming back by a share each winter.** An endless answer
+  to wealth, the same field every summer. They do not come back.
+- **Rent of 4 gold.** Too small beside every other number to matter. Rent is
+  what the near ring's feathers make.
 
 ## The map arc and generations
 

@@ -13,8 +13,8 @@ one up means refining it into a design document first. Rejected ideas are in
   resources sit near it.
 - How town strength carries into the next map's outpost. Perhaps a stronger
   town makes an outpost with better benefits in the next map's winters.
-- What family levels unlock: the heir's starting stats or tools, more from
-  the grave, perhaps tools.
+- What family levels unlock beyond the shop: the heir's starting stats or
+  tools, more from the grave.
 - What else changes with age besides summer length. Walking speed and the
   length of a hold are the candidates. Old characters drink less and tire
   more, young ones the reverse.
@@ -35,6 +35,17 @@ one up means refining it into a design document first. Rejected ideas are in
 - **Weather.** Weather years, and harsh years that wear things faster.
 - **Gravel on mud**, the third improvement, once repeat trips through the mud
   have taught what a road is worth.
+- **The cache**, a box built in the field from sticks, to store there and
+  fetch later. Built in M9 and taken out of the first five summers: the cart
+  parked at the edge of a field does the same job, and two things that
+  nearly do one job is one too many to learn. Camp stays the first cache.
+- **The thick wall**, twelve tiles of thicket into a last pocket, as a
+  two-summer project. Out of the first five summers, which fill up without
+  it. It may come back into summers 1 to 3 if they need more to do.
+- **Logs floating downstream.** A log dropped in a stream drifts with the
+  current and washes up on a bank further down. The half circle round camp
+  would carry felled logs home without a cart: logistics made of the map
+  itself, and a reason to fell upstream.
 - **Rarity**, once respawning is designed.
 - **Hazards** in the far regions. A still crocodile that bites when walked
   over is the cheapest first one. Monsters, and fighting or recruiting them,

@@ -110,9 +110,11 @@ bridge many, stone for good. Harsh years may wear things faster. Nothing
 announces what broke; the player meets the damage in play. Repair is
 cheaper than building.
 
-The map also reacts to what the family takes. A field picked clean year
-after year gives less the next year. It never gives so little that play is
-blocked; it is a nudge, not a wall.
+The map also reacts to what the family takes. Near camp everything comes
+back, enough for the upkeep and little more. Further out the ordinary things
+come back by half, and the valuable finds not at all, so a field worked out
+is gone and the next one is further out. Play is never blocked by it: near
+camp always pays the upkeep.
 
 Around summer 25 the child offers three places they have walked, all
 deeper into the valley than the old camp. The parent picks one. The site

@@ -67,9 +67,9 @@ first stopped.
 The kinds of barrier so far:
 
 - **Mud** only slows you down. It does not block, it annoys and it costs
-  time, and both count.
+  time, and both count. It does stop the cart, until planks cover it.
 - **Thicket** is a wall of brambles, cut with the knife a tile at a time.
-- **Stream** is bridged with planks, a tile at a time, from sticks and vines.
+- **Stream** is bridged a tile at a time, from sticks and vines.
 - **Saplings** are a copse of young trees, felled with the axe for logs.
   Full-grown **trees** are a wall no knife or axe fells.
 - **Distance from water** is crossed by digging a well.
@@ -104,24 +104,26 @@ the tile ahead.
 
 - **Cut** a thicket tile with the knife.
 - **Fell** a sapling with the axe, for a log.
-- **Bridge** a stream tile with planks.
+- **Bridge** a stream tile, with a stick and a vine.
 - **Well**, dug where there is no water, from logs and sticks. It is a spring
   the family can work from, further from any stream.
-- **Cache**, a box in the field: store there, fetch later. It holds any
-  amount of anything; what it keeps over a winter is under *Getting it
-  home*.
+- **Planks** laid on mud, one a tile, which the cart can cross. The town
+  saws them from logs.
+
+The cache, a box built in the field, is parked in [ideas.md](ideas.md): the
+cart does its job.
 
 Cutting and felling are the tools, and act on what is in front of you. The
-other three are **built, and building is chosen rather than guessed**: a build
+rest are **built, and building is chosen rather than guessed**: a build
 menu lists what the character knows how to build with what each one costs, and
 the tile ahead then does that one thing until the choice is changed or put
 down. What cannot be paid for yet is still listed, because the menu is where
 the recipes are read.
 
-Guessing from the pack was tried first and does not work. Three sticks are a
-cache and can be nothing else, so a player saving for a well was told to build
-a cache on every patch of grass they walked past, and had no way to say which
-they meant and no way to be rid of one stick. Choosing also empties the screen:
+Guessing from the pack was tried first and does not work. When three sticks
+were a cache and could be nothing else, a player saving for a well was told to
+build a cache on every patch of grass they walked past, and had no way to say
+which they meant and no way to be rid of one stick. Choosing also empties the screen:
 with nothing chosen, open ground says nothing at all, and the only thing the
 game volunteers about building is at the water's edge, where a crossing is the
 barrier and the prompt names its price and the key that starts one.
@@ -137,29 +139,27 @@ The backpack is the limit: ten slots, bulky things taking two. It survives
 the winter as it is, so it has to have a way out that never depends on what
 is in it.
 
-**Camp is the first cache.** It is a cache that is already built and that
-also sells, and it takes every kind. Feathers, ore and shells are sold the
-moment they reach it, because there is no decision in them. Everything else,
-fruit and building material alike, is stored at camp, where winter's keep or
-sell finds it. Fruit stored at camp is winter food, and may be taken back out
-at any time; every fruit taken is one not there for winter. What is still
-carried when the clock stops is stored too. A cache's value is then distance
-alone: somewhere to store things where the work is.
+**Camp takes everything.** It also sells: feathers, shells and ore are sold
+the moment they reach it, because there is no decision in them. Everything
+else, fruit and building material alike, is stored at camp, where winter's
+keep or sell finds it. Fruit stored at camp is winter food, and may be taken
+back out at any time; every fruit taken is one not there for winter. What is
+still carried when the clock stops is stored too.
 
-**A press stores the whole load; a hold opens both sides.** At camp or a cache
-a press of the interact key stores everything that place will take, so the
-common arrival is one press. Holding it opens the same panel at either: the
-pack on one side and what that place keeps on the other, moved a kind at a
-time. The key that opened it closes it.
+**A press stores the whole load; a hold opens both sides.** At camp, and at
+the cart once there is one, a press of the interact key stores everything
+that place will take, so the common arrival is one press. Holding it opens
+the transfer panel: the pack on one side and what that place keeps on the
+other, moved a kind at a time. The key that opened it closes it.
 
-**Where things are kept, over a winter.** One rule, three tiers:
+**Where things are kept, over a winter.**
 
 - **The ground** keeps nothing. Whatever was dropped is gone by spring.
-- **A cache** keeps everything but fruit, which rots wherever it is left.
+- **The cart** keeps everything but fruit, which rots wherever it is left.
 - **Camp** keeps everything, and is the only place a fruit becomes winter
   food.
 
-A heap in a field is scattered by a year of rain and animals, a box is a
+A heap in a field is scattered by a year of rain and animals, a cart is a
 box, and a fruit is a fruit anywhere: the tiers read as physics rather than
 as rules, which is why fruit is not named twice.
 
@@ -177,6 +177,11 @@ drawn as a smaller version of itself on a shadow, so it is never taken for
 one still growing. Ending a summer away from camp stores what is carried,
 never what was dropped.
 
-The cart holds any amount, is pushed, and runs only on grass and bridge. The
-route from a cache to camp has to be cut continuously, and a route across mud
-has no answer until gravel exists.
+**The cart is a store on wheels.** It holds any amount and takes the same
+press and hold as camp, so parked at the edge of a field it is where the
+pack is emptied, and pushed home it is the haul. It is pushed by walking
+into it. It runs at walking speed on grass, bridge and planks, crawls through
+underbrush, and will not go into mud or thicket. Pushing it makes the
+character sweat, so hydration drains faster while pushing. A route the cart
+is pushed along often wears into a trail over the winters, which is how its
+road gets made without a tool; mud needs planks.

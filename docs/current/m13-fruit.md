@@ -1,4 +1,4 @@
-# M12: fruit
+# M13: fruit
 
 The experiment that replaces meals: eating a fruit makes the character
 faster for a short while. Fruit is still winter food, so every fruit eaten

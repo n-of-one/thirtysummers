@@ -117,16 +117,14 @@ for ending away from camp keeps coming home worth something.
 
 **Camp takes everything.** It used to take only what it sold, and leave
 sticks, vines and logs in the pack so they were not lost before winter could
-sell them. With the pack surviving the winter, and a cache costing sticks,
-that made a pack full of vines a dead end for the whole run: no way to be rid
-of them, this summer or any after. Camp as a cache that also sells closes it,
-and makes the cache the same concept built somewhere else, worth only the
-distance it saves.
+sell them. With the pack surviving the winter, that made a pack full of vines a dead end for the whole run: no way to be rid
+of them, this summer or any after. Camp as a store that also sells closes
+it.
 
-**Three tiers, not a fruit rule.** The ground keeps nothing over a winter, a
-cache keeps everything but fruit, camp keeps everything. That says what the
-old line, "fruit may be left in a cache but does not survive there", said,
-without naming fruit twice, and it reads as physics: a heap in a field is
+**Three tiers, not a fruit rule.** The ground keeps nothing over a winter,
+the cart keeps everything but fruit, camp keeps everything. That says "fruit
+does not survive a winter away from camp" without naming fruit twice, and it
+reads as physics: a heap in a field is
 scattered, a box is a box, a fruit is a fruit anywhere.
 
 **Dropping is never refused for what is dropped.** Refusing a drop is
@@ -141,7 +139,7 @@ back what was already paid for, so it is a press. For the same reason a
 dropped item gives way to a node on the same key: standing on what you just
 dropped must not stop you picking the fruit you dropped it for.
 
-**A press and a hold on one key.** At camp and a cache a press stores the
+**A press and a hold on one key.** At camp and the cart a press stores the
 whole load and a hold opens the panel, so the common arrival is still one
 press and the choice is there when it is wanted. The press acts on the
 release, because that is the only moment the two can be told apart.
@@ -173,19 +171,53 @@ is not the whole answer, and a purchase can be a small quest. One tier and
 no wear keep tools simple. Gear that changes costs gives the shop variety
 without new buttons.
 
-**The cart is an experiment.** It runs only on grass and bridge, so using it
-means cutting a continuous road. That is either the best of the game, the
-map changed into infrastructure, or hauling as a chore. The five summers are
-there partly to find out which.
+**The cart is an experiment.** It is fast only on grass, bridge and planks,
+crawls through underbrush and stops at mud, so using it well means making a
+road. That is either the best of the game, the map changed into
+infrastructure, or hauling as a chore. The five summers are there partly to
+find out which. It crawls rather than refusing underbrush so that the first
+summer with it can already reach a field and feel what a road would give,
+and trails are the road it makes by being used. Pushing it drains
+hydration, which gives the well a second reason.
 
 ## Between summers
 
 **The inner ring always comes back.** There is always a safe way to pay the
 upkeep, so missing it is a choice or a mistake, never a trap.
 
-**Sellables come back slowly.** A field worked hard gives less the next
-year, which drives the family outward to the next barrier. It never falls
-low enough to block play, because it is a nudge, not a wall.
+**The inner ring pays the upkeep, and little more.** Its feathers make the
+rent and its fruit the food, so a summer spent only there is survived and
+nothing else. Everything toward the family and the shop is further out.
+
+**Valuable finds do not come back.** Shells returning by a share made them
+an endless answer to wealth: the same field, worked every summer, a little
+less each time. A field that is gone once worked is what drives the family
+outward, and the next barrier is where the next field is. Ordinary things
+further out, fruit and feathers, come back by half, which keeps a worked
+field worth a visit without making it the answer.
+
+**The shop opens with the family.** Stock tied to the winter number handed
+out tools on a timetable. Tied to the family's level, it makes bringing
+money home the way the town opens, and spending in the shop and giving to
+the family pull against each other. The stock is fixed at the level the
+winter began with, so a purchase cannot close the shop it was made in, and
+what the new level unlocks is shown frosted, a goal for next summer.
+
+**No shop in the first winter.** On the winter screen a new player has
+upkeep and the family to understand, and nothing else. Opening the shop is
+the first summer's goal, which makes that summer a tutorial with a point.
+
+**The list is the player's.** A fresh player needed a little steering.
+Tasks written by the game, bring this many feathers, would say where to go
+and turn exploring into errands. The list is ticked by the player in winter
+from the shop, the upkeep and the family, and names amounts, never places.
+It is filled from the top because money is one pot. Selling building
+material does not tick it, so the list never teaches that selling sticks is
+how to earn.
+
+**The cart replaces the cache.** A cart parked at a field is a box in the
+field, and a box that can also be pushed home. Two things that nearly do
+one job is one too many to learn in five summers.
 
 **Barriers grow back.** Thicket creeps at the edges of cuts and felled
 copses return, so tools keep their use and a path with open ground on both
