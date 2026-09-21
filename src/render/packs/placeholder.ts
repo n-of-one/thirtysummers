@@ -1,9 +1,10 @@
-import { Graphics, Rectangle, type Renderer, type Texture } from "pixi.js";
+import { Container, Graphics, Rectangle, type Renderer, type Texture } from "pixi.js";
 import { mulberry32, type Rng } from "../../sim/rng.ts";
 import { RESOURCE_KINDS } from "../../sim/resources.ts";
 import { TERRAIN_ORDER } from "../../sim/terrain.ts";
 import { FACINGS } from "../../sim/types.ts";
 import type { Facing, ResourceKind, TerrainKind } from "../../sim/types.ts";
+import { DROPPED_ART_SHARE, DROPPED_SHADOW_ALPHA } from "./pack.ts";
 import type { AssetPack, AssetPackSource, Bounds, PropSprite } from "./pack.ts";
 
 /**
@@ -32,6 +33,7 @@ class PlaceholderPack implements AssetPack {
   private readonly made: Texture[] = [];
   private readonly terrains = new Map<TerrainKind, Texture[]>();
   private readonly resources = new Map<ResourceKind, Texture>();
+  private readonly droppedArt = new Map<ResourceKind, PropSprite>();
   private readonly walks = new Map<Facing, Texture[]>();
   readonly camp: PropSprite;
   readonly spring: PropSprite;
@@ -58,6 +60,7 @@ class PlaceholderPack implements AssetPack {
     }
     for (const kind of RESOURCE_KINDS) {
       this.resources.set(kind, this.bake((g) => drawResource(g, kind)));
+      this.droppedArt.set(kind, this.bakeDropped(kind));
     }
     this.camp = { texture: this.bake(drawCamp), anchorX: 0.5, anchorY: 0.5, bounds: WHOLE_TILE };
     this.spring = { texture: this.bake(drawSpring), anchorX: 0.5, anchorY: 0.5, bounds: WHOLE_TILE };
@@ -89,6 +92,47 @@ class PlaceholderPack implements AssetPack {
     return texture;
   }
 
+  /**
+   * A dropped one: the same drawing with {@link DROPPED_ART_SHARE} of the cell.
+   *
+   * The placeholder's art is vector rather than pixels, so it is redrawn three
+   * quarters the size into three quarters of the cell instead of being
+   * resampled the way a real pack's is. Either way the cell is a whole number
+   * of art pixels and the sprite is never scaled on its way to the screen.
+   */
+  private bakeDropped(kind: ResourceKind): PropSprite {
+    const cell = Math.round(S * DROPPED_ART_SHARE);
+    const g = new Graphics();
+    g.scale.set(DROPPED_ART_SHARE);
+    g.position.set((S - cell) / 2, 0);
+    drawResource(g, kind);
+
+    // Fitted to what the art actually draws, not to its cell: these cells are
+    // mostly empty, and a shadow sized to one is a puddle the item floats on.
+    const drawn = g.getLocalBounds();
+    const left = g.position.x + drawn.x * DROPPED_ART_SHARE;
+    const right = left + drawn.width * DROPPED_ART_SHARE;
+    const foot = g.position.y + (drawn.y + drawn.height) * DROPPED_ART_SHARE;
+    const shadow = new Graphics();
+    shadow
+      .ellipse((left + right) / 2, foot, (right - left) / 2 + 1, 2)
+      .fill({ color: 0x000000, alpha: DROPPED_SHADOW_ALPHA });
+
+    // The shadow first, so the item is drawn over it.
+    const group = new Container();
+    group.addChild(shadow, g);
+    const texture = this.renderer.generateTexture({
+      target: group,
+      frame: new Rectangle(0, 0, S, Math.ceil(foot) + 2),
+      resolution: 1,
+      antialias: false,
+      textureSourceOptions: { scaleMode: "nearest" },
+    });
+    group.destroy({ children: true });
+    this.made.push(texture);
+    return { texture, anchorX: 0.5, anchorY: 1, bounds: WHOLE_TILE };
+  }
+
   /** The placeholder draws each terrain whole, so it ignores the autotile mask. */
   ground(kind: TerrainKind, _mask: number, variant: number, _frame: number): Texture {
     const variants = this.terrains.get(kind)!;
@@ -104,6 +148,9 @@ class PlaceholderPack implements AssetPack {
   }
   resource(kind: ResourceKind): PropSprite {
     return { texture: this.resources.get(kind)!, anchorX: 0.5, anchorY: 0.5, bounds: WHOLE_TILE };
+  }
+  dropped(kind: ResourceKind): PropSprite {
+    return this.droppedArt.get(kind)!;
   }
   walk(facing: Facing): readonly Texture[] {
     return this.walks.get(facing)!;

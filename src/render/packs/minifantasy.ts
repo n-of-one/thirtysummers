@@ -2,6 +2,7 @@ import { ImageSource, Rectangle, Texture } from "pixi.js";
 import { RESOURCE_KINDS } from "../../sim/resources.ts";
 import type { Facing, ResourceKind, TerrainKind } from "../../sim/types.ts";
 import { autotileIndex, E, FILL, N, S, TILE_COUNT, W } from "./autotile.ts";
+import { DROPPED_ART_SHARE, DROPPED_SHADOW_ALPHA } from "./pack.ts";
 import type { AssetPack, AssetPackSource, Bounds, PropSprite } from "./pack.ts";
 import {
   BLOCK,
@@ -125,6 +126,85 @@ function contentBox(
   return x1 < 0 ? null : { x0, y0, x1, y1 };
 }
 
+/** A blank canvas of art pixels, and its context, ready to be written into. */
+function pixelCanvas(w: number, h: number): [HTMLCanvasElement, CanvasRenderingContext2D] {
+  const canvas = document.createElement("canvas");
+  canvas.width = w;
+  canvas.height = h;
+  return [canvas, canvas.getContext("2d", { willReadFrequently: true })!];
+}
+
+/**
+ * The same picture with three quarters of the pixels: 8x8 becomes 6x6.
+ *
+ * Nearest, chosen pixel by pixel, so no colour is invented and nothing is
+ * blended: an art pixel of the result is one art pixel of the original, and the
+ * result is then drawn at the same size as everything else. Every fourth row
+ * and column is simply not there, which is what makes the shape coarser.
+ */
+function fewerPixels(source: HTMLCanvasElement): HTMLCanvasElement {
+  const size = Math.round(T * DROPPED_ART_SHARE);
+  const from = source.getContext("2d", { willReadFrequently: true })!.getImageData(0, 0, T, T);
+  const [canvas, ctx] = pixelCanvas(size, size);
+  const out = ctx.createImageData(size, size);
+  for (let y = 0; y < size; y++) {
+    for (let x = 0; x < size; x++) {
+      const sx = Math.min(T - 1, Math.floor(((x + 0.5) * T) / size));
+      const sy = Math.min(T - 1, Math.floor(((y + 0.5) * T) / size));
+      const at = (sy * T + sx) * 4;
+      out.data.set(from.data.subarray(at, at + 4), (y * size + x) * 4);
+    }
+  }
+  ctx.putImageData(out, 0, 0);
+  return canvas;
+}
+
+/**
+ * The same art with a shadow under it: a flat dark ellipse, wide enough to
+ * show past the item on both sides and deep enough to show below it.
+ *
+ * It is what separates a dropped vine from a growing one at a glance -- fewer
+ * pixels alone is a difference you have to look for. Composited here rather
+ * than drawn as a second sprite so it can never be a pixel out of step with
+ * what it belongs to.
+ */
+function onShadow(art: HTMLCanvasElement): HTMLCanvasElement {
+  const w = T;
+  const h = art.height + 2;
+  const at = Math.round((w - art.width) / 2);
+  // Fitted to what the art actually draws, not to its cell: these cells are
+  // mostly empty, and a shadow sized to one is a puddle the item floats on.
+  const box = contentBox(
+    art.getContext("2d", { willReadFrequently: true })!,
+    0,
+    0,
+    art.width,
+    art.height,
+  ) ?? { x0: 0, y0: 0, x1: art.width - 1, y1: art.height - 1 };
+
+  const [canvas, ctx] = pixelCanvas(w, h);
+  const shadow = ctx.createImageData(w, h);
+  const alpha = Math.round(255 * DROPPED_SHADOW_ALPHA);
+  const cx = at + (box.x0 + box.x1 + 1) / 2;
+  const cy = box.y1 + 1.5;
+  // Half a pixel wider than the art each side, so it shows past it.
+  const rx = (box.x1 - box.x0 + 1) / 2 + 0.5;
+  const ry = 1.5;
+  for (let y = 0; y < h; y++) {
+    for (let x = 0; x < w; x++) {
+      const nx = (x + 0.5 - cx) / rx;
+      const ny = (y + 0.5 - cy) / ry;
+      if (nx * nx + ny * ny > 1) continue;
+      shadow.data.set([0, 0, 0, alpha], (y * w + x) * 4);
+    }
+  }
+  ctx.putImageData(shadow, 0, 0);
+  // The art over the shadow. Its own pixels are opaque or clear, never in
+  // between, so nothing blends with what is behind them.
+  ctx.drawImage(art, at, 0);
+  return canvas;
+}
+
 class MinifantasyPack implements AssetPack {
   readonly id = "minifantasy";
   readonly tileSize = T;
@@ -143,6 +223,7 @@ class MinifantasyPack implements AssetPack {
   private readonly bushes: PropSprite[];
   private readonly sapling: PropSprite;
   private readonly resources: Record<ResourceKind, PropSprite>;
+  private readonly droppedArt: Record<ResourceKind, PropSprite>;
   private readonly walks: Record<Facing, Texture[]>;
   readonly camp: PropSprite;
   readonly spring: PropSprite;
@@ -203,6 +284,12 @@ class MinifantasyPack implements AssetPack {
         const [sheet, tx, ty] = RESOURCE_CELL[kind];
         return [kind, this.prop24(sheet, tx, ty, 1, 1)];
       }),
+    ) as Record<ResourceKind, PropSprite>;
+    this.droppedArt = Object.fromEntries(
+      RESOURCE_KINDS.map((kind) => [
+        kind,
+        this.spriteFrom(onShadow(fewerPixels(this.resourceCanvas(kind)))),
+      ]),
     ) as Record<ResourceKind, PropSprite>;
     this.camp = this.prop24("farmProps", 15, 5, 2, 1);
     this.spring = this.prop24(SPRING_CELL[0], SPRING_CELL[1], SPRING_CELL[2], 1, 1);
@@ -273,15 +360,52 @@ class MinifantasyPack implements AssetPack {
       }
     });
     ctx.putImageData(image, 0, 0);
-    const box = contentBox(ctx, 0, 0, T, h);
-    const anchorPxX = box ? (box.x0 + box.x1 + 1) / 2 : T / 2;
+    return this.spriteFrom(canvas);
+  }
+
+  /**
+   * A prop from a canvas of art pixels, anchored at the bottom centre of what
+   * it actually draws, as a cut prop is.
+   */
+  private spriteFrom(canvas: HTMLCanvasElement): PropSprite {
+    const { width: w, height: h } = canvas;
+    const ctx = canvas.getContext("2d", { willReadFrequently: true })!;
+    const box = contentBox(ctx, 0, 0, w, h);
+    const anchorPxX = box ? (box.x0 + box.x1 + 1) / 2 : w / 2;
     const anchorPxY = box ? box.y1 + 1 : h;
     return {
       texture: this.fromCanvas(canvas),
-      anchorX: anchorPxX / T,
+      anchorX: anchorPxX / w,
       anchorY: anchorPxY / h,
-      bounds: boundsFrom(box, anchorPxX, anchorPxY, T, h),
+      bounds: boundsFrom(box, anchorPxX, anchorPxY, w, h),
     };
+  }
+
+  /**
+   * A kind's node art on a canvas of its own, to be transformed from. Six are
+   * cut from the sheets; the feather is drawn here, so it is painted the same
+   * way {@link drawn} paints it.
+   */
+  private resourceCanvas(kind: ResourceKind): HTMLCanvasElement {
+    const canvas = document.createElement("canvas");
+    canvas.width = T;
+    canvas.height = T;
+    const ctx = canvas.getContext("2d", { willReadFrequently: true })!;
+    if (kind === "feather") {
+      const image = ctx.createImageData(T, T);
+      FEATHER_PIXELS.forEach((row, y) => {
+        for (let x = 0; x < T; x++) {
+          const rgb = FEATHER_COLORS[row[x] ?? "."];
+          if (!rgb) continue;
+          image.data.set([...rgb, 255], (y * T + x) * 4);
+        }
+      });
+      ctx.putImageData(image, 0, 0);
+      return canvas;
+    }
+    const [sheet, tx, ty] = RESOURCE_CELL[kind];
+    ctx.drawImage(this.sheets[sheet].pixels.canvas, tx * T, ty * T, T, T, 0, 0, T, T);
+    return canvas;
   }
 
   /** A texture backed by its own small canvas, for tiles built rather than cut. */
@@ -486,6 +610,10 @@ class MinifantasyPack implements AssetPack {
   /** Every terrain is drawn in its own colours; nothing needs tinting. */
   groundTint(_kind: TerrainKind): number {
     return 0xffffff;
+  }
+
+  dropped(kind: ResourceKind): PropSprite {
+    return this.droppedArt[kind];
   }
 
   resource(kind: ResourceKind): PropSprite {

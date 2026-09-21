@@ -310,6 +310,63 @@ kbd {
 .build-cost { font-variant-numeric: tabular-nums; }
 .build-note { margin: 10px 0 0; color: var(--ink-dim); font-size: 12px; }
 
+/* --- the transfer panel --------------------------------------------------- */
+
+/* Where the build menu goes, and for the same reason: above the HUD, low
+   enough to leave the player visible, and no dimming, because the clock is
+   still running while the pack is being sorted out. */
+#transfer {
+  position: fixed;
+  inset: auto 0 96px 0;
+  display: grid;
+  place-items: center;
+  pointer-events: auto;
+}
+#transfer[hidden] { display: none; }
+
+.transfer-card {
+  background: #15180f;
+  border: 1px solid var(--edge);
+  border-radius: 10px;
+  padding: 16px 20px;
+  min-width: 380px;
+}
+.transfer-card h2 { margin: 0 0 10px; font-size: 15px; letter-spacing: 0.05em; }
+.transfer-card ul { margin: 0; padding: 0; list-style: none; }
+/* Pack, kind, store: the two sides with the name between them, so a row reads
+   left to right as the move the arrow keys make. */
+.transfer-head,
+.transfer-card li {
+  display: grid;
+  grid-template-columns: 3em 1fr 3em;
+  gap: 10px;
+  align-items: baseline;
+  padding: 5px 8px;
+}
+.transfer-head { color: var(--ink-dim); font-size: 12px; letter-spacing: 0.05em; }
+.transfer-head span:first-child,
+.transfer-card li .transfer-pack { text-align: right; }
+.transfer-card li {
+  border-radius: var(--radius);
+  cursor: pointer;
+  font-variant-numeric: tabular-nums;
+}
+.transfer-card li:hover { background: #242a18; }
+.transfer-card li.is-cursor { background: #2f3a1d; }
+/* The line shown when there is nothing either side: a sentence, not a row, so
+   it is taken out of the three-column grid the kinds are laid out in. */
+.transfer-card li.is-empty {
+  display: block;
+  text-align: center;
+  color: var(--ink-dim);
+  cursor: default;
+}
+.transfer-card li.is-empty:hover { background: none; }
+.transfer-note { margin: 10px 0 0; color: var(--ink-dim); font-size: 12px; }
+.transfer-note.is-refused { color: var(--warn); }
+/* The floating stack while the panel is over it. */
+#player-anchor.is-covered { visibility: hidden; }
+
 button {
   font: inherit;
   color: var(--ink);

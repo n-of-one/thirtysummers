@@ -63,6 +63,7 @@ describe("hudModel", () => {
       hydrationWarn: false,
       carried: 0,
       contents: "empty",
+      dropSelection: "",
       capacity: C.BACKPACK_CAPACITY,
       gold: 0,
       storedFruit: 0,
@@ -191,32 +192,56 @@ describe("the action prompt", () => {
     expect(hudModel(w).prompt?.progress).toBe(0.5);
   });
 
-  it("says the pack is full instead of offering a pick it cannot make", () => {
+  it("says the pack is full, and with it the keys that empty it, and the count", () => {
     const w = world();
     w.nodes.push({ id: 1, kind: "ore", x: 6.5, y: 5.5, z: 0, harvested: false });
     w.inventory.add("fruit", C.BACKPACK_CAPACITY);
-    expect(hudModel(w).prompt).toEqual({ text: "Backpack full", progress: 0, blocked: true });
+    expect(hudModel(w).prompt).toEqual({
+      text: `Backpack full - X: drop ${C.BACKPACK_CAPACITY} fruit. C: switch`,
+      progress: 0,
+      blocked: true,
+    });
   });
 
-  it("names the load waiting to be banked at camp", () => {
+  it("names the load waiting at camp, and the hold that opens what camp stores", () => {
     const w = world();
     w.player.x = 1.5;
     w.player.y = 1.5;
     w.inventory.add("ore", 6);
     expect(hudModel(w).prompt).toEqual({
-      text: "Press E to sell 6",
+      text: "Press E to sell 6 at camp, hold to access the camp items",
       progress: 0,
       blocked: false,
     });
 
     w.inventory.add("fruit", 2);
-    expect(hudModel(w).prompt?.text).toBe("Press E to sell 6 and store 2 fruit");
+    expect(hudModel(w).prompt?.text).toBe(
+      "Press E to sell 6 and store 2 at camp, hold to access the camp items",
+    );
 
     w.inventory.sell();
-    expect(hudModel(w).prompt?.text).toBe("Press E to store 2 fruit");
+    expect(hudModel(w).prompt?.text).toBe(
+      "Press E to store 2 at camp, hold to access the camp items",
+    );
 
+    // Nothing to store is still somewhere to take things out of.
     w.inventory.remove("fruit", 2);
-    expect(hudModel(w).prompt).toEqual({ text: "Nothing to bank", progress: 0, blocked: true });
+    expect(hudModel(w).prompt).toEqual({
+      text: "Nothing to store. Hold E to access the camp items",
+      progress: 0,
+      blocked: true,
+    });
+  });
+
+  it("names the selected kind beside the pack whether or not it is full", () => {
+    const w = world();
+    expect(hudModel(w).dropSelection).toBe("");
+    w.inventory.add("vine", 3);
+    expect(hudModel(w).dropSelection).toBe("X: drop 3 vine · C: switch");
+    // A log takes two slots, so two logs outweigh three vines.
+    w.inventory.add("log", 2);
+    w.inventory.remove("vine", 3);
+    expect(hudModel(w).dropSelection).toBe("X: drop 2 log · C: switch");
   });
 });
 
@@ -345,11 +370,21 @@ describe("backpackText", () => {
 describe("toastFor", () => {
   it("puts every kind of event into words", () => {
     expect(toastFor({ type: "harvested", kind: "ore", at: 0 })).toBe("+1 ore");
-    expect(toastFor({ type: "deposited", sold: 5, fruit: 0, gold: 5, at: 0 })).toBe("Banked 5 gold");
-    expect(toastFor({ type: "deposited", sold: 5, fruit: 2, gold: 5, at: 0 })).toBe(
-      "Banked 5 gold and 2 fruit",
+    expect(toastFor({ type: "pickedUp", kind: "vine", at: 0 })).toBe("+1 vine");
+    expect(toastFor({ type: "deposited", sold: 5, stored: 0, gold: 5, at: 0 })).toBe(
+      "Sold 5 for 5 gold",
     );
-    expect(toastFor({ type: "deposited", sold: 0, fruit: 2, gold: 0, at: 0 })).toBe("Banked 2 fruit");
+    expect(toastFor({ type: "deposited", sold: 5, stored: 2, gold: 5, at: 0 })).toBe(
+      "Sold 5 for 5 gold, stored 2 at camp",
+    );
+    expect(toastFor({ type: "deposited", sold: 0, stored: 2, gold: 0, at: 0 })).toBe(
+      "Stored 2 at camp",
+    );
+    expect(toastFor({ type: "putAway", kind: "vine", n: 3, at: 0 })).toBe("Stored 3 vine");
+    expect(toastFor({ type: "tookOut", kind: "fruit", n: 2, at: 0 })).toBe("Took 2 fruit");
+    expect(toastFor({ type: "dropped", kind: "vine", n: 6, at: 0 })).toBe("Dropped 6 vine");
+    // The panel opening in front of the player is its own announcement.
+    expect(toastFor({ type: "transferOpened", where: "camp", x: 1, y: 1, at: 0 })).toBeNull();
     expect(toastFor({ type: "drank", at: 0 })).toBe("Drank your fill");
     expect(toastFor({ type: "blocked", reason: "backpackFull", at: 0 })).toBe("Backpack full");
     expect(toastFor({ type: "blocked", reason: "noAxe", at: 0 })).toBe(
@@ -361,7 +396,7 @@ describe("toastFor", () => {
     expect(toastFor({ type: "stashed", x: 0, y: 0, items: 4, at: 0 })).toBe("Put 4 in the cache");
     expect(toastFor({ type: "fetched", x: 0, y: 0, items: 3, at: 0 })).toBe("Took 3 from the cache");
     expect(toastFor({ type: "granted", what: "axe", at: 0 })).toBe("You have an axe");
-    expect(toastFor({ type: "summerEnded", away: false, sold: 0, fruit: 0, gold: 0, at: 0 })).toBe(
+    expect(toastFor({ type: "summerEnded", away: false, sold: 0, stored: 0, gold: 0, at: 0 })).toBe(
       "Summer over",
     );
   });

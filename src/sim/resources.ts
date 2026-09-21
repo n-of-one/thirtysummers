@@ -8,11 +8,14 @@ import type { ResourceKind, TerrainKind } from "./types.ts";
 export type Returns = "yearly" | "slowly" | "never";
 
 /**
- * What banking at camp does with a kind. `gold` sells it there and then,
- * `store` puts it in the store, and `keep` leaves it in the pack, because it
- * is building material and banking it would be losing it.
+ * What banking at camp does with a kind. `gold` sells it there and then;
+ * `store` puts it in the store, where winter's keep-or-sell question finds it.
+ *
+ * There used to be a third answer, `keep`, which left building material in the
+ * pack. It made a pack full of vines a dead end for the whole run, so camp now
+ * takes everything.
  */
-export type AtCamp = "gold" | "store" | "keep";
+export type AtCamp = "gold" | "store";
 
 export interface ResourceDef {
   kind: ResourceKind;
@@ -30,6 +33,11 @@ export interface ResourceDef {
   price: number;
   returns: Returns;
   atCamp: AtCamp;
+  /**
+   * Something a build is paid in, rather than only ever money. Winter asks
+   * whether to keep it or sell it; nothing else does.
+   */
+  material: boolean;
 }
 
 const def = (
@@ -40,7 +48,8 @@ const def = (
   price: number,
   returns: Returns,
   atCamp: AtCamp,
-): ResourceDef => ({ kind, glyph, ground, slots, price, returns, atCamp });
+  material = false,
+): ResourceDef => ({ kind, glyph, ground, slots, price, returns, atCamp, material });
 
 /**
  * Every kind that is gathered, in the order the HUD lists them: the near ring
@@ -55,10 +64,10 @@ const def = (
 export const RESOURCES: Record<ResourceKind, ResourceDef> = {
   fruit: def("fruit", "f", "grass", 1, 1, "yearly", "store"),
   feather: def("feather", "p", "grass", 1, 1, "yearly", "gold"),
-  stick: def("stick", "s", "grass", 1, 1, "yearly", "keep"),
-  vine: def("vine", "y", "mud", 1, 1, "yearly", "keep"),
+  stick: def("stick", "s", "grass", 1, 1, "yearly", "store", true),
+  vine: def("vine", "y", "mud", 1, 1, "yearly", "store", true),
   ore: def("ore", "v", "grass", 1, 2, "slowly", "gold"),
-  log: def("log", "l", "grass", 2, 3, "never", "keep"),
+  log: def("log", "l", "grass", 2, 3, "never", "store", true),
   shell: def("shell", "h", "grass", 1, 4, "slowly", "gold"),
 };
 

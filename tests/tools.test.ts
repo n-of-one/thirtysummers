@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import * as C from "../src/config.ts";
 import { NO_INPUT, type InputState } from "../src/input/keyboard.ts";
 import { tileAhead } from "../src/sim/interaction.ts";
+import { Inventory } from "../src/sim/inventory.ts";
 import { headingFor } from "../src/sim/player.ts";
 import { parseMap } from "../src/sim/mapfile.ts";
 import { RESOURCES } from "../src/sim/resources.ts";
@@ -325,6 +326,30 @@ describe("the next summer", () => {
     expect(world.map.get(9, 8)).toBe(C.CUT_LEAVES);
     expect(world.map.get(4, 4)).toBe("stream");
     expect(world.inventory.gold).toBe(RESOURCES.ore.price);
+  });
+
+  it("keeps everything in the store, everything but fruit in a cache, and nothing on the ground", () => {
+    const world = arena();
+    world.store.add("fruit", 3);
+    world.store.add("vine", 2);
+    const cache = { x: 12, y: 12, contents: new Inventory(Infinity) };
+    cache.contents.add("fruit", 4);
+    cache.contents.add("log", 1);
+    world.caches.push(cache);
+    world.inventory.add("stick", 2);
+    world.dropSelected();
+    expect(world.dropped).toHaveLength(2);
+
+    world.nextSummer();
+
+    // Camp keeps the lot, and is the only place a fruit becomes winter food.
+    expect(world.store.count("fruit")).toBe(3);
+    expect(world.store.count("vine")).toBe(2);
+    // A box is a box, but a fruit is a fruit anywhere.
+    expect(cache.contents.count("fruit")).toBe(0);
+    expect(cache.contents.count("log")).toBe(1);
+    // A heap in a field is scattered by a year of rain and animals.
+    expect(world.dropped).toHaveLength(0);
   });
 
   it("regrows every node, refills hydration and restarts the clock", () => {

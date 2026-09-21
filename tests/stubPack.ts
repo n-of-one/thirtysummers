@@ -45,6 +45,7 @@ export class StubPack implements AssetPack {
   readonly groundTextures = new Map<TerrainKind, Texture>();
   private readonly props = new Map<TerrainKind, PropSprite>();
   private readonly resources = new Map<ResourceKind, PropSprite>();
+  private readonly droppedArt = new Map<ResourceKind, PropSprite>();
   private readonly walks = new Map<Facing, Texture[]>();
   readonly camp = stubProp();
   readonly spring = stubProp();
@@ -65,7 +66,12 @@ export class StubPack implements AssetPack {
     this.props.set("underbrush", stubProp(8, 16, { left: -0.5, top: -2, right: 0.5, bottom: 0 }));
     // A thicket is undergrowth with no gaps in it, so it has growth on it too.
     this.props.set("thicket", stubProp(8, 16, { left: -0.5, top: -2, right: 0.5, bottom: 0 }));
-    for (const kind of RESOURCE_KINDS) this.resources.set(kind, stubProp());
+    for (const kind of RESOURCE_KINDS) {
+      this.resources.set(kind, stubProp());
+      // Half the cell and a third of the height, as the real packs' small
+      // drawing is: a placement test can tell one from the other.
+      this.droppedArt.set(kind, stubProp(4, 3));
+    }
     for (const facing of FACINGS) this.walks.set(facing, [stubTexture(32, 32), stubTexture(32, 32)]);
   }
 
@@ -85,6 +91,10 @@ export class StubPack implements AssetPack {
 
   resource(kind: ResourceKind): PropSprite {
     return this.resources.get(kind)!;
+  }
+
+  dropped(kind: ResourceKind): PropSprite {
+    return this.droppedArt.get(kind)!;
   }
 
   walk(facing: Facing): readonly Texture[] {

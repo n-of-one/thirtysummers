@@ -49,6 +49,15 @@ export interface Spring extends Vec2 {
 }
 
 /**
+ * One item lying on the ground, in integer tile coordinates. One to a tile,
+ * so a heap of six is six tiles, and the scatter is honest about how much was
+ * carried. Nothing on the ground survives a winter.
+ */
+export interface Dropped extends Vec2 {
+  kind: ResourceKind;
+}
+
+/**
  * The character art is drawn in a three-quarter view, so there are no straight
  * N/S/E/W poses -- every sprite is angled. Facings are therefore diagonal.
  * Only the two southward poses show the face, which is why walking straight
@@ -80,7 +89,9 @@ export type BlockedReason =
   /** A bridge on dry land, or a well or a cache on anything but open grass. */
   | "wrongGround"
   /** The tile ahead already has something standing on it. */
-  | "occupied";
+  | "occupied"
+  /** A drop with no free ground anywhere near to spill onto. */
+  | "noRoomToDrop";
 
 /**
  * Something the simulation did this tick, worth telling the player about.
@@ -94,10 +105,10 @@ export type WorldEventPayload =
   | { type: "harvested"; kind: ResourceKind }
   | { type: "drank" }
   /**
-   * Banked at camp: `sold` items sold for `gold`, and `fruit` into the store.
-   * Building material stays in the pack.
+   * Banked at camp: `sold` items sold for `gold`, and `stored` items -- fruit
+   * and building material alike -- into the store. Camp takes everything.
    */
-  | { type: "deposited"; sold: number; fruit: number; gold: number }
+  | { type: "deposited"; sold: number; stored: number; gold: number }
   | { type: "blocked"; reason: BlockedReason }
   /** A thicket tile cut through, and a stream tile bridged. Both change the map. */
   | { type: "cut"; x: number; y: number }
@@ -112,12 +123,21 @@ export type WorldEventPayload =
   | { type: "stashed"; x: number; y: number; items: number }
   /** `items` taken out of the cache at (x, y), as many as fit. */
   | { type: "fetched"; x: number; y: number; items: number }
+  /** The transfer panel was opened, at camp or at the cache on (x, y). */
+  | { type: "transferOpened"; where: "camp" | "cache"; x: number; y: number }
+  /** `n` of a kind moved out of the pack, through the panel, and back in. */
+  | { type: "putAway"; kind: ResourceKind; n: number }
+  | { type: "tookOut"; kind: ResourceKind; n: number }
+  /** `n` of a kind dropped on the ground round the player, one to a tile. */
+  | { type: "dropped"; kind: ResourceKind; n: number }
+  /** One dropped item picked back up. */
+  | { type: "pickedUp"; kind: ResourceKind }
   /**
-   * The summer ended, by the clock or from camp. `sold` and `fruit` are what
+   * The summer ended, by the clock or from camp. `sold` and `stored` are what
    * was still in the pack and was banked there and then, sold for `gold`;
    * `away` is whether it ended out of reach of camp.
    */
-  | { type: "summerEnded"; away: boolean; sold: number; fruit: number; gold: number }
+  | { type: "summerEnded"; away: boolean; sold: number; stored: number; gold: number }
   /** A new summer began on the same map. Everything the player changed is kept. */
   | { type: "summerStarted"; year: number }
   /** The year table handed over a tool or a recipe at the start of a summer. */

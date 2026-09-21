@@ -28,6 +28,12 @@ export interface HudModel {
   carried: number;
   /** What is in the pack, spelled out: "fruit 3, ore 5". */
   contents: string;
+  /**
+   * The selected kind and the keys that act on it: "X: drop 6 vine · C:
+   * switch". Empty with an empty pack. Always shown, not only when the pack is
+   * full, so the full-pack prompt is a reminder of keys that already exist.
+   */
+  dropSelection: string;
   capacity: number;
   gold: number;
   /** Fruit in the store at camp. */
@@ -91,7 +97,8 @@ export function backpackText(inventory: Inventory): string {
 
 const BLOCKED_TEXT: Record<BlockedReason, string> = {
   backpackFull: "Backpack full",
-  nothingToBank: "Nothing to bank",
+  noRoomToDrop: "No room to put anything down here",
+  nothingToBank: "Nothing to store",
   // A fallback: what is missing is said with the name of what is being built,
   // by `refusedText`, wherever the build is known.
   noMaterials: "Not enough in the pack",
@@ -154,39 +161,57 @@ export function costText(cost: Amounts): string {
     : (parts[0] ?? "nothing");
 }
 
-/** A load in words, naming only what there is of it: "3 ore and 2 fruit". */
-function loadText(parts: readonly (readonly [number, string])[]): string {
-  return parts
-    .filter(([n]) => n > 0)
-    .map(([n, name]) => `${n} ${name}`)
-    .join(" and ");
-}
-
-/** What the interact key would do, in words. */
-function actionPrompt(action: Action, progress: number): Prompt {
+/**
+ * What the interact key would do, in words.
+ *
+ * `full` is what a full pack is told: the drop keys and what they would throw
+ * away, which is the one thing that gets a player out of it. Every refusal for
+ * want of room says the same thing, so the reminder is never somewhere else.
+ *
+ * The three transfers say both halves of the key: a press does the obvious
+ * thing, and holding opens the panel. The progress is the hold's, so the
+ * prompt fills as the panel comes.
+ */
+function actionPrompt(action: Action, progress: number, full: string): Prompt {
   switch (action.type) {
     case "deposit":
       return action.blocked
-        ? { text: BLOCKED_TEXT.nothingToBank, progress: 0, blocked: true }
+        ? { text: `${BLOCKED_TEXT.nothingToBank}. ${OPEN_CAMP}`, progress, blocked: true }
         : {
             text: `Press E to ${[
               action.sold > 0 ? `sell ${action.sold}` : "",
-              action.fruit > 0 ? `store ${action.fruit} ${RESOURCE_NAME.fruit}` : "",
+              action.stored > 0 ? `store ${action.stored}` : "",
             ]
               .filter(Boolean)
-              .join(" and ")}`,
-            progress: 0,
+              .join(" and ")} at camp, ${HOLD_FOR_CAMP}`,
+            progress,
             blocked: false,
           };
     case "stash":
-      return { text: `Press E to put ${action.items} in the cache`, progress: 0, blocked: false };
+      return {
+        text: `Press E to put ${action.items} in the cache, ${HOLD_TO_OPEN}`,
+        progress,
+        blocked: false,
+      };
     case "fetch":
       return action.blocked
-        ? { text: BLOCKED_TEXT.backpackFull, progress: 0, blocked: true }
-        : { text: `Press E to take from the cache (${action.items})`, progress: 0, blocked: false };
+        ? { text: full, progress, blocked: true }
+        : {
+            text: `Press E to take from the cache (${action.items}), ${HOLD_TO_OPEN}`,
+            progress,
+            blocked: false,
+          };
+    case "pickUp":
+      return action.blocked
+        ? { text: full, progress: 0, blocked: true }
+        : {
+            text: `Press E to pick up ${RESOURCE_NAME[action.item.kind]}`,
+            progress: 0,
+            blocked: false,
+          };
     case "fell":
       return action.blocked
-        ? { text: BLOCKED_TEXT[action.blocked], progress: 0, blocked: true }
+        ? { text: action.blocked === "backpackFull" ? full : BLOCKED_TEXT[action.blocked], progress: 0, blocked: true }
         : { text: "Hold E to fell the sapling", progress, blocked: false };
     case "dig":
       return action.blocked
@@ -198,7 +223,7 @@ function actionPrompt(action: Action, progress: number): Prompt {
         : { text: buildPrompt("cache"), progress, blocked: false };
     case "harvest":
       return action.blocked
-        ? { text: BLOCKED_TEXT.backpackFull, progress: 0, blocked: true }
+        ? { text: full, progress: 0, blocked: true }
         : {
             text: `Hold E to gather ${RESOURCE_NAME[action.node.kind]}`,
             progress,
@@ -221,30 +246,87 @@ function buildPrompt(build: Build): string {
 }
 
 /**
+ * The second half of every transfer prompt: the press, then the hold.
+ *
+ * What camp keeps is called "camp", not "the store": `store` is already the
+ * verb for putting something there, and a shop is coming in winter, so a noun
+ * that is neither is worth the small awkwardness.
+ */
+const HOLD_TO_OPEN = "hold to open it";
+const HOLD_FOR_CAMP = "hold to access the camp items";
+const OPEN_CAMP = "Hold E to access the camp items";
+
+/**
+ * What a full pack is told, naming the kind the drop key would throw away and
+ * how much of it.
+ *
+ * The count is the whole safeguard against throwing six winter meals on the
+ * grass, and it is enough, because they can be picked back up. Refusing the
+ * drop instead would be unthematic in a game about carrying things.
+ */
+export function fullPackText(kind: ResourceKind | null, n: number): string {
+  if (!kind) return BLOCKED_TEXT.backpackFull;
+  const drop = C.DROP_KEY.toUpperCase();
+  const switchTo = C.DROP_SWITCH_KEY.toUpperCase();
+  return `${BLOCKED_TEXT.backpackFull} - ${drop}: drop ${n} ${RESOURCE_NAME[kind]}. ${switchTo}: switch`;
+}
+
+/** The same line as a standing readout, for the pack pill. */
+export function dropSelectionText(kind: ResourceKind | null, n: number): string {
+  if (!kind) return "";
+  const drop = C.DROP_KEY.toUpperCase();
+  const switchTo = C.DROP_SWITCH_KEY.toUpperCase();
+  return `${drop}: drop ${n} ${RESOURCE_NAME[kind]} · ${switchTo}: switch`;
+}
+
+/**
  * The line under the player: what the interact key would do here, or, with
  * nothing in reach and nothing chosen to build, the one hint about building.
  */
 function promptFor(world: World): Prompt | null {
   const action = world.availableAction();
-  if (action) return actionPrompt(action, world.harvestProgress);
+  const kind = world.dropKind;
+  if (action) {
+    return actionPrompt(
+      action,
+      world.harvestProgress,
+      fullPackText(kind, kind ? world.inventory.count(kind) : 0),
+    );
+  }
   const hint = world.buildHint();
   if (!hint) return null;
   const option = world.buildOptions().find((o) => o.build === hint);
   return { text: buildHintText(hint, option?.affordable ?? false), progress: 0, blocked: false };
 }
 
-/** One line of feedback for something that just happened. */
-export function toastFor(event: WorldEvent): string {
+/**
+ * One line of feedback for something that just happened, or null for something
+ * the player can already see -- the transfer panel opening in front of them is
+ * its own announcement.
+ */
+export function toastFor(event: WorldEvent): string | null {
   switch (event.type) {
     case "harvested":
       return `+1 ${RESOURCE_NAME[event.kind]}`;
+    case "pickedUp":
+      return `+1 ${RESOURCE_NAME[event.kind]}`;
     case "drank":
       return "Drank your fill";
-    case "deposited":
-      return `Banked ${loadText([
-        [event.sold > 0 ? event.gold : 0, "gold"],
-        [event.fruit, RESOURCE_NAME.fruit],
-      ])}`;
+    case "deposited": {
+      const parts = [
+        event.sold > 0 ? `sold ${event.sold} for ${event.gold} gold` : "",
+        event.stored > 0 ? `stored ${event.stored} at camp` : "",
+      ].filter(Boolean);
+      return capitalise(parts.join(", "));
+    }
+    case "putAway":
+      return `Stored ${event.n} ${RESOURCE_NAME[event.kind]}`;
+    case "tookOut":
+      return `Took ${event.n} ${RESOURCE_NAME[event.kind]}`;
+    case "dropped":
+      return `Dropped ${event.n} ${RESOURCE_NAME[event.kind]}`;
+    case "transferOpened":
+      return null;
     case "felled":
       return `Felled a sapling, +1 ${RESOURCE_NAME.log}`;
     case "dug":
@@ -275,7 +357,9 @@ export function hudModel(world: World, viewWidth: number = C.VIEW_W): HudModel {
   const { stats, inventory } = world;
   const homeward = world.remainingSec < C.HOMEWARD_SEC;
   const atCamp = world.atCamp;
+  const dropKind = world.dropKind;
   return {
+    dropSelection: dropSelectionText(dropKind, dropKind ? inventory.count(dropKind) : 0),
     hydration: stats.hydration,
     // The fog's own threshold, so the bar turns at the moment the view starts
     // to close rather than at a number picked to look about right.
@@ -475,6 +559,7 @@ export class Hud {
   private readonly year: HTMLElement;
   private readonly backpack: HTMLElement;
   private readonly backpackContents: HTMLElement;
+  private readonly dropSelection: HTMLElement;
   private readonly gold: HTMLElement;
   private readonly storedFruit: HTMLElement;
   private readonly tools: HTMLElement;
@@ -530,6 +615,7 @@ export class Hud {
     this.year = need(root, "#year-count");
     this.backpack = need(root, "#backpack-count");
     this.backpackContents = need(root, "#backpack-contents");
+    this.dropSelection = need(root, "#drop-selection");
     this.gold = need(root, "#gold-count");
     this.storedFruit = need(root, "#store-fruit");
     this.tools = need(root, "#tools");
@@ -587,6 +673,8 @@ export class Hud {
 
     setText(this.backpack, String(model.carried));
     setText(this.backpackContents, model.contents);
+    this.dropSelection.hidden = model.dropSelection === "";
+    setText(this.dropSelection, model.dropSelection);
     setText(this.gold, String(model.gold));
     setText(this.storedFruit, String(model.storedFruit));
     setText(this.tools, model.tools);
@@ -611,7 +699,10 @@ export class Hud {
       this.prompt.style.setProperty("--progress", `${(model.prompt.progress * 100).toFixed(0)}%`);
     }
 
-    for (let i = this.seenEvents; i < events.length; i++) this.toast(toastFor(events[i]!));
+    for (let i = this.seenEvents; i < events.length; i++) {
+      const text = toastFor(events[i]!);
+      if (text !== null) this.toast(text);
+    }
     this.seenEvents = events.length;
 
     // The notices and the button change the size of the stack as much as the
@@ -734,6 +825,8 @@ export class Hud {
       ["Ore mined", String(summer.harvested.ore), false],
       ["Shells found", String(summer.harvested.shell), false],
       ["Sold at the end", String(summer.soldAtEnd), false],
+      ["Stored at the end", String(summer.storedAtEnd), false],
+      ["Dropped on the ground", String(summer.dropped), false],
       ["Drinks", String(summer.drinks), false],
       ["Paths cut", String(summer.tilesCut), false],
       ["Bridge tiles laid", String(summer.bridgesBuilt), false],

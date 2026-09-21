@@ -114,6 +114,22 @@ describe("placementsIn", () => {
     expect(out[0]!.art).toBe(pack.spring);
   });
 
+  it("lays a dropped item at its tile's centre, in its own art at the one scale", () => {
+    const map = arena(64, "grass");
+    const pack = new StubPack();
+    const w = windowAt();
+    const out = collect(map, pack, w, NOWHERE, NO_NODES, [], [], [
+      { kind: "vine", x: 32, y: 22 },
+      { kind: "vine", x: w.originX + w.cols + 3, y: 22 },
+    ]);
+    expect(out).toHaveLength(1);
+    expect(out[0]).toMatchObject({ worldX: 32.5, worldY: 22.5, jitter: 0, occludes: false });
+    // Its own art, built as pixels, never the node's art scaled down on its
+    // way to the screen: one art pixel is one size everywhere in the world.
+    expect(out[0]!.art).toBe(pack.dropped("vine"));
+    expect(out[0]!.art).not.toBe(pack.resource("vine"));
+  });
+
   it("leaves out anything outside the window", () => {
     const map = arena(64, "grass");
     const w = windowAt();

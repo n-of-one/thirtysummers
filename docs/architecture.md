@@ -22,6 +22,19 @@ in [development.md](development.md).
 - **`src/config.ts` holds every tunable number**, each marked `[DOC]` (from
   `docs/design/` or `docs/current/five-summers.md`) or `[GUESS]` (tune
   freely). Numbers do not belong in logic.
+- **One art pixel is one size, everywhere in the world, and always on the art
+  grid.** Every sprite the world is made of -- ground, props, the player,
+  anything dropped or built -- is drawn at `TILE / pack.tileSize` screen pixels
+  per art pixel, and snapped so its pixels land on that grid. So: never scale a
+  sprite by a fraction, never scale one axis differently from the other, never
+  rotate by anything but a quarter turn, and never place one on half a pixel.
+  Something that needs to look smaller is **drawn** smaller -- fewer art pixels
+  at the same size -- or resampled to a whole number of art pixels first; it is
+  never shrunk on the way to the screen. Half-scale art, 0.75 scale, squashing
+  to read as "flat": all of it is out, however tidy the arithmetic looks, and it
+  does not become acceptable because one sprite is small or far from the eye.
+  The HUD, the prompts and the menus are not world art and are exempt: they are
+  the HTML overlay, and they scale with the view.
 - **Tile rendering is bound to view size, not map size.** A sprite pool
   covers the view plus a margin, repositioned and re-textured as the camera
   moves.

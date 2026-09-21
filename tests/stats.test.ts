@@ -130,7 +130,7 @@ describe("World — the end of a summer", () => {
     expect(world.summerOver).toBe(true);
   });
 
-  it("banks the ore and fruit carried when the clock stops, and flags ending away from camp", () => {
+  it("banks the whole pack when the clock stops, and flags ending away from camp", () => {
     const world = at(worldOn(), 8.5);
     world.inventory.add("ore", 3);
     world.inventory.add("fruit", 1);
@@ -143,14 +143,15 @@ describe("World — the end of a summer", () => {
     expect(world.inventory.count("ore")).toBe(0);
     expect(world.inventory.count("fruit")).toBe(0);
     expect(world.store.count("fruit")).toBe(1);
-    // Sticks stay: winter cannot sell them yet, and a bridge uses them.
-    expect(world.inventory.count("stick")).toBe(1);
+    // The stick goes into the store with the fruit: camp takes everything.
+    expect(world.inventory.count("stick")).toBe(0);
+    expect(world.store.count("stick")).toBe(1);
     expect(world.awayAtEnd).toBe(true);
     expect(world.events[world.events.length - 1]).toEqual({
       type: "summerEnded",
       away: true,
       sold: 3,
-      fruit: 1,
+      stored: 2,
       gold: 3 * RESOURCES.ore.price,
       at: C.SUMMER_LENGTH_SEC,
     });

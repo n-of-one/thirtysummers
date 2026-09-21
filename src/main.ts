@@ -2,7 +2,7 @@ import "./ui/hud.css";
 import * as C from "./config.ts";
 import { DebugOverlay, formatReadout } from "./debug/overlay.ts";
 import { FrameClock } from "./frameClock.ts";
-import { isTypingTarget, Keyboard } from "./input/keyboard.ts";
+import { isTypingTarget, Keyboard, NO_INPUT } from "./input/keyboard.ts";
 import { Pause } from "./input/pause.ts";
 import { createApp, setResolution } from "./render/app.ts";
 import { loadAssetPack } from "./render/atlas.ts";
@@ -15,6 +15,7 @@ import { summarise } from "./sim/summary.ts";
 import { World } from "./sim/world.ts";
 import { BuildMenu } from "./ui/buildMenu.ts";
 import { Hud, hudModel } from "./ui/hud.ts";
+import { TransferPanel } from "./ui/transferPanel.ts";
 import { bindFullscreenButton, FixedView, parseViewParam } from "./ui/view.ts";
 
 /**
@@ -112,6 +113,9 @@ const buildMenu = new BuildMenu();
 buildMenu.onChoose = (build) => {
   world.buildMode = build;
 };
+// Opened by the world, in the log, because the hold that opens it is the same
+// key the tap uses and only the simulation can tell the two apart.
+const transfer = new TransferPanel();
 // The same from the keyboard, on the same terms as the button: only at camp,
 // and not while paused, when the button is under the card.
 addEventListener("keydown", (e) => {
@@ -122,6 +126,8 @@ bindFullscreenButton(document.querySelector<HTMLButtonElement>("#fullscreen")!);
 
 /** How far through `world.events` the renderer has got. */
 let seenEvents = 0;
+/** The interact key is down and the world is not to be told, until it is let go. */
+let awaitInteractRelease = false;
 let summaryShown = false;
 
 /**
@@ -136,6 +142,8 @@ let summaryShown = false;
 function regenerate(nextSeed: number): void {
   seed = nextSeed;
   world = World.fromSeed(seed);
+  // A panel onto a store that no longer exists.
+  transfer.close();
 
   tiles.destroy();
   props.destroy();
@@ -170,6 +178,7 @@ function regenerate(nextSeed: number): void {
  */
 function nextSummer(): void {
   world.nextSummer();
+  transfer.close();
   summaryShown = false;
   hud.reset(seenEvents);
   props.invalidate();
@@ -209,6 +218,7 @@ function exposeGame(): void {
     pause,
     hud,
     buildMenu,
+    transfer,
     world,
     camera,
     props,
@@ -258,7 +268,20 @@ app.ticker.add(({ deltaMS }) => {
   // Paused, no time passes at all: nothing steps, and the camera and the water,
   // which run on the same seconds, hold where they are.
   const { frameSec, steps } = clock.tick(pause.paused ? 0 : deltaMS / 1000);
-  const input = keyboard.state();
+  // With the panel up the player is standing at a box with the lid open, not
+  // walking: the keys are the panel's. The clock still runs.
+  //
+  // Holding the interact key is what opened the panel, so that key is still
+  // down when it closes. The world must not see it again until it is let go,
+  // or the hold would start over and the panel would reopen by itself.
+  const keys = keyboard.state();
+  if (transfer.isOpen) awaitInteractRelease = true;
+  else if (!keys.interact) awaitInteractRelease = false;
+  const input = transfer.isOpen
+    ? NO_INPUT
+    : awaitInteractRelease
+      ? { ...keys, interact: false }
+      : keys;
 
   // When the light goes the world stops: the clock is the whole constraint, and
   // a summer you can keep playing past the end is not one.
@@ -279,11 +302,20 @@ app.ticker.add(({ deltaMS }) => {
   // props standing on it.
   for (let i = seenEvents; i < world.events.length; i++) {
     const type = world.events[i]!.type;
-    if (type === "harvested" || type === "summerStarted" || type === "dug" || type === "cached") {
+    if (
+      type === "harvested" ||
+      type === "summerStarted" ||
+      type === "dug" ||
+      type === "cached" ||
+      type === "dropped" ||
+      type === "pickedUp"
+    ) {
       props.invalidate();
     } else if (type === "cut" || type === "built" || type === "felled") {
       tiles.invalidate();
       props.invalidate();
+    } else if (type === "transferOpened") {
+      transfer.open(world);
     }
   }
   seenEvents = world.events.length;
@@ -303,9 +335,11 @@ app.ticker.add(({ deltaMS }) => {
     frameSec,
     world.springs,
     world.caches,
+    world.dropped,
   );
   marker.update(camera, targetTile(world.availableAction()));
   buildMenu.update(world.buildOptions(), world.buildMode);
+  transfer.update(world);
   // The prompt and the toasts hang off the player, and the arrow points at
   // camp, so the HUD needs the one thing the simulation cannot tell it: where
   // those are in the view.
@@ -322,6 +356,7 @@ console.log(
   `${mapName ? `map "${mapName}"` : `seed ${seed}`} | pack "${pack.id}" @${pack.tileSize}px | ` +
     `${world.map.width}x${world.map.height} | ${world.nodes.length} nodes | ` +
     `renderer ${app.renderer.name} | WASD move, ` +
-    `E/Space gather, drink, cut, fell, build and bank, B build menu, P pause, ` +
+    `E/Space gather, drink, cut, fell, build, bank and pick up (hold at camp or ` +
+    `a cache for the transfer panel), X drop, C switch, B build menu, P pause, ` +
     `\` debug panel | view ${view.size.width}x${view.size.height} at x${view.scale}`,
 );

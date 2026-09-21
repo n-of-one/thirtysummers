@@ -1,5 +1,5 @@
 import type { TileMap } from "../sim/tilemap.ts";
-import type { ResourceNode, Spring, Vec2 } from "../sim/types.ts";
+import type { Dropped, ResourceNode, Spring, Vec2 } from "../sim/types.ts";
 import type { AssetPack, PropSprite } from "./packs/pack.ts";
 import { tileHash } from "./packs/pack.ts";
 import type { ScrollWindow } from "./scrollWindow.ts";
@@ -25,10 +25,11 @@ export interface Placement {
  */
 export const PROP_JITTER_PX = 1;
 
+
 /**
  * Everything standing on the ground inside the window: trees, saplings,
- * underbrush, the camp, the springs and wells, the caches, and resource nodes
- * still waiting to be harvested.
+ * underbrush, the camp, the springs and wells, the caches, whatever has been
+ * dropped, and resource nodes still waiting to be harvested.
  *
  * This is the decision -- what to draw and where it stands in the world -- with
  * no sprites in it. Turning a placement into a positioned, snapped, depth-sorted
@@ -43,6 +44,7 @@ export function* placementsIn(
   nodes: readonly ResourceNode[],
   springs: readonly Spring[] = [],
   caches: readonly Vec2[] = [],
+  dropped: readonly Dropped[] = [],
   z = 0,
 ): Generator<Placement> {
   const { originX, originY, cols, rows } = window;
@@ -92,6 +94,20 @@ export function* placementsIn(
   for (const cache of caches) {
     if (!window.covers(cache.x, cache.y)) continue;
     yield { worldX: cache.x + 0.5, worldY: cache.y + 0.5, art: pack.cache, jitter: 0, occludes: false };
+  }
+
+  // Items lying on the ground, each its own small drawing at the same pixel
+  // scale as everything else, and sorted in with the rest so a dropped log
+  // behind a bush is behind it.
+  for (const item of dropped) {
+    if (!window.covers(item.x, item.y)) continue;
+    yield {
+      worldX: item.x + 0.5,
+      worldY: item.y + 0.5,
+      art: pack.dropped(item.kind),
+      jitter: 0,
+      occludes: false,
+    };
   }
 
   for (const node of nodes) {

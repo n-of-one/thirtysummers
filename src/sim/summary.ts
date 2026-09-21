@@ -16,6 +16,10 @@ export interface SummerSummary {
   fruitStored: number;
   /** Items still in the backpack when the summer ended, sold there and then. */
   soldAtEnd: number;
+  /** ...and the rest of that pack, which went into the store. */
+  storedAtEnd: number;
+  /** Items thrown on the ground, wherever they were left. */
+  dropped: number;
   /** The summer ended out of reach of camp. Winter will charge for the fetching. */
   endedAway: boolean;
   /** Thicket tiles cut through, bridge tiles laid, saplings felled. */
@@ -67,6 +71,8 @@ export function summarise(world: World): SummerSummary {
   let wellsDug = 0;
   let cachesBuilt = 0;
   let soldAtEnd = 0;
+  let storedAtEnd = 0;
+  let dropped = 0;
   let endedAway = false;
 
   const events = world.events as readonly WorldEvent[];
@@ -79,8 +85,11 @@ export function summarise(world: World): SummerSummary {
     else if (event.type === "felled") saplingsFelled++;
     else if (event.type === "dug") wellsDug++;
     else if (event.type === "cached") cachesBuilt++;
+    else if (event.type === "dropped") dropped += event.n;
+    else if (event.type === "pickedUp") dropped--;
     else if (event.type === "summerEnded") {
       soldAtEnd = event.sold;
+      storedAtEnd = event.stored;
       endedAway = event.away;
     }
   }
@@ -92,6 +101,10 @@ export function summarise(world: World): SummerSummary {
     harvested,
     drinks,
     soldAtEnd,
+    storedAtEnd,
+    // What is still lying out there when the summer closes: dropped, less
+    // whatever was picked back up.
+    dropped,
     endedAway,
     tilesCut,
     bridgesBuilt,

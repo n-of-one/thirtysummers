@@ -206,7 +206,7 @@ const amount = (a: Amounts, kind: ResourceKind): number => a[kind] ?? 0;
 export function initialKeep(store: Amounts): Amounts {
   const keep: Amounts = {};
   for (const kind of RESOURCE_KINDS) {
-    if (RESOURCES[kind].atCamp === "keep") keep[kind] = amount(store, kind);
+    if (RESOURCES[kind].material) keep[kind] = amount(store, kind);
   }
   return keep;
 }
@@ -239,7 +239,7 @@ export function canHoldBack(input: WinterInput, kind: ResourceKind): boolean {
  * for the caller to put back into its input.
  */
 export function sellToCover(input: WinterInput): Amounts {
-  const byPrice = RESOURCE_KINDS.filter((kind) => RESOURCES[kind].atCamp === "keep").sort(
+  const byPrice = RESOURCE_KINDS.filter((kind) => RESOURCES[kind].material).sort(
     (a, b) => RESOURCES[a].price - RESOURCES[b].price,
   );
   let keep = { ...input.keep };
@@ -295,7 +295,7 @@ export function winterModel(input: WinterInput): WinterModel {
       sold,
       price,
       gold: sold * price,
-      material: RESOURCES[kind].atCamp === "keep",
+      material: RESOURCES[kind].material,
       committed: Math.min(have, amount(committed, kind)),
       committedTo: committedTo[kind] ?? [],
     });

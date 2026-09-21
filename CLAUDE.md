@@ -62,8 +62,13 @@ approval, so keep the work where it is visible.
 - Write commands whose paths are plainly in-project: relative paths as
   arguments, and no `cd` prefix, since the working directory is already the
   project root.
-- Change files with the editing tools rather than `sed -i` or a heredoc. One
-  named path can be checked; a shell rewrite cannot.
+- Change files with the editing tools, never with `sed -i`, a heredoc, or a
+  script that rewrites a file. Two reasons, and the second is the one that
+  keeps being forgotten: one named path can be checked where a shell rewrite
+  cannot, and every such command costs Erik an approval, while the editing
+  tools cost none. This holds however small the edit is -- a one-character
+  change is a reason to use the editing tool, not an excuse to reach for
+  `sed`. Reading is different: `cat`, `sed -n`, `grep` and `find` are fine.
 - Anything long-running goes in the background with its output redirected
   into `tmp/`: the dev server, the headless browser, a summer played out
   over the protocol. A five-minute summer is a background job, not a wait.

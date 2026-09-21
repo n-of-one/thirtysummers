@@ -151,6 +151,19 @@ order, which is sprite-pool order and reshuffles as the scan window moves. That
 is what makes a forest flicker. `depthOf(x, y) = y * 1024 + x` makes the order
 stable.
 
+**One art pixel is one size, and this is not negotiable.** The rule is in
+[../architecture.md](../architecture.md); the reason it is written as a flat
+prohibition rather than a preference is that the tidy-looking violations are the
+tempting ones. A dropped item was first drawn as its node art scaled 0.70 across
+and 0.385 down, to read as lying flat: the outlines went uneven and a vine
+smeared into a haze. The obvious repair -- scale it by exactly 0.5, so every art
+pixel is a whole two screen pixels -- is arithmetically clean and still wrong,
+because those pixels are half the size of every other pixel on screen and the
+eye reads the sprite as belonging to a different game. Whatever the factor, a
+sprite that is shrunk on its way to the screen is the same mistake. Something
+that should look smaller is drawn with fewer art pixels, or resampled to a whole
+number of them before it is ever a sprite.
+
 **Snapping, and why it is render-only.** Props sit at fixed positions so snapping
 them to the art grid is free. The player cannot be snapped while moving: the
 camera pans smoothly behind it, and quantising only the player makes the two

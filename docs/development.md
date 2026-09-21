@@ -43,10 +43,38 @@ gitignored. Without them the code-drawn placeholder pack draws everything.
 
 ## Controls
 
-WASD or arrows to move. E or Space to gather, cut, fell and bank; held beside
-a spring or a well, to drink. At camp a press sells feathers, ore and shells
-and stores fruit; sticks, vines and logs stay in the pack. At a cache a press
-puts the whole pack in, and a press with an empty pack takes back what fits.
+WASD or arrows to move. E or Space to gather, cut, fell and store; held beside
+a spring or a well, to drink; pressed on something lying on the ground, to
+pick it up.
+
+What camp keeps is called **camp**, not "the store": `store` is the verb for
+putting something there, and winter brings a shop. `world.store` is the code
+name for it, because `world.camp` is already the tile it stands on.
+
+Camp and a cache take the same two actions. A press at camp stores the whole
+pack: feathers, ore and shells sell, and everything else, fruit and building
+material alike, stays at camp. A press at a cache puts the whole pack in, and
+a press with an empty pack takes back what fits. Holding the key at either
+opens the transfer panel instead: the pack on one side, camp or the cache on
+the other, `W`/`S` for the cursor, the arrow keys to move one either way,
+`Shift` for the whole kind, `E` to close. The clock runs while it is open.
+Opening it at camp sells the feathers, ore and shells first, since there is no
+decision in them.
+
+The key that opens the panel closes it: `E` or `Space`, and `Esc` as well --
+the browser leaves full screen on `Esc` whatever we do, and a key that drops
+full screen while leaving the panel up would be the worse surprise. The panel
+ignores auto-repeats, which is what lets the same key both open it (held) and
+close it (pressed afresh): the key that opened it is still down when it
+appears, and every repeat of that hold would otherwise shut it at once. The
+interact key is also ignored by the world until it has been released once
+after the panel closes, or the hold would start over.
+
+`X` throws every item of the selected kind on the ground, one to a tile, and
+`C` moves the selection on to the next kind in the pack. The pill by the
+backpack always names what `X` would drop and how much. Nothing left on the
+ground survives a winter; a cache keeps everything but fruit, which rots
+wherever it is left; camp keeps the lot.
 
 B opens the build menu: a bridge tile, a cache, a well, with what each costs.
 The number keys choose, B or Esc closes, and Esc with the menu down puts the

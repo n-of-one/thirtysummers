@@ -296,6 +296,43 @@ export const CACHE_STICKS = 3;
 /** [GUESS] Seconds of holding the key to build a cache. */
 export const CACHE_TIME = 3;
 
+// -------------------------------------------------------- the transfer ----
+
+/**
+ * [GUESS] Seconds of holding the interact key at camp or a cache to open the
+ * transfer panel. Short, because the tap that banks everything happens on the
+ * release: hold any longer than this and the arrival was never a quick one.
+ */
+export const TRANSFER_HOLD_TIME = 0.45;
+/**
+ * Keys that close the transfer panel, as `KeyboardEvent.key`, lower case.
+ *
+ * The interact keys, so the key that opened it puts it away again, which is
+ * what a player reaches for. Escape too, because the browser takes Escape to
+ * leave full screen whatever we do, and a key that drops full screen and
+ * leaves the panel up would be the worse surprise.
+ *
+ * Holding an interact key is what opens the panel, so that key is still down
+ * when it appears, and a held key repeats: every repeat would shut the panel
+ * the instant it opened. The panel ignores auto-repeats for exactly this
+ * reason; only a fresh press closes it. Shift is the modifier that moves a
+ * whole kind rather than one of it.
+ */
+export const TRANSFER_CLOSE_KEYS = ["e", " ", "escape"] as const;
+
+// ------------------------------------------------------------ dropping ----
+
+/** [GUESS] The key that drops every item of the selected kind. */
+export const DROP_KEY = "x";
+/** [GUESS] The key that cycles the selected kind through what the pack holds. */
+export const DROP_SWITCH_KEY = "c";
+/**
+ * [GUESS] How far out a drop will spill looking for free tiles, in rings
+ * around the player. One item lands per tile, so a full pack of ten needs
+ * three rings of open ground at worst; four leaves room for a hedge.
+ */
+export const DROP_SPILL_RINGS = 4;
+
 // ------------------------------------------------------------- worldgen ----
 
 /** Noise feature size, in tiles. Larger = broader forests and clearings. */

@@ -1,10 +1,19 @@
+import { DROP_KEY, DROP_SWITCH_KEY } from "../config.ts";
+
 /** What the simulation needs to know about the controls this tick. */
 export interface InputState {
   /** Desired direction, already normalised so diagonals are not faster. */
   moveX: number;
   moveY: number;
-  /** Held to harvest, drink, cut and build; tapped to drop ore off at camp. */
+  /**
+   * Held to harvest, drink, cut and build; tapped to bank at camp, and held
+   * there to open the transfer panel.
+   */
   interact: boolean;
+  /** Throws every item of the selected kind on the ground. One shot per press. */
+  drop: boolean;
+  /** Moves the selection on to the next kind in the pack. One shot per press. */
+  dropSwitch: boolean;
 }
 
 /** Nothing held. Spread it to build an input in a test. */
@@ -12,6 +21,8 @@ export const NO_INPUT: InputState = {
   moveX: 0,
   moveY: 0,
   interact: false,
+  drop: false,
+  dropSwitch: false,
 };
 
 const LEFT = ["a", "arrowleft"];
@@ -19,6 +30,8 @@ const RIGHT = ["d", "arrowright"];
 const UP = ["w", "arrowup"];
 const DOWN = ["s", "arrowdown"];
 const INTERACT = ["e", " "];
+const DROP = [DROP_KEY];
+const DROP_SWITCH = [DROP_SWITCH_KEY];
 
 /**
  * Is this event headed for something the user is typing or clicking in?
@@ -87,6 +100,8 @@ export class Keyboard {
       moveX,
       moveY,
       interact: this.any(INTERACT),
+      drop: this.any(DROP),
+      dropSwitch: this.any(DROP_SWITCH),
     };
   }
 

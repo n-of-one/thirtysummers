@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import * as C from "../src/config.ts";
 import { NO_INPUT, type InputState } from "../src/input/keyboard.ts";
 import { nearestNodeWithin, withinReach } from "../src/sim/interaction.ts";
+import { Inventory } from "../src/sim/inventory.ts";
 import { RESOURCES } from "../src/sim/resources.ts";
 import { summarise } from "../src/sim/summary.ts";
 import { TileMap } from "../src/sim/tilemap.ts";
@@ -174,12 +175,18 @@ describe("banking at camp", () => {
     world.player.x = 1.5;
     world.player.y = 1.5;
 
-    expect(world.availableAction()).toEqual({ type: "deposit", sold: 4, fruit: 0, blocked: null });
+    expect(world.availableAction()).toEqual({ type: "deposit", sold: 4, stored: 0, blocked: null });
     tap(world, INTERACT);
     expect(world.inventory.gold).toBe(4 * RESOURCES.ore.price);
     expect(world.inventory.count("ore")).toBe(0);
     expect(world.events).toEqual([
-      { type: "deposited", sold: 4, fruit: 0, gold: 4 * RESOURCES.ore.price, at: expect.any(Number) },
+      {
+        type: "deposited",
+        sold: 4,
+        stored: 0,
+        gold: 4 * RESOURCES.ore.price,
+        at: expect.any(Number),
+      },
     ]);
   });
 
@@ -194,24 +201,35 @@ describe("banking at camp", () => {
     expect(world.inventory.carried).toBe(0);
   });
 
-  it("puts fruit in the store in the same press, and leaves sticks, vines and logs", () => {
+  it("stores fruit and the building material in the same press, and sells the rest", () => {
     const world = worldWith([]);
     world.inventory.add("ore", 3);
     world.inventory.add("fruit", 2);
     world.inventory.add("stick", 1);
     world.inventory.add("vine", 1);
-    world.inventory.add("log", 1);
     world.player.x = 1.5;
     world.player.y = 1.5;
 
-    expect(world.availableAction()).toEqual({ type: "deposit", sold: 3, fruit: 2, blocked: null });
+    expect(world.availableAction()).toEqual({ type: "deposit", sold: 3, stored: 4, blocked: null });
     tap(world, INTERACT);
     expect(world.inventory.gold).toBe(3 * RESOURCES.ore.price);
     expect(world.store.count("fruit")).toBe(2);
     expect(backpackOf(world)).toEqual({ fruit: 0, ore: 0 });
-    expect(world.inventory.count("stick")).toBe(1);
-    expect(world.inventory.count("vine")).toBe(1);
-    expect(world.inventory.count("log")).toBe(1);
+    // Camp takes every kind. A pack filled with building material used to be a
+    // dead end for the whole run, because nothing at camp would take it.
+    expect(world.inventory.carried).toBe(0);
+    expect(world.store.count("stick")).toBe(1);
+    expect(world.store.count("vine")).toBe(1);
+  });
+
+  it("empties a pack of ten vines to nothing carried", () => {
+    const world = worldWith([]);
+    world.inventory.add("vine", C.BACKPACK_CAPACITY);
+    world.player.x = 1.5;
+    world.player.y = 1.5;
+    tap(world, INTERACT);
+    expect(world.inventory.carried).toBe(0);
+    expect(world.store.count("vine")).toBe(C.BACKPACK_CAPACITY);
   });
 
   it("banks fruit alone, with no ore in the pack", () => {
@@ -224,7 +242,7 @@ describe("banking at camp", () => {
     expect(world.inventory.gold).toBe(0);
   });
 
-  it("has nothing to bank with only sticks and vines", () => {
+  it("offers to take sticks and vines too, which camp used to refuse", () => {
     const world = worldWith([]);
     world.inventory.add("stick", 2);
     world.player.x = 1.5;
@@ -232,8 +250,8 @@ describe("banking at camp", () => {
     expect(world.availableAction()).toEqual({
       type: "deposit",
       sold: 0,
-      fruit: 0,
-      blocked: "nothingToBank",
+      stored: 2,
+      blocked: null,
     });
   });
 
@@ -242,9 +260,106 @@ describe("banking at camp", () => {
     world.inventory.add("ore", 3);
     world.player.x = 1.5;
     world.player.y = 1.5;
-    hold(world, INTERACT, 2);
+    // Pressed and let go several times over, which is the shape a tap has now:
+    // the same key held opens the panel, so the bank waits for the release.
+    tap(world, INTERACT);
+    tap(world, INTERACT);
     expect(world.inventory.gold).toBe(3 * RESOURCES.ore.price);
-    expect(types(world)).toEqual(["deposited"]);
+    expect(types(world)).toEqual(["deposited", "blocked"]);
+  });
+
+  it("opens the transfer panel when the key is held rather than tapped", () => {
+    const world = worldWith([]);
+    world.inventory.add("vine", 4);
+    world.player.x = 1.5;
+    world.player.y = 1.5;
+
+    hold(world, INTERACT, C.TRANSFER_HOLD_TIME * 2);
+    expect(types(world)).toEqual(["transferOpened"]);
+    // The panel is the choice, so the hold does not also bank the load.
+    expect(world.inventory.count("vine")).toBe(4);
+  });
+
+  it("sells the pure sellables as the panel opens, so they are never a line in it", () => {
+    const world = worldWith([]);
+    world.inventory.add("ore", 2);
+    world.inventory.add("vine", 1);
+    world.player.x = 1.5;
+    world.player.y = 1.5;
+
+    hold(world, INTERACT, C.TRANSFER_HOLD_TIME * 2);
+    expect(types(world)).toEqual(["deposited", "transferOpened"]);
+    expect(world.inventory.gold).toBe(2 * RESOURCES.ore.price);
+    expect(world.inventory.count("vine")).toBe(1);
+  });
+
+  it("opens the panel at a cache too, where nothing is sold", () => {
+    const world = worldWith([]);
+    world.caches.push({ x: 8, y: 8, contents: new Inventory(Infinity) });
+    world.inventory.add("ore", 2);
+
+    hold(world, INTERACT, C.TRANSFER_HOLD_TIME * 2);
+    expect(types(world)).toEqual(["transferOpened"]);
+    expect(world.inventory.gold).toBe(0);
+    expect(world.inventory.count("ore")).toBe(2);
+  });
+
+  it("puts things in and takes them back out through the panel", () => {
+    const world = worldWith([]);
+    world.inventory.add("vine", C.BACKPACK_CAPACITY);
+    world.player.x = 1.5;
+    world.player.y = 1.5;
+    const target = world.transferTarget()!;
+    expect(target.at).toBe("camp");
+
+    expect(world.putAway(target, "vine", C.BACKPACK_CAPACITY)).toBe(C.BACKPACK_CAPACITY);
+    expect(world.inventory.carried).toBe(0);
+    expect(world.store.count("vine")).toBe(C.BACKPACK_CAPACITY);
+
+    expect(world.takeOut(target, "vine", 3)).toBe(3);
+    expect(world.inventory.count("vine")).toBe(3);
+    expect(world.store.count("vine")).toBe(C.BACKPACK_CAPACITY - 3);
+  });
+
+  it("takes fruit back out of the store, leaving the store's count lower", () => {
+    const world = worldWith([]);
+    world.store.add("fruit", 5);
+    world.player.x = 1.5;
+    world.player.y = 1.5;
+    const target = world.transferTarget()!;
+
+    expect(world.takeOut(target, "fruit", 2)).toBe(2);
+    expect(world.store.count("fruit")).toBe(3);
+    expect(world.inventory.count("fruit")).toBe(2);
+  });
+
+  it("refuses a take that will not fit, rather than taking part of one", () => {
+    const world = worldWith([]);
+    world.store.add("log", 1);
+    world.inventory.add("vine", C.BACKPACK_CAPACITY - 1);
+    world.player.x = 1.5;
+    world.player.y = 1.5;
+    const target = world.transferTarget()!;
+
+    // A log takes two slots and there is one free.
+    expect(world.takeOut(target, "log", 1)).toBe(0);
+    expect(world.store.count("log")).toBe(1);
+  });
+
+  it("sells an ore put away at camp, and keeps one put in a cache as ore", () => {
+    const world = worldWith([]);
+    world.caches.push({ x: 8, y: 8, contents: new Inventory(Infinity) });
+    world.inventory.add("ore", 2);
+    const cache = world.transferTarget()!;
+    expect(cache.at).toBe("cache");
+    expect(world.putAway(cache, "ore", 1)).toBe(1);
+    expect(cache.store.count("ore")).toBe(1);
+    expect(world.inventory.gold).toBe(0);
+
+    world.player.x = 1.5;
+    world.player.y = 1.5;
+    expect(world.putAway(world.transferTarget()!, "ore", 1)).toBe(1);
+    expect(world.inventory.gold).toBe(RESOURCES.ore.price);
   });
 
   it("says there is nothing to bank when the pack is empty", () => {
@@ -254,7 +369,7 @@ describe("banking at camp", () => {
     expect(world.availableAction()).toEqual({
       type: "deposit",
       sold: 0,
-      fruit: 0,
+      stored: 0,
       blocked: "nothingToBank",
     });
     tap(world, INTERACT);
@@ -288,6 +403,139 @@ describe("banking at camp", () => {
     world.step(C.TICK_SEC, NO_INPUT);
     hold(world, INTERACT, C.HARVEST_TIME * 1.1);
     expect(fruit.harvested).toBe(true);
+  });
+});
+
+describe("dropping", () => {
+  const DROP: InputState = { ...NO_INPUT, drop: true };
+  const SWITCH: InputState = { ...NO_INPUT, dropSwitch: true };
+
+  it("names the kind that takes the most slots, and never nothing", () => {
+    const world = worldWith([]);
+    expect(world.dropKind).toBeNull();
+    world.inventory.add("vine", 3);
+    expect(world.dropKind).toBe("vine");
+    // A log is two slots, so two of them outweigh three vines.
+    world.inventory.add("log", 2);
+    world.inventory.remove("vine", 3);
+    expect(world.dropKind).toBe("log");
+  });
+
+  it("cycles the selection through what the pack holds, and only that", () => {
+    const world = worldWith([]);
+    world.inventory.add("vine", 3);
+    world.inventory.add("fruit", 1);
+    // It starts on the kind taking the most slots, and wraps round the table
+    // order from there.
+    expect(world.dropKind).toBe("vine");
+    world.cycleDropKind();
+    expect(world.dropKind).toBe("fruit");
+    world.cycleDropKind();
+    expect(world.dropKind).toBe("vine");
+  });
+
+  it("falls back to the biggest kind once the selected one runs out", () => {
+    const world = worldWith([]);
+    world.inventory.add("fruit", 2);
+    world.inventory.add("vine", 5);
+    world.cycleDropKind();
+    expect(world.dropKind).toBe("fruit");
+    world.inventory.remove("fruit", 2);
+    expect(world.dropKind).toBe("vine");
+  });
+
+  it("scatters six vines one to a tile, and the pack has them back when picked up", () => {
+    const world = worldWith([]);
+    world.inventory.add("vine", 6);
+    world.step(C.TICK_SEC, DROP);
+
+    expect(world.dropped).toHaveLength(6);
+    expect(world.inventory.count("vine")).toBe(0);
+    const tiles = new Set(world.dropped.map((d) => `${d.x},${d.y}`));
+    expect(tiles.size).toBe(6);
+    expect(types(world)).toEqual(["dropped"]);
+
+    // Picking up is a tap, one item at a time.
+    for (let i = 0; i < 6; i++) {
+      // Stand over each one in turn: they spilled outward by ring.
+      const item = world.dropped[0]!;
+      world.player.x = item.x + 0.5;
+      world.player.y = item.y + 0.5;
+      tap(world, INTERACT);
+    }
+    expect(world.dropped).toHaveLength(0);
+    expect(world.inventory.count("vine")).toBe(6);
+  });
+
+  it("never drops on water, a node, a spring or a cache", () => {
+    const world = worldWith([node("ore", 8.5, 7.5)]);
+    world.map.set(9, 8, "stream");
+    world.springs.push({ x: 7, y: 8 });
+    world.caches.push({ x: 8, y: 9, contents: new Inventory(Infinity) });
+    world.inventory.add("vine", 6);
+    world.step(C.TICK_SEC, DROP);
+
+    expect(world.dropped).toHaveLength(6);
+    for (const item of world.dropped) {
+      expect(world.map.get(item.x, item.y)).toBe("grass");
+      expect(world.nodes.some((n) => Math.floor(n.x) === item.x && Math.floor(n.y) === item.y))
+        .toBe(false);
+      expect(world.springs.some((s) => s.x === item.x && s.y === item.y)).toBe(false);
+      expect(world.caches.some((c) => c.x === item.x && c.y === item.y)).toBe(false);
+    }
+  });
+
+  it("refuses when there is nowhere at all to put anything, and keeps the load", () => {
+    const world = worldWith([]);
+    // Walled in: every tile within the spill rings but the one stood on is rock.
+    for (let y = 0; y < 16; y++) for (let x = 0; x < 16; x++) world.map.set(x, y, "rock");
+    world.map.set(8, 8, "grass");
+    world.inventory.add("vine", 2);
+    world.dropped.push({ kind: "vine", x: 8, y: 8 });
+
+    world.step(C.TICK_SEC, DROP);
+    expect(world.inventory.count("vine")).toBe(2);
+    expect(types(world)).toEqual(["blocked"]);
+  });
+
+  it("is one drop per press, not one per tick", () => {
+    const world = worldWith([]);
+    world.inventory.add("vine", 3);
+    hold(world, DROP, 1);
+    expect(world.dropped).toHaveLength(3);
+    expect(types(world)).toEqual(["dropped"]);
+  });
+
+  it("switches once per press too", () => {
+    const world = worldWith([]);
+    world.inventory.add("vine", 3);
+    world.inventory.add("fruit", 1);
+    hold(world, SWITCH, 1);
+    expect(world.dropKind).toBe("fruit");
+  });
+
+  it("harvests the node under a pack that has just been emptied of vines", () => {
+    const fruit = node("fruit", 8.5, 8.5);
+    const world = worldWith([fruit]);
+    world.inventory.add("vine", C.BACKPACK_CAPACITY);
+    expect(world.availableAction()).toEqual({ type: "harvest", node: fruit, blocked: "backpackFull" });
+
+    world.step(C.TICK_SEC, DROP);
+    world.step(C.TICK_SEC, NO_INPUT);
+    // The node wins over the vines now lying at the player's feet, so the same
+    // E picks the fruit.
+    hold(world, INTERACT, C.HARVEST_TIME * 1.1);
+    expect(fruit.harvested).toBe(true);
+    expect(world.inventory.count("fruit")).toBe(1);
+  });
+
+  it("will not pick one up into a full pack", () => {
+    const world = worldWith([]);
+    world.dropped.push({ kind: "vine", x: 8, y: 8 });
+    world.inventory.add("fruit", C.BACKPACK_CAPACITY);
+    tap(world, INTERACT);
+    expect(world.dropped).toHaveLength(1);
+    expect(types(world)).toEqual(["blocked"]);
   });
 });
 
@@ -391,18 +639,37 @@ describe("a summer played end to end", () => {
     expect(backpackOf(world)).toEqual({ fruit: 0, ore: 0 });
   });
 
-  it("banks ore and fruit still in the pack when the summer ends, and says where it ended", () => {
+  it("banks the whole pack when the summer ends, and says where it ended", () => {
     const world = worldWith([]);
     world.inventory.add("ore", 3);
     world.inventory.add("fruit", 2);
     world.inventory.add("vine", 1);
     world.endSummer();
     expect(summarise(world).soldAtEnd).toBe(3);
+    expect(summarise(world).storedAtEnd).toBe(3);
     expect(summarise(world).gold).toBe(3 * RESOURCES.ore.price);
     expect(summarise(world).fruitStored).toBe(2);
     expect(summarise(world).endedAway).toBe(true);
-    expect(world.inventory.count("fruit")).toBe(0);
-    expect(world.inventory.count("vine")).toBe(1);
+    expect(world.inventory.carried).toBe(0);
+    expect(world.store.count("vine")).toBe(1);
+  });
+
+  it("banks what is carried at the end but leaves what was dropped where it lies", () => {
+    const world = worldWith([]);
+    world.inventory.add("vine", 4);
+    world.dropSelected();
+    expect(world.dropped).toHaveLength(4);
+    world.inventory.add("ore", 2);
+    world.endSummer();
+
+    expect(summarise(world).soldAtEnd).toBe(2);
+    expect(summarise(world).dropped).toBe(4);
+    expect(world.dropped).toHaveLength(4);
+
+    // The winter clears the ground, and leaves the store as it is.
+    world.nextSummer();
+    expect(world.dropped).toHaveLength(0);
+    expect(world.store.count("vine")).toBe(0);
   });
 
   it("reports an untouched summer as all zeroes", () => {
@@ -414,6 +681,8 @@ describe("a summer played end to end", () => {
       harvested: { fruit: 0, feather: 0, stick: 0, vine: 0, ore: 0, log: 0, shell: 0 },
       drinks: 0,
       soldAtEnd: 0,
+      storedAtEnd: 0,
+      dropped: 0,
       endedAway: false,
       tilesCut: 0,
       bridgesBuilt: 0,

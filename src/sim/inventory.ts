@@ -91,9 +91,13 @@ export class Inventory {
     return true;
   }
 
-  /** Empty it. */
-  clear(): void {
-    for (const kind of RESOURCE_KINDS) this.counts[kind] = 0;
+  /** Empty it, or, given a kind, empty just that one. */
+  clear(kind?: ResourceKind): void {
+    if (kind) {
+      this.counts[kind] = 0;
+      return;
+    }
+    for (const k of RESOURCE_KINDS) this.counts[k] = 0;
   }
 
   /**

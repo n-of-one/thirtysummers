@@ -30,7 +30,8 @@
 
       <div class="hud-corner hud-bl">
         <div class="pill">Backpack <b id="backpack-count">0</b>/<span id="backpack-cap">10</span>
-          <span class="pill-note" id="backpack-contents">empty</span></div>
+          <span class="pill-note" id="backpack-contents">empty</span>
+          <span class="pill-note" id="drop-selection" hidden></span></div>
         <div class="pill">Gold <b id="gold-count">0</b>
           <span class="pill-note">fruit stored</span> <b id="store-fruit">0</b></div>
         <div class="pill">Tools <span class="pill-note" id="tools">knife</span></div>
@@ -44,6 +45,25 @@
           <h2>Build</h2>
           <ul id="build-list"></ul>
           <p class="build-note">Number keys choose · <kbd>B</kbd> or <kbd>Esc</kbd> closes</p>
+        </div>
+      </div>
+
+      <!-- The pack on one side, the store on the other. Opened by holding E at
+           camp or at a cache; the clock runs while it is up. -->
+      <div id="transfer" hidden>
+        <div class="transfer-card">
+          <h2 id="transfer-title">Stored in camp</h2>
+          <div class="transfer-head">
+            <span>Pack</span><span></span><span id="transfer-there">Camp</span>
+          </div>
+          <ul id="transfer-list"></ul>
+          <p class="transfer-note" id="transfer-free"></p>
+          <p class="transfer-note">
+            <kbd>W</kbd><kbd>S</kbd> choose ·
+            <kbd>&rarr;</kbd> put in ·
+            <kbd>&larr;</kbd> take out ·
+            <kbd>Shift</kbd> for all ·
+            <kbd>E</kbd> closes</p>
         </div>
       </div>
 

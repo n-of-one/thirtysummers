@@ -1,7 +1,7 @@
 import { Container, Sprite, type Renderer, type Texture } from "pixi.js";
 import { PIXEL_SETTLE_SEC, TILE } from "../config.ts";
 import type { TileMap } from "../sim/tilemap.ts";
-import type { ResourceNode, Spring, Vec2 } from "../sim/types.ts";
+import type { Dropped, ResourceNode, Spring, Vec2 } from "../sim/types.ts";
 import type { AssetPack } from "./packs/pack.ts";
 import { tileHash } from "./packs/pack.ts";
 import type { Camera } from "./camera.ts";
@@ -176,11 +176,12 @@ export class PropLayer {
     dt = 0,
     springs: readonly Spring[] = [],
     caches: readonly Vec2[] = [],
+    dropped: readonly Dropped[] = [],
   ): void {
     const scrolled = this.window.moveTo(camera.leftPx, camera.topPx);
     if (scrolled || this.dirty) {
       this.dirty = false;
-      this.rebuild(camp, nodes, springs, caches);
+      this.rebuild(camp, nodes, springs, caches, dropped);
     }
 
     this.container.x = this.window.offsetX;
@@ -259,6 +260,7 @@ export class PropLayer {
     nodes: readonly ResourceNode[],
     springs: readonly Spring[],
     caches: readonly Vec2[],
+    dropped: readonly Dropped[],
   ): void {
     this.used = 0;
     for (const placement of placementsIn(
@@ -269,6 +271,7 @@ export class PropLayer {
       nodes,
       springs,
       caches,
+      dropped,
       this.z,
     )) {
       this.draw(placement);

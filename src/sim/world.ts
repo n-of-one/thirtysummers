@@ -25,7 +25,9 @@ import type { TerrainDef } from "./terrain.ts";
 import type {
   BlockedReason,
   Build,
+  Dropped,
   Recipe,
+  ResourceKind,
   ResourceNode,
   Spring,
   Tool,
@@ -47,6 +49,20 @@ export interface Cache {
 }
 
 /**
+ * One side of an open transfer: where the player is standing, and the store
+ * they are standing at. The other side is always the pack.
+ */
+export interface Transfer {
+  readonly at: "camp" | "cache";
+  /** The tile it stands on, for the panel's heading and for the log. */
+  readonly x: number;
+  readonly y: number;
+  readonly store: Inventory;
+  /** Camp turns a feather into gold on the way in; a cache cannot. */
+  readonly sells: boolean;
+}
+
+/**
  * What the interact key would do where the player is standing right now.
  *
  * One query answers two questions -- what the HUD should prompt, and what a
@@ -56,8 +72,9 @@ export interface Cache {
  * for a well. Null means it can.
  */
 export type Action =
-  | { type: "deposit"; sold: number; fruit: number; blocked: BlockedReason | null }
+  | { type: "deposit"; sold: number; stored: number; blocked: BlockedReason | null }
   | { type: "harvest"; node: ResourceNode; blocked: BlockedReason | null }
+  | { type: "pickUp"; item: Dropped; blocked: BlockedReason | null }
   | { type: "drink"; x: number; y: number; blocked: null }
   | { type: "stash"; x: number; y: number; items: number; blocked: null }
   | { type: "fetch"; x: number; y: number; items: number; blocked: BlockedReason | null }
@@ -95,17 +112,40 @@ export interface BuildOption {
 
 /** Seconds of holding the interact key each action takes; 0 for a tap. */
 const HOLD_TIME: Record<Action["type"], number> = {
-  deposit: 0,
+  // The three transfers are a tap on the release and a hold to the panel, so
+  // their time is how long the panel takes to open, not how long the tap does.
+  deposit: C.TRANSFER_HOLD_TIME,
   harvest: C.HARVEST_TIME,
+  pickUp: 0,
   drink: C.DRINK_TIME,
-  stash: 0,
-  fetch: 0,
+  stash: C.TRANSFER_HOLD_TIME,
+  fetch: C.TRANSFER_HOLD_TIME,
   cut: C.CUT_TIME,
   fell: C.FELL_TIME,
   build: C.BUILD_TIME,
   dig: C.WELL_TIME,
   cache: C.CACHE_TIME,
 };
+
+/**
+ * What a hold in progress belongs to, as a string so that two kinds of hold
+ * aimed at one tile could never finish on each other's progress.
+ *
+ * Camp has no tile of its own here: there is one of it, and the player is
+ * either at it or not.
+ */
+function holdKeyFor(action: Action): string {
+  switch (action.type) {
+    case "harvest":
+      return `harvest:${action.node.id}`;
+    case "pickUp":
+      return `pickUp:${action.item.x},${action.item.y}`;
+    case "deposit":
+      return "deposit:camp";
+    default:
+      return `${action.type}:${action.x},${action.y}`;
+  }
+}
 
 /**
  * The whole simulation. Owns the map and everything on it, and advances by
@@ -124,15 +164,33 @@ export class World {
   readonly springs: Spring[];
   /** Caches built so far, in the order they were built. */
   readonly caches: Cache[] = [];
+  /**
+   * Items lying on the ground, one to a tile. Cleared by the winter: nothing
+   * left in a field survives a year of rain and animals.
+   */
+  readonly dropped: Dropped[] = [];
   readonly player: Player;
   readonly stats = new Stats();
   /** The backpack, and the gold banked at camp. */
   readonly inventory = new Inventory();
   /**
-   * The store at camp, with no capacity. Fruit goes here when it is banked,
-   * and is winter's food once there is a winter.
+   * What camp keeps, with no capacity. Everything banked ends up here except
+   * what sells on arrival, and the fruit in it is winter's food.
+   *
+   * Called "camp" in everything the player reads, and `store` here only
+   * because {@link camp} is already the tile it stands on. `store` is the verb
+   * in the HUD -- you store something at camp -- and there is a shop coming in
+   * winter, so it is not a noun worth showing.
    */
   readonly store = new Inventory(Infinity);
+  /**
+   * The kind the drop key throws away, or null with an empty pack.
+   *
+   * Read through {@link dropKind}, which is what keeps it honest: the moment
+   * the selected kind runs out the selection falls to whatever now takes the
+   * most slots, so it is never undefined and never hidden.
+   */
+  private selected: ResourceKind | null = null;
   /** What the player owns. The knife from the start, the rest from the year table. */
   readonly tools = new Set<Tool>(["knife"]);
   /** What the player knows how to build. The cache from the start, the well from the year table. */
@@ -172,7 +230,16 @@ export class World {
    * Last tick's input, for edge detection. Dropping off is one-shot: it fires
    * on the press, not for every tick the key is down.
    */
-  private held = { interact: false };
+  private held = { interact: false, drop: false, dropSwitch: false };
+  /**
+   * The transfer waiting on the key coming up: banking at camp, or a cache's
+   * whole-pack stash or fetch.
+   *
+   * These act on the release rather than on the press, because the same key
+   * held opens the transfer panel instead. A quick arrival is still one press
+   * and reads as one; letting go is what tells the two apart.
+   */
+  private pendingTap: Action | null = null;
   /**
    * Set when a press has already done its one thing, and cleared on release.
    *
@@ -249,41 +316,200 @@ export class World {
    * End the summer where the player stands, by the clock or from camp.
    *
    * What is carried is banked as if brought home, so what sells becomes gold,
-   * fruit goes into the store, and a last trip out is never wasted. Building
-   * material stays in the pack, as it does at camp. Ending out of reach
-   * of camp is remembered, because winter will charge for the fetching. Does
-   * nothing the second time.
+   * the rest goes into the store, and a last trip out is never wasted. What was
+   * dropped on the ground is not: it stays where it was thrown, and the winter
+   * takes it. Ending out of reach of camp is remembered, because winter will
+   * charge for the fetching. Does nothing the second time.
    */
   endSummer(): void {
     if (this.ended) return;
     this.ended = true;
     this.awayAtEnd = !this.atCamp;
     this.stopHarvesting();
+    // A transfer waiting on a release is dropped with the summer, so letting
+    // go next summer cannot bank a load that was already banked by the end.
+    this.pendingTap = null;
     const banked = this.bank();
     this.record({ type: "summerEnded", away: this.awayAtEnd, ...banked });
   }
 
   /**
-   * Bank what the pack holds that camp can take, as the resource table says:
-   * feathers, ore and shells sold for gold, fruit into the store. Sticks, vines
-   * and logs stay, because until winter can sell them banking them is losing
-   * them, and a bridge, a well or a cache gets rid of them.
+   * Bank the whole pack, as the resource table says: feathers, ore and shells
+   * sold for gold, everything else into the store.
+   *
+   * Camp takes every kind. It used to leave sticks, vines and logs in the pack
+   * on purpose, which made a pack filled with building material a dead end for
+   * the whole run: the pack survived the winter, and the only way to be rid of
+   * a vine was to spend it on a build that cost sticks. A store where the
+   * material waits for next summer costs nothing and closes that.
    */
-  private bank(): { sold: number; fruit: number; gold: number } {
-    const fruit = this.inventory.count("fruit");
+  private bank(): { sold: number; stored: number; gold: number } {
     const { sold, gold } = this.inventory.sell();
-    this.inventory.remove("fruit", fruit);
-    this.store.add("fruit", fruit);
-    return { sold, fruit, gold };
+    const stored = this.inventory.moveAllTo(this.store);
+    return { sold, stored, gold };
   }
 
-  /** How many items in the pack banking at camp would take. */
-  private bankable(): { sold: number; fruit: number } {
+  /** How many items in the pack banking at camp would sell, and how many store. */
+  private bankable(): { sold: number; stored: number } {
     let sold = 0;
     for (const kind of RESOURCE_KINDS) {
       if (RESOURCES[kind].atCamp === "gold") sold += this.inventory.count(kind);
     }
-    return { sold, fruit: this.inventory.count("fruit") };
+    return { sold, stored: this.inventory.items - sold };
+  }
+
+  /**
+   * The store the player is standing at, or null for standing nowhere in
+   * particular.
+   *
+   * Camp is a cache that is already built and that also sells, so the panel
+   * has one thing to learn and three places it works. `sells` is the whole
+   * difference: a cache cannot turn a shell into gold, so at a cache a shell
+   * is an ordinary item.
+   */
+  transferTarget(): Transfer | null {
+    if (this.atCamp) {
+      return { at: "camp", x: this.camp.x, y: this.camp.y, store: this.store, sells: true };
+    }
+    const cache = nearestSpringWithin(this.caches, this.player.x, this.player.y);
+    if (!cache) return null;
+    return { at: "cache", x: cache.x, y: cache.y, store: cache.contents, sells: false };
+  }
+
+  /**
+   * Open the transfer panel where the player stands, and say so in the log.
+   *
+   * Opening at camp banks the pure sellables first. Feathers, ore and shells
+   * are sold the moment they reach camp and there is no decision in them, so
+   * they are never a line in the panel -- and they would be stranded in the
+   * pack if the panel were the only thing the hold did.
+   */
+  private openTransfer(): void {
+    const target = this.transferTarget();
+    if (!target) return;
+    if (target.sells) {
+      const { sold, gold } = this.inventory.sell();
+      if (sold > 0) this.record({ type: "deposited", sold, stored: 0, gold });
+    }
+    this.record({ type: "transferOpened", where: target.at, x: target.x, y: target.y });
+  }
+
+  /**
+   * Move up to `n` of `kind` out of the pack and into `target`. Returns how
+   * many moved, which is all of it or all there was.
+   */
+  putAway(target: Transfer, kind: ResourceKind, n: number): number {
+    const moved = Math.min(n, this.inventory.count(kind));
+    if (moved <= 0) return 0;
+    this.inventory.remove(kind, moved);
+    if (target.sells && RESOURCES[kind].atCamp === "gold") {
+      const gold = moved * RESOURCES[kind].price;
+      this.inventory.gold += gold;
+      this.record({ type: "deposited", sold: moved, stored: 0, gold });
+      return moved;
+    }
+    target.store.add(kind, moved);
+    this.record({ type: "putAway", kind, n: moved });
+    return moved;
+  }
+
+  /**
+   * Move up to `n` of `kind` out of `target` and into the pack. Returns how
+   * many moved, which is zero when a bulky log will not fit -- the panel says
+   * so rather than taking half a log.
+   */
+  takeOut(target: Transfer, kind: ResourceKind, n: number): number {
+    const want = Math.min(n, target.store.count(kind));
+    const moved = this.inventory.add(kind, want);
+    if (moved <= 0) return 0;
+    target.store.remove(kind, moved);
+    this.record({ type: "tookOut", kind, n: moved });
+    return moved;
+  }
+
+  /**
+   * The kind the drop key would throw away, or null with an empty pack.
+   *
+   * Reading it settles it: when the selected kind runs out the selection falls
+   * to whichever kind now takes the most slots, so the readout always names
+   * something that is actually in the pack.
+   */
+  get dropKind(): ResourceKind | null {
+    if (this.selected && this.inventory.count(this.selected) > 0) return this.selected;
+    let best: ResourceKind | null = null;
+    let bestSlots = 0;
+    for (const kind of RESOURCE_KINDS) {
+      const slots = this.inventory.count(kind) * RESOURCES[kind].slots;
+      if (slots > bestSlots) {
+        best = kind;
+        bestSlots = slots;
+      }
+    }
+    this.selected = best;
+    return best;
+  }
+
+  /** Move the selection on to the next kind the pack holds, wrapping round. */
+  cycleDropKind(): void {
+    const kinds = RESOURCE_KINDS.filter((kind) => this.inventory.count(kind) > 0);
+    if (kinds.length === 0) return;
+    const at = kinds.indexOf(this.dropKind!);
+    this.selected = kinds[(at + 1) % kinds.length]!;
+  }
+
+  /**
+   * Throw every item of the selected kind on the ground around the player.
+   *
+   * One item to a tile, spilling outward by ring, which keeps the scatter
+   * honest about how much was carried. Refusing a drop would be unthematic in
+   * a game about carrying things, so this only ever fails for want of ground:
+   * with none at all within {@link C.DROP_SPILL_RINGS}, it says so and nothing
+   * leaves the pack.
+   */
+  dropSelected(): void {
+    const kind = this.dropKind;
+    if (!kind) return;
+    const wanted = this.inventory.count(kind);
+    const tiles = this.spillTiles(wanted);
+    if (tiles.length === 0) {
+      this.blocked("noRoomToDrop");
+      return;
+    }
+    for (const tile of tiles) {
+      this.inventory.remove(kind, 1);
+      this.dropped.push({ kind, x: tile.x, y: tile.y });
+    }
+    this.record({ type: "dropped", kind, n: tiles.length });
+  }
+
+  /**
+   * Up to `n` tiles a dropped item may land on, nearest first: the player's
+   * own tile, then the rings around it out to `DROP_SPILL_RINGS`.
+   *
+   * Reading order within a ring, so a drop of the same load from the same spot
+   * always scatters the same way.
+   */
+  private spillTiles(n: number): TileRef[] {
+    const found: TileRef[] = [];
+    const cx = Math.floor(this.player.x);
+    const cy = Math.floor(this.player.y);
+    for (let r = 0; r <= C.DROP_SPILL_RINGS && found.length < n; r++) {
+      for (let y = cy - r; y <= cy + r && found.length < n; y++) {
+        for (let x = cx - r; x <= cx + r && found.length < n; x++) {
+          // Only the ring itself: the inside of it was walked on the last pass.
+          if (Math.max(Math.abs(x - cx), Math.abs(y - cy)) !== r) continue;
+          if (this.freeToDrop(x, y)) found.push({ x, y });
+        }
+      }
+    }
+    return found;
+  }
+
+  /** Open ground with nothing already on it, and nothing already dropped. */
+  private freeToDrop(x: number, y: number): boolean {
+    if (!this.map.isPassable(x, y, this.player.z)) return false;
+    if (this.dropped.some((d) => d.x === x && d.y === y)) return false;
+    return this.freeToBuild({ x, y });
   }
 
   /**
@@ -303,6 +529,12 @@ export class World {
     this.elapsedSec = 0;
     this.ended = false;
     for (const node of this.nodes) node.harvested = false;
+    // The three tiers of keeping, at the one moment they differ. The ground
+    // keeps nothing over a winter; a cache keeps everything but fruit, which
+    // rots wherever it is left; the store at camp keeps the lot, and is the
+    // only place a fruit becomes winter food.
+    this.dropped.length = 0;
+    for (const cache of this.caches) cache.contents.clear("fruit");
     this.stats.startSummer();
     this.player.x = this.camp.x;
     this.player.y = this.camp.y;
@@ -318,6 +550,7 @@ export class World {
     // A press held across the end of a summer is spent; the new one starts on
     // a fresh press, not mid-cut.
     this.interactSpent = true;
+    this.pendingTap = null;
     this.record({ type: "summerStarted", year: this.year });
     this.grant();
   }
@@ -326,10 +559,10 @@ export class World {
   availableAction(): Action | null {
     const { x, y, z } = this.player;
     const atCamp = withinReach(x, y, this.camp);
-    const { sold, fruit } = this.bankable();
+    const { sold, stored } = this.bankable();
     // Banking wins at camp, but only when there is something to bank, so a
     // node next to the camp is still harvestable with an empty pack.
-    if (atCamp && sold + fruit > 0) return { type: "deposit", sold, fruit, blocked: null };
+    if (atCamp && sold + stored > 0) return { type: "deposit", sold, stored, blocked: null };
 
     // The same at a cache, which takes everything, so it wins while there is
     // anything in the pack at all.
@@ -352,6 +585,16 @@ export class World {
       if (spring) return { type: "drink", x: spring.x, y: spring.y, blocked: null };
     }
 
+    // Picking one up comes after picking a node and after a drink, so standing
+    // on what you just dropped stops neither: the fruit you dropped it for is
+    // still harvested with the same key. It is a tap, not a hold -- gathering
+    // is prying a vine out of the mud, picking up is bending down.
+    const item = nearestSpringWithin(this.dropped, x, y);
+    if (item) {
+      const blocked = this.inventory.fits(item.kind) ? null : "backpackFull";
+      return { type: "pickUp", item, blocked };
+    }
+
     // Fetching comes after picking, so a node beside a full cache can still be
     // picked into an empty pack.
     if (cache && cache.contents.items > 0) {
@@ -367,7 +610,7 @@ export class World {
     // walls it in can still be picked up. They act only on the tile ahead.
     const ahead = tileAhead(this.map, x, y, this.player.heading, z);
     return (ahead && this.toolAction(ahead)) ??
-      (atCamp ? { type: "deposit", sold: 0, fruit: 0, blocked: "nothingToBank" } : null);
+      (atCamp ? { type: "deposit", sold: 0, stored: 0, blocked: "nothingToBank" } : null);
   }
 
   /**
@@ -406,8 +649,19 @@ export class World {
   private buildAction(ahead: TileRef): Action | null {
     const build = this.buildMode;
     if (!build) return null;
-    const { x, y } = ahead;
-    return { type: BUILD_ACTION[build], x, y, blocked: this.refusal(build, ahead) };
+    const spot = { x: ahead.x, y: ahead.y, blocked: this.refusal(build, ahead) };
+    // Written out one arm at a time rather than as one literal with
+    // `BUILD_ACTION[build]` for its type: two union-typed fields in one object
+    // literal make a cross product that tsc stops normalising past 25 cases,
+    // and `blocked` has enough reasons in it now to cross that line.
+    switch (BUILD_ACTION[build]) {
+      case "build":
+        return { type: "build", ...spot };
+      case "dig":
+        return { type: "dig", ...spot };
+      case "cache":
+        return { type: "cache", ...spot };
+    }
   }
 
   /** Why `build` cannot go on the tile ahead, or null if it can. */
@@ -484,6 +738,7 @@ export class World {
     this.player.y = y;
     this.player.moving = false;
     this.stopHarvesting();
+    this.pendingTap = null;
     return true;
   }
 
@@ -516,7 +771,8 @@ export class World {
     if (this.ended) return;
     this.movePlayer(dt, input);
     this.interact(dt, input);
-    this.held = { interact: input.interact };
+    this.drops(input);
+    this.held = { interact: input.interact, drop: input.drop, dropSwitch: input.dropSwitch };
     if (!this.frozen) {
       this.stats.step(dt);
       this.elapsedSec = Math.min(this.elapsedSec + dt, C.SUMMER_LENGTH_SEC);
@@ -533,20 +789,41 @@ export class World {
   }
 
   /**
-   * Everything on the interact key: picking, drinking, cutting, bridging,
-   * dropping off.
+   * The two drop keys, both one-shot: one throws the selected kind on the
+   * ground, the other moves the selection on. They work wherever the player
+   * stands, so being full in a field with nothing to spend on is one key
+   * rather than a mode with keys of its own.
+   */
+  private drops(input: InputState): void {
+    if (input.dropSwitch && !this.held.dropSwitch) this.cycleDropKind();
+    if (input.drop && !this.held.drop) this.dropSelected();
+  }
+
+  /**
+   * Everything on the interact key: picking, picking up, drinking, cutting,
+   * bridging, banking.
    *
-   * Four of the five are holds, and they are all the same shape. Progress
-   * builds while the key is down and the same thing stays in reach, and is
-   * thrown away the moment either stops being true -- walking away mid-cut
-   * loses the cut, which is what makes the timer a cost rather than a
-   * formality. Dropping off is the exception and is a tap, because there is
-   * nothing to feel your way through.
+   * The holds are all the same shape. Progress builds while the key is down
+   * and the same thing stays in reach, and is thrown away the moment either
+   * stops being true -- walking away mid-cut loses the cut, which is what
+   * makes the timer a cost rather than a formality.
+   *
+   * The three transfers are the odd ones: the tap banks and the hold opens the
+   * panel, which are different things on the one key, so the tap waits for the
+   * release. A quick arrival still reads as one press.
    */
   private interact(dt: number, input: InputState): void {
     if (!input.interact) {
+      // Let go before the panel opened: the transfer that was waiting happens
+      // now.
+      const tap = this.pendingTap;
+      this.pendingTap = null;
       this.interactSpent = false;
       this.stopHarvesting();
+      if (tap) {
+        if (tap.blocked) this.blocked(tap.blocked);
+        else this.tap(tap as Action & { type: "deposit" | "stash" | "fetch" });
+      }
       return;
     }
     if (this.interactSpent) {
@@ -558,15 +835,31 @@ export class World {
     const action = this.availableAction();
 
     if (!action) {
+      // Walked away mid-hold: the transfer goes with the progress.
+      this.pendingTap = null;
       this.stopHarvesting();
       return;
     }
 
     if (action.type === "deposit" || action.type === "stash" || action.type === "fetch") {
+      // Held on to, rather than done now. A blocked one is held on to as well,
+      // because an empty pack at camp is still a store worth opening.
+      this.pendingTap = action;
+      if (this.hold(dt, action) < 1) return;
+      this.pendingTap = null;
+      this.interactSpent = true;
+      this.openTransfer();
+      this.stopHarvesting();
+      return;
+    }
+
+    this.pendingTap = null;
+
+    if (action.type === "pickUp") {
       if (!pressed) return;
       this.interactSpent = true;
       if (action.blocked) this.blocked(action.blocked);
-      else this.tap(action);
+      else this.pickUp(action.item);
       return;
     }
 
@@ -580,24 +873,34 @@ export class World {
       return;
     }
 
-    // A key identifying what is being held, so that switching target -- to
-    // another node, or to the next thicket tile along -- starts the hold over
-    // instead of inheriting the last one's progress.
-    // The type is part of it, so two kinds of hold aimed at one tile could never
-    // finish on each other's progress.
-    const key =
-      action.type === "harvest"
-        ? `node:${action.node.id}`
-        : `${action.type}:${action.x},${action.y}`;
+    if (this.hold(dt, action) < 1) return;
+
+    this.complete(action);
+    this.stopHarvesting();
+  }
+
+  /**
+   * Carry one tick of a hold on `key`, and report how far through it is.
+   *
+   * Switching target -- to another node, or to the next thicket tile along --
+   * starts the hold over instead of inheriting the last one's progress.
+   */
+  private hold(dt: number, action: Action): number {
+    const key = holdKeyFor(action);
     if (this.holdKey !== key) {
       this.holdKey = key;
       this.harvestProgress = 0;
     }
     this.harvestProgress += dt / HOLD_TIME[action.type];
-    if (this.harvestProgress < 1) return;
+    return this.harvestProgress;
+  }
 
-    this.complete(action);
-    this.stopHarvesting();
+  /** Take one dropped item off the ground and into the pack. */
+  private pickUp(item: Dropped): void {
+    const at = this.dropped.indexOf(item);
+    if (at < 0 || this.inventory.add(item.kind) === 0) return;
+    this.dropped.splice(at, 1);
+    this.record({ type: "pickedUp", kind: item.kind });
   }
 
   /** Carry out a tap: banking at camp, or putting into or taking out of a cache. */
@@ -667,6 +970,7 @@ export class World {
       case "deposit":
       case "stash":
       case "fetch":
+      case "pickUp":
         return;
     }
   }

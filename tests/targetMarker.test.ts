@@ -26,7 +26,7 @@ describe("targetTile", () => {
 
   it("marks nothing for harvesting or banking, which stand somewhere visible", () => {
     expect(targetTile({ type: "harvest", node, blocked: null })).toBeNull();
-    expect(targetTile({ type: "deposit", sold: 3, fruit: 0, blocked: null })).toBeNull();
+    expect(targetTile({ type: "deposit", sold: 3, stored: 0, blocked: null })).toBeNull();
     expect(targetTile({ type: "stash", x: 2, y: 2, items: 3, blocked: null })).toBeNull();
     expect(targetTile({ type: "drink", x: 2, y: 2, blocked: null })).toBeNull();
     expect(targetTile(null)).toBeNull();
