@@ -83,18 +83,26 @@ supplied. Bridges and wells are not structures.
 ## The list
 
 Every line of upkeep, every item in the shop, frosted ones included, and the
-family's next level has a box beside it, ticked by default. The ticked lines
-are the list the next summer carries in a corner of the HUD: what the player
-means to bring home. Where there is only one way to go, as in the first
-winter, the player never needs to touch a box; where there are several, the
-boxes are how they choose.
+family's next level has a box beside it, ticked by default. What a level
+reached this winter opens has a box even in the first winter, where there
+is no shop to show it: it sits under the line announcing the level, so
+reaching level 1 puts the axe on summer 2's list. The ticked lines
+are the list the next summer carries across the top of the screen, one box
+per line: what the player means to bring home. Where there is only one way
+to go, as in the first winter, the player never needs to touch a box; where
+there are several, the boxes are how they choose.
 
-The list is filled from the top, by what is at camp: food in fruit, then
-rent, then each ticked item, then the family's next level. Money is one pot,
-so a line is done when everything above it is covered and it is too. An
-item's material is counted in kind, the axe's sticks as sticks. Gold is
-counted from what sells at camp, and selling building material does not
-tick anything: it is not meant to be the way to earn.
+The list is filled from the top: food in fruit, then rent, then each ticked
+item, then the family's next level. Money is one pot, taken in that order.
+An item's material is counted in kind, the axe's sticks as sticks. Gold is
+counted from the money gathered, feathers and shells at what winter will
+sell them for, and a gold amount says what it is in feathers: rent is 10
+gold, which is 10 feathers. Selling building material does not tick
+anything: it is not meant to be the way to earn.
+
+Every line is measured twice: what has been collected, in the pack or at
+camp, and what of it is back at camp. A line whose every amount is at camp
+is done, and its box goes.
 
 The first summer's list is the same thing with no shop: food, rent, and the
 family's first level. It is the one piece of steering a new player gets, and

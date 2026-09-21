@@ -1,5 +1,6 @@
 import type { IconName, Icons } from "../render/packs/icons.ts";
-import type { ShopItemId } from "../sim/shop.ts";
+import { lineKey, offeredLines } from "../sim/list.ts";
+import type { ShopItem, ShopItemId } from "../sim/shop.ts";
 import type { ResourceKind } from "../sim/types.ts";
 import {
   canHoldBack,
@@ -10,19 +11,20 @@ import {
   type StoreLine,
   type WinterInput,
 } from "../sim/winter.ts";
-import { need } from "./hud.ts";
+import type { SummerSummary } from "../sim/summary.ts";
+import { need, summaryRows } from "./hud.ts";
 
 /**
  * The winter screen: the one place between two summers.
  *
- * It owns nothing but the player's choices -- what to keep, what to buy --
- * and hands them to `sim/winter.ts`, which works out every number on it. The
- * screen redraws from the model after each click, so what a choice costs is
- * read off the same arithmetic that will be applied when the summer starts.
+ * It owns nothing but the player's choices -- what to keep, what to buy, and
+ * which lines go on next summer's list -- and hands them to `sim/winter.ts`,
+ * which works out every number on it. The screen redraws from the model after
+ * each click, so what a choice costs is read off the same arithmetic the world
+ * applies when the summer starts.
  *
  * There is no clock here. Nothing on this screen is timed, and nothing about
- * winter was announced during the summer except the two numbers the HUD
- * carried all along: what winter needs, and what the store holds.
+ * winter was announced during the summer except the list made here.
  */
 export class WinterScreen {
   private readonly root: HTMLElement;
@@ -43,9 +45,19 @@ export class WinterScreen {
   private readonly balance: HTMLElement;
   private readonly next: HTMLButtonElement;
   private readonly warning: HTMLElement;
+  private readonly saveUrl: HTMLInputElement;
+  private readonly saveCopy: HTMLButtonElement;
+  private readonly detailsTitle: HTMLElement;
+  private readonly stats: HTMLElement;
 
   private input: WinterInput;
-  private onNext: () => void = () => {};
+  /**
+   * The list's lines the player has unticked, by {@link lineKey}. Kept as the
+   * exceptions because every box starts ticked, including one that appears
+   * later -- a frosted item the family reaches only once the axe is undone.
+   */
+  private unticked = new Set<string>();
+  private onNext: (input: WinterInput, ticked: ReadonlySet<string>) => void = () => {};
 
   /**
    * @param icons The map's own art, cut out for the HUD. Null draws the rows
@@ -74,25 +86,98 @@ export class WinterScreen {
     this.balance = need(root, "#winter-balance");
     this.next = need(root, "#winter-next");
     this.warning = need(root, "#winter-warning");
-    this.next.onclick = () => this.onNext();
+    this.saveUrl = need(root, "#winter-save-url");
+    this.saveCopy = need(root, "#winter-save-copy");
+    this.detailsTitle = need(root, "#winter-details-title");
+    this.stats = need(root, "#summary-stats");
+    this.saveCopy.onclick = () => this.copySave();
+    this.next.onclick = () => {
+      this.next.blur();
+      this.onNext(this.input, this.ticked);
+    };
     this.input = EMPTY;
   }
 
-  /** Put the screen up on what the summer left behind. */
-  show(input: WinterInput, onNext: () => void): void {
+  /**
+   * Put the screen up on what the summer left behind. `onNext` gets what was
+   * chosen, and the keys of the lines ticked for next summer's list.
+   * `summary` is the summer in numbers, and `saveUrl` a link that opens this
+   * winter again.
+   */
+  show(
+    input: WinterInput,
+    onNext: (input: WinterInput, ticked: ReadonlySet<string>) => void,
+    summary: SummerSummary,
+    saveUrl: string,
+  ): void {
     this.input = input;
+    this.unticked = new Set();
     this.onNext = onNext;
+    this.saveUrl.value = saveUrl;
+    this.saveCopy.textContent = "Copy link";
+    this.detailsTitle.textContent = `Summer ${summary.year} in numbers`;
+    this.stats.replaceChildren(
+      ...summaryRows(summary).flatMap(([label, value, isGold]) => {
+        const dt = document.createElement("dt");
+        dt.textContent = label;
+        const dd = document.createElement("dd");
+        dd.textContent = value;
+        if (isGold) dd.className = "gold";
+        return [dt, dd];
+      }),
+    );
     this.root.hidden = false;
     this.draw();
+  }
+
+  /**
+   * Put the save link on the clipboard, and say so on the button. Selecting
+   * the field is the fallback where the clipboard is refused, as it is on a
+   * page not served over https or localhost.
+   */
+  private copySave(): void {
+    this.saveUrl.select();
+    const done = () => (this.saveCopy.textContent = "Copied");
+    navigator.clipboard?.writeText(this.saveUrl.value).then(done, () => {
+      this.saveCopy.textContent = "Selected, copy with Ctrl+C";
+    }) ?? done();
   }
 
   hide(): void {
     this.root.hidden = true;
   }
 
+  get isOpen(): boolean {
+    return !this.root.hidden;
+  }
+
   /** What the player has chosen so far, for measuring from a driver. */
   get choices(): WinterInput {
     return this.input;
+  }
+
+  /** The lines on offer for next summer's list that are ticked right now. */
+  get ticked(): ReadonlySet<string> {
+    const keys = offeredLines(winterModel(this.input)).map(lineKey);
+    return new Set(keys.filter((key) => !this.unticked.has(key)));
+  }
+
+  /**
+   * A box for one line of next summer's list. Ticked unless the player said
+   * otherwise; a click changes only the list, so nothing else is redrawn.
+   */
+  private tick(key: string): HTMLInputElement {
+    const box = document.createElement("input");
+    box.type = "checkbox";
+    box.className = "w-tick";
+    box.dataset.line = key;
+    box.checked = !this.unticked.has(key);
+    box.title = "On next summer's list";
+    box.onchange = () => {
+      if (box.checked) this.unticked.delete(key);
+      else this.unticked.add(key);
+    };
+    return box;
   }
 
   private change(patch: Partial<WinterInput>): void {
@@ -127,7 +212,7 @@ export class WinterScreen {
   private draw(): void {
     const m = winterModel(this.input);
 
-    text(this.year, `Winter year ${m.year}`);
+    text(this.year, `Winter ${m.year}`);
 
     // Two lists, because they are two different things: what is only ever
     // money, and what a bridge or a cart is made of. The second one has the
@@ -153,10 +238,16 @@ export class WinterScreen {
     // Both food lines are always drawn, a zero included: what the store
     // covered and what the town had to make up are the same question every
     // winter, and the answer moves between them.
+    // The two lines that come round every winter carry the list's first two
+    // boxes: food on the food, rent on the rent.
+    const food = this.foodRow("food hauled", `${f.fromStore} of ${f.needed}`, 0);
+    food.firstElementChild!.prepend(this.tick("food"));
+    const rent = row("Rent", this.gold(-u.gold));
+    rent.firstElementChild!.prepend(this.tick("rent"));
     this.upkeep.replaceChildren(
-      this.foodRow("food hauled", `${f.fromStore} of ${f.needed}`, 0),
+      food,
       this.foodRow("food bought", `${f.bought} ×`, -f.cost, f.buyPrice),
-      row("Household", this.gold(-u.gold)),
+      rent,
       ...(u.away ? [row("Home late", this.gold(-u.away))] : []),
     );
 
@@ -195,7 +286,10 @@ export class WinterScreen {
     // the rule it hangs from both go.
     this.town.hidden = !m.family.shopOpen;
     this.townRule.hidden = !m.family.shopOpen;
-    this.shopList.replaceChildren(...m.shop.map((line) => this.shopRow(line)));
+    this.shopList.replaceChildren(
+      ...m.shop.map((line) => this.shopRow(line)),
+      ...m.frosted.map((item) => this.frostedRow(item)),
+    );
     this.spend.replaceChildren(this.purseLine(m.purse));
 
     // The family, as a move: where they stood when the summer ended, what
@@ -221,12 +315,19 @@ export class WinterScreen {
       of = span("w-of", "");
       of.append(this.gold(fam.nextAt));
     }
-    this.familyFinal.replaceChildren(familyRow("Final wealth", this.gold(fam.total), of));
+    const final = familyRow("Final wealth", this.gold(fam.total), of);
+    // The family's next level is the list's last line, so its box goes on the
+    // row that says how far off it is.
+    if (fam.nextAt !== null) final.firstElementChild!.prepend(this.tick("level"));
+    this.familyFinal.replaceChildren(final);
     // Only what this winter bought: a level announces itself the year it is
     // reached and then stops being news.
     this.familyTotal.replaceChildren(
       meterRow(`Final level: ${fam.level}`, "", fam.progress, true),
       ...fam.gained.map((g) => note(`level ${g.level}: ${g.unlocks}`, "is-gained")),
+      // With no shop yet there is no frosted row to hang a box on, so what the
+      // new level opens gets its box here, under the line that announces it.
+      ...(fam.shopOpen ? [] : m.unlocked.map((item) => this.unlockedRow(item))),
     );
   }
 
@@ -407,6 +508,10 @@ export class WinterScreen {
     const price = document.createElement("div");
     price.className = "w-shop-price";
     price.append(this.costLine(line));
+    // Not bought yet, so it can go on next summer's list.
+    if (!line.bought && line.item.kind === "buy") {
+      li.append(this.tick(lineKey({ kind: "item", id: line.item.id })));
+    }
     li.append(what, price);
 
     if (line.item.kind === "recipe") {
@@ -425,6 +530,45 @@ export class WinterScreen {
       if (missing) buy.title = missing;
       li.append(buy);
     }
+    return li;
+  }
+
+  /**
+   * An item the new level opens, in the first winter, where there is no shop
+   * to show it: its name, its price, and its box on next summer's list.
+   */
+  private unlockedRow(item: ShopItem): HTMLElement {
+    const li = document.createElement("li");
+    li.className = "w-level-note w-unlocked";
+    li.dataset.item = item.id;
+    li.append(
+      this.tick(lineKey({ kind: "item", id: item.id })),
+      span("w-shop-name", `${item.name}, next winter:`),
+      this.costLine({ item, bought: false, affordable: false, shortGold: 0, shortMaterials: {} }),
+    );
+    return li;
+  }
+
+  /**
+   * What the level reached this winter unlocks, at its price, behind frost:
+   * not for sale until next winter, and what next summer aims at. It has a
+   * box like any other line, and no button.
+   */
+  private frostedRow(item: ShopItem): HTMLElement {
+    const li = document.createElement("li");
+    li.className = "w-shop-row is-frosted";
+    li.dataset.item = item.id;
+    li.dataset.frosted = "1";
+    const what = document.createElement("div");
+    what.className = "w-shop-what";
+    what.append(span("w-shop-name", item.name));
+    const price = document.createElement("div");
+    price.className = "w-shop-price";
+    price.append(
+      this.costLine({ item, bought: false, affordable: false, shortGold: 0, shortMaterials: {} }),
+    );
+    const box = this.tick(lineKey({ kind: "item", id: item.id }));
+    li.append(box, what, price, span("w-shop-frost", "next winter"));
     return li;
   }
 }
@@ -538,7 +682,6 @@ function text(el: HTMLElement, s: string): void {
 const EMPTY: WinterInput = {
   year: 1,
   store: {},
-  gold: 0,
   awayAtEnd: false,
   keep: {},
   stock: [],

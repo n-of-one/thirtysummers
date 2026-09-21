@@ -6,17 +6,13 @@ import type { World } from "./world.ts";
 export interface SummerSummary {
   /** Which summer this was, counting from 1. */
   year: number;
-  /** The score: gold banked at camp, across every summer so far. */
-  gold: number;
   /** Nodes picked, by kind. */
   harvested: Record<ResourceKind, number>;
   /** Drinks at a spring. */
   drinks: number;
-  /** Fruit in the store at camp, across every summer so far. */
+  /** Fruit at camp, across every summer so far. */
   fruitStored: number;
-  /** Items still in the backpack when the summer ended, sold there and then. */
-  soldAtEnd: number;
-  /** ...and the rest of that pack, which went into the store. */
+  /** Items still in the backpack when the summer ended, which went to camp. */
   storedAtEnd: number;
   /** Items thrown on the ground, wherever they were left. */
   dropped: number;
@@ -26,9 +22,7 @@ export interface SummerSummary {
   tilesCut: number;
   bridgesBuilt: number;
   saplingsFelled: number;
-  /** Wells dug and caches built. */
   wellsDug: number;
-  cachesBuilt: number;
   /** Tiles covered on foot. */
   distanceWalked: number;
 }
@@ -55,9 +49,9 @@ export function summerStartsAt(events: readonly WorldEvent[]): number {
  * a harvest is recorded, and no second set of counters to drift out of step
  * with it.
  *
- * Gold and the stored fruit are the exceptions, read from the inventory and the
- * store: they carry across summers, and the log would only ever say how much
- * was banked since the summer began.
+ * The fruit at camp is the exception, read from camp: it carries across
+ * summers, and the log would only ever say how much was banked since the
+ * summer began.
  */
 export function summarise(world: World): SummerSummary {
   const harvested = Object.fromEntries(RESOURCE_KINDS.map((k) => [k, 0])) as Record<
@@ -69,8 +63,6 @@ export function summarise(world: World): SummerSummary {
   let bridgesBuilt = 0;
   let saplingsFelled = 0;
   let wellsDug = 0;
-  let cachesBuilt = 0;
-  let soldAtEnd = 0;
   let storedAtEnd = 0;
   let dropped = 0;
   let endedAway = false;
@@ -84,11 +76,9 @@ export function summarise(world: World): SummerSummary {
     else if (event.type === "built") bridgesBuilt++;
     else if (event.type === "felled") saplingsFelled++;
     else if (event.type === "dug") wellsDug++;
-    else if (event.type === "cached") cachesBuilt++;
     else if (event.type === "dropped") dropped += event.n;
     else if (event.type === "pickedUp") dropped--;
     else if (event.type === "summerEnded") {
-      soldAtEnd = event.sold;
       storedAtEnd = event.stored;
       endedAway = event.away;
     }
@@ -96,11 +86,9 @@ export function summarise(world: World): SummerSummary {
 
   return {
     year: world.year,
-    gold: world.inventory.gold,
     fruitStored: world.store.count("fruit"),
     harvested,
     drinks,
-    soldAtEnd,
     storedAtEnd,
     // What is still lying out there when the summer closes: dropped, less
     // whatever was picked back up.
@@ -110,7 +98,6 @@ export function summarise(world: World): SummerSummary {
     bridgesBuilt,
     saplingsFelled,
     wellsDug,
-    cachesBuilt,
     distanceWalked: world.player.distanceWalked,
   };
 }

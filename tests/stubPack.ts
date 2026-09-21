@@ -50,7 +50,6 @@ export class StubPack implements AssetPack {
   readonly camp = stubProp();
   readonly spring = stubProp();
   readonly well = stubProp();
-  readonly cache = stubProp();
 
   readonly playerAnchor = { x: 0.5, y: 1 };
   readonly playerBounds: Bounds = { left: -0.4, top: -2, right: 0.4, bottom: 0 };

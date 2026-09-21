@@ -1,7 +1,7 @@
 import * as C from "../config.ts";
 import type { Amounts } from "./inventory.ts";
-import { RESOURCE_KINDS, RESOURCES } from "./resources.ts";
-import { SHOP_BY_ID, type ShopItem, type ShopItemId } from "./shop.ts";
+import { isMaterial, RESOURCE_KINDS, RESOURCES } from "./resources.ts";
+import { SHOP, SHOP_BY_ID, type ShopItem, type ShopItemId } from "./shop.ts";
 import type { ResourceKind } from "./types.ts";
 
 /**
@@ -18,10 +18,11 @@ import type { ResourceKind } from "./types.ts";
 export interface WinterInput {
   /** The summer that just ended, counting from 1. */
   year: number;
-  /** The store: everything banked, and everything carried when the clock stopped. */
+  /**
+   * Camp: everything banked, and everything carried when the clock stopped.
+   * There is no gold in hand: camp sells nothing, and everything is sold here.
+   */
   store: Amounts;
-  /** Gold already in hand. */
-  gold: number;
   /** The summer ended out of reach of camp, which costs gold. */
   awayAtEnd: boolean;
   /** How many of each kind the player holds back from the sale. */
@@ -42,7 +43,7 @@ export interface WinterInput {
  * a shell are only ever money, so there is nothing to decide about them and
  * no control on their line. A stick, a vine and a log are what bridges, wells
  * and carts are made of, so how many of them to sell is the one choice on
- * this half of the screen. Which is which comes from `atCamp` in the resource
+ * this half of the screen. Which is which comes from `use` in the resource
  * table, not from a second list here.
  */
 export interface StoreLine {
@@ -173,11 +174,25 @@ export interface WinterModel {
   sales: number;
   food: Food;
   upkeep: Upkeep;
-  /** Gold in hand plus the sale. */
+  /** What the sale makes, which is all the gold a winter has. */
   income: number;
   /** ...less the upkeep. */
   afterUpkeep: number;
   shop: ShopLine[];
+  /**
+   * What the level reached by the end of this winter unlocks, shown at its
+   * price to be bought next winter. Moves as the player buys and undoes,
+   * because buying lowers what the family is given. Empty while the shop is
+   * closed: the first winter shows no shop, frosted or not.
+   */
+  frosted: ShopItem[];
+  /**
+   * The same, whether or not the shop is open: what the family's level at the
+   * end of this winter opens for next winter. It is what next summer aims at,
+   * so it goes on the list even in the first winter, where there is no shop to
+   * show it in.
+   */
+  unlocked: ShopItem[];
   /** Gold spent in the shop. */
   spent: number;
   /**
@@ -206,7 +221,7 @@ const amount = (a: Amounts, kind: ResourceKind): number => a[kind] ?? 0;
 export function initialKeep(store: Amounts): Amounts {
   const keep: Amounts = {};
   for (const kind of RESOURCE_KINDS) {
-    if (RESOURCES[kind].material) keep[kind] = amount(store, kind);
+    if (isMaterial(kind)) keep[kind] = amount(store, kind);
   }
   return keep;
 }
@@ -239,7 +254,7 @@ export function canHoldBack(input: WinterInput, kind: ResourceKind): boolean {
  * for the caller to put back into its input.
  */
 export function sellToCover(input: WinterInput): Amounts {
-  const byPrice = RESOURCE_KINDS.filter((kind) => RESOURCES[kind].material).sort(
+  const byPrice = RESOURCE_KINDS.filter(isMaterial).sort(
     (a, b) => RESOURCES[a].price - RESOURCES[b].price,
   );
   let keep = { ...input.keep };
@@ -295,7 +310,7 @@ export function winterModel(input: WinterInput): WinterModel {
       sold,
       price,
       gold: sold * price,
-      material: RESOURCES[kind].material,
+      material: isMaterial(kind),
       committed: Math.min(have, amount(committed, kind)),
       committedTo: committedTo[kind] ?? [],
     });
@@ -304,7 +319,7 @@ export function winterModel(input: WinterInput): WinterModel {
 
   const away = input.awayAtEnd ? C.AWAY_GOLD_CHARGE : 0;
   const total = C.UPKEEP_GOLD + away + food.cost;
-  const income = input.gold + sales;
+  const income = sales;
   const upkeep: Upkeep = {
     gold: C.UPKEEP_GOLD,
     away,
@@ -322,6 +337,9 @@ export function winterModel(input: WinterInput): WinterModel {
     shopLine(SHOP_BY_ID[id], input, afterUpkeep - spent, committed),
   );
   const left = Math.max(0, afterUpkeep - spent);
+  const family = familyFrom(input.familySurplus, left);
+  const unlocked = SHOP.filter((it) => it.level > family.levelBefore && it.level <= family.level);
+  const frosted = family.shopOpen ? unlocked : [];
 
   return {
     year: input.year,
@@ -333,6 +351,8 @@ export function winterModel(input: WinterInput): WinterModel {
     income,
     afterUpkeep,
     shop,
+    frosted,
+    unlocked,
     spent,
     left,
     purse: {
@@ -343,7 +363,7 @@ export function winterModel(input: WinterInput): WinterModel {
           .map((line) => [line.kind, line.kept - line.committed]),
       ),
     },
-    family: familyFrom(input.familySurplus, left),
+    family,
   };
 }
 
@@ -414,8 +434,8 @@ function shopLine(
 
 /**
  * The family. Gold does not carry across winters: whatever is left is given,
- * and the levels are what the surplus adds up to over a life. A level does
- * nothing yet; it is there so the surplus means something.
+ * and the levels are what the surplus adds up to over a life. A level opens
+ * more of the shop.
  */
 function familyFrom(before: number, given: number): Family {
   const total = before + given;
@@ -424,7 +444,7 @@ function familyFrom(before: number, given: number): Family {
   const nextAt = level < C.FAMILY_LEVELS.length ? C.FAMILY_LEVELS[level]! : null;
   const gained: Gained[] = [];
   for (let l = levelBefore + 1; l <= level; l++) {
-    gained.push({ level: l, unlocks: FAMILY_UNLOCKS[l] ?? "" });
+    gained.push({ level: l, unlocks: unlocksAt(l) });
   }
   return {
     given,
@@ -443,7 +463,7 @@ function familyFrom(before: number, given: number): Family {
 }
 
 /** Levels a given total has paid for. */
-function levelAt(total: number): number {
+export function levelAt(total: number): number {
   let level = 0;
   while (level < C.FAMILY_LEVELS.length && total >= C.FAMILY_LEVELS[level]!) level++;
   return level;
@@ -458,21 +478,19 @@ function progressAt(total: number): number {
   return to > from ? (total - from) / (to - from) : 1;
 }
 
-/** [GUESS] The family level the town starts dealing with. */
+/** [DOC] The family level the town starts dealing with. */
 export const SHOP_FROM_LEVEL = 1;
 
 /**
- * What each level opens.
- *
- * [GUESS] all of it, and the whole idea: docs/design/winter.md says a level
- * does nothing yet and may later unlock tools. These are here so the line
- * that announces a level has something to announce -- what a level is worth
- * is not settled.
+ * What reaching a level opens, in words, for the line that announces it. Read
+ * off the shop's table, so a line added there is announced without a second
+ * list to keep in step.
  */
-export const FAMILY_UNLOCKS: Readonly<Record<number, string>> = {
-  1: "the shop opens next winter",
-  2: "the cart, in the shop",
-  3: "boots, in the shop",
-  4: "a bigger pack",
-  5: "a second pair of hands",
-};
+export function unlocksAt(level: number): string {
+  const items = SHOP.filter((it) => it.level === level).map((it) => `the ${it.name.toLowerCase()}`);
+  const shop = items.length > 0 ? `${items.join(" and ")} in the shop next winter` : "";
+  if (level === SHOP_FROM_LEVEL) {
+    return `the town will trade with you next winter${items.length > 0 ? `: ${items.join(" and ")}` : ""}`;
+  }
+  return shop || "nothing yet";
+}

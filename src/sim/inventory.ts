@@ -6,19 +6,18 @@ import type { ResourceKind } from "./types.ts";
 export type Amounts = Partial<Record<ResourceKind, number>>;
 
 /**
- * A container of resources, and the gold already banked at camp.
+ * A container of resources.
  *
  * The capacity is in slots, across every kind: the doc gives one number, ten,
- * and a bulky kind such as a log takes two of them. The store and a cache are
- * the same class with no capacity. Gold is not carried, so it does not count
- * against it.
+ * and a bulky kind such as a log takes two of them. Camp is the same class
+ * with no capacity. There is no gold in a summer: everything is sold in
+ * winter.
  */
 export class Inventory {
   private readonly counts = Object.fromEntries(RESOURCE_KINDS.map((k) => [k, 0])) as Record<
     ResourceKind,
     number
   >;
-  gold = 0;
 
   constructor(readonly capacity: number = C.BACKPACK_CAPACITY) {}
 
@@ -112,22 +111,5 @@ export class Inventory {
       moved += taken;
     }
     return moved;
-  }
-
-  /**
-   * Sell every item whose table entry says it sells at camp. Returns how many
-   * were sold and the gold it came to.
-   */
-  sell(): { sold: number; gold: number } {
-    let sold = 0;
-    let gold = 0;
-    for (const kind of RESOURCE_KINDS) {
-      if (RESOURCES[kind].atCamp !== "gold") continue;
-      sold += this.counts[kind];
-      gold += this.counts[kind] * RESOURCES[kind].price;
-      this.counts[kind] = 0;
-    }
-    this.gold += gold;
-    return { sold, gold };
   }
 }

@@ -175,13 +175,12 @@ export class PropLayer {
     playerTexture: Texture | null = null,
     dt = 0,
     springs: readonly Spring[] = [],
-    caches: readonly Vec2[] = [],
     dropped: readonly Dropped[] = [],
   ): void {
     const scrolled = this.window.moveTo(camera.leftPx, camera.topPx);
     if (scrolled || this.dirty) {
       this.dirty = false;
-      this.rebuild(camp, nodes, springs, caches, dropped);
+      this.rebuild(camp, nodes, springs, dropped);
     }
 
     this.container.x = this.window.offsetX;
@@ -259,7 +258,6 @@ export class PropLayer {
     camp: Vec2,
     nodes: readonly ResourceNode[],
     springs: readonly Spring[],
-    caches: readonly Vec2[],
     dropped: readonly Dropped[],
   ): void {
     this.used = 0;
@@ -270,7 +268,6 @@ export class PropLayer {
       camp,
       nodes,
       springs,
-      caches,
       dropped,
       this.z,
     )) {

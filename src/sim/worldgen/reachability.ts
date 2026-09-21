@@ -54,3 +54,20 @@ export function reachableFrom(
   }
   return seen;
 }
+
+/**
+ * The near ring: everything camp reaches without crossing water, walls and
+ * all. 1 for a tile inside it.
+ *
+ * Worked out from the map rather than remembered from the layout, so a
+ * hand-edited file keeps the rule that inside the first stream everything is
+ * back every year. Thicket, saplings and trees count as inside, since they are
+ * walls within the ring rather than its edge; a bridge counts as water, so a
+ * ring measured after the stream was crossed is still the same ring.
+ */
+export function nearRing(map: TileMap, camp: Vec2, z = 0): Uint8Array {
+  return reachableFrom(map, camp, z, (x, y) => {
+    const kind = map.get(x, y, z);
+    return kind !== "stream" && kind !== "bridge" && kind !== "rock";
+  });
+}

@@ -9,7 +9,6 @@ describe("Inventory", () => {
     expect(bag.carried).toBe(0);
     expect(bag.free).toBe(10);
     expect(bag.full).toBe(false);
-    expect(bag.gold).toBe(0);
   });
 
   it("counts every kind against the same ten slots", () => {
@@ -41,34 +40,6 @@ describe("Inventory", () => {
     expect(bag.remove("stick")).toBe(false);
   });
 
-  it("sells what sells at the drop-off, at the table's prices, and frees the slots", () => {
-    const bag = new Inventory();
-    bag.add("ore", 6);
-    bag.add("fruit", 2);
-    bag.add("stick", 1);
-    expect(bag.sell()).toEqual({ sold: 6, gold: 6 * RESOURCES.ore.price });
-    expect(bag.gold).toBe(6 * RESOURCES.ore.price);
-    expect(bag.count("ore")).toBe(0);
-    expect(bag.carried).toBe(3); // the fruit and the stick stay in the pack
-  });
-
-  it("keeps gold across drop-offs, and selling nothing earns nothing", () => {
-    const bag = new Inventory();
-    bag.add("ore", 3);
-    bag.sell();
-    expect(bag.sell()).toEqual({ sold: 0, gold: 0 });
-    bag.add("ore", 2);
-    bag.sell();
-    expect(bag.gold).toBe(5 * RESOURCES.ore.price);
-  });
-
-  it("does not count banked gold against the backpack", () => {
-    const bag = new Inventory();
-    bag.add("ore", 10);
-    bag.sell();
-    expect(bag.gold).toBe(10 * RESOURCES.ore.price);
-    expect(bag.free).toBe(10);
-  });
 });
 
 describe("slots", () => {

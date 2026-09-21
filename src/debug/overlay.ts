@@ -251,9 +251,11 @@ export class DebugOverlay {
       return;
     }
     if (!this.open) return;
+    // Escape belongs to the game -- it closes the transfer panel and the build
+    // menu -- so it never closes this one. Only the toggle does. It still lets
+    // go of the seed box, so the keys go back to the player.
     if (e.key === "Escape") {
-      this.setOpen(false);
-      if (document.activeElement instanceof HTMLElement) document.activeElement.blur();
+      if (typing && document.activeElement instanceof HTMLElement) document.activeElement.blur();
       return;
     }
     if (typing) return;

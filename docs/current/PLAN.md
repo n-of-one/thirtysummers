@@ -28,7 +28,7 @@ ore is out and shells behind the copse never come back; the cache is parked
 and the cart does its job; and a list the player ticks in winter steers the
 summer. [five-summers.md](five-summers.md) tells it as a story. M10 is now
 the first three years, so they are fun before anything is built on them.
-M10 is next.
+M10 is built and waiting for review.
 
 | Milestone | What it adds | Status |
 |---|---|---|
@@ -37,7 +37,7 @@ M10 is next.
 | QoL | a fixed view, the tile ahead for tools, the last minute with dusk, springs in the reeds, banking fruit, pause | done |
 | M9: the map | saplings, wells, caches, seven resources, the build menu, the layout pass | done |
 | The pack | camp as the first cache, the transfer panel, dropping a kind on the ground | done |
-| [M10: the first three years](m10-three-years.md) | the map for summers 1 to 3, the winter screen, the shop by family level, the list, the map between summers | next |
+| [M10: the first three years](m10-three-years.md) | the map for summers 1 to 3, the winter screen, the shop by family level, the list, the map between summers | in review |
 | [M11: the cart](m11-cart.md) | summer 4: the logistics experiment, and trails | not started |
 | [M12: planks and the well](m12-planks-well.md) | summer 5: planks on mud, the well, the dry pocket | not started |
 | [M13: fruit](m13-fruit.md) | eating a fruit for a burst of speed, in place of meals | not started |

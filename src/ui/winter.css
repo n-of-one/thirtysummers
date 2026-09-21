@@ -317,6 +317,19 @@
    summer aims at. */
 .w-shop-row.is-short { color: var(--ink-dim); }
 .w-shop-row.is-bought .w-shop-price { color: var(--w-green); }
+/* What the level reached this winter unlocks: at its price, to be bought next
+   winter, behind frost. */
+.w-shop-row.is-frosted { color: var(--ink-dim); background: rgba(190, 215, 235, 0.08); }
+.w-shop-row.is-frosted .w-shop-price { color: #9fb6c8; }
+.w-shop-frost { color: #9fb6c8; }
+
+/* The box that puts a line on next summer's list. */
+.w-tick { accent-color: var(--w-green); width: 16px; height: 16px; margin: 0 8px 0 0; cursor: pointer; }
+.w-row .w-tick { vertical-align: middle; }
+.winter-list-note { color: var(--ink-dim); margin-right: auto; }
+/* An item the new level opens, in a winter with no shop to show it. */
+.w-unlocked { display: flex; align-items: center; gap: 10px; color: var(--ink); }
+.w-unlocked .w-shop-cost { color: var(--gold); }
 
 /* Buttons are timber: the plank's own two tones, lit from the north-west like
    the panels they sit on. */
@@ -338,6 +351,35 @@
 .winter-foot { display: flex; align-items: center; justify-content: flex-end; gap: 16px; }
 .winter-warning { color: var(--warn); }
 .winter-warning[hidden] { display: none; }
+
+/* The save: a link that opens this winter again, on one quiet line. */
+.winter-save { display: flex; align-items: center; gap: 12px; color: var(--ink-dim); }
+.winter-save input {
+  flex: 1;
+  min-width: 0;
+  font: inherit;
+  font-size: 12px;
+  color: var(--ink-dim);
+  background: var(--w-panel);
+  border: 1px solid var(--w-panel-lit);
+  border-radius: 3px;
+  padding: 6px 8px;
+}
+.winter-save button { padding: 6px 14px; white-space: nowrap; }
+
+/* The summer in numbers: closed unless asked for. */
+.winter-details { color: var(--ink-dim); }
+.winter-details summary { cursor: pointer; }
+.winter-details dl {
+  margin: 12px 0 0;
+  display: grid;
+  grid-template-columns: repeat(3, auto auto);
+  justify-content: start;
+  gap: 6px 18px;
+}
+.winter-details dt { color: var(--ink-dim); }
+.winter-details dd { margin: 0 24px 0 0; color: var(--ink); text-align: right; font-variant-numeric: tabular-nums; }
+.winter-details dd.gold { color: var(--gold); }
 
 /* The way out of a winter that cannot be paid for, on the line that says so. */
 #winter button.w-cover-button { padding: 2px 10px; white-space: nowrap; }

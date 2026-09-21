@@ -9,7 +9,6 @@ import {
   BLOCK_TILES,
   BRIDGE_PLANK,
   BRUSH_STENCIL,
-  CACHE_CELL,
   DIRT_NARROW,
   FEATHER_COLORS,
   FEATHER_PIXELS,
@@ -228,7 +227,6 @@ class MinifantasyPack implements AssetPack {
   readonly camp: PropSprite;
   readonly spring: PropSprite;
   readonly well: PropSprite;
-  readonly cache: PropSprite;
 
   /**
    * Measured from the walk frames at load time rather than hard-coded: the
@@ -294,7 +292,6 @@ class MinifantasyPack implements AssetPack {
     this.camp = this.prop24("farmProps", 15, 5, 2, 1);
     this.spring = this.prop24(SPRING_CELL[0], SPRING_CELL[1], SPRING_CELL[2], 1, 1);
     this.well = this.prop24(...WELL_CELL);
-    this.cache = this.prop24(CACHE_CELL[0], CACHE_CELL[1], CACHE_CELL[2], 1, 1);
 
     this.walks = {} as Record<Facing, Texture[]>;
     for (const facing of Object.keys(WALK_ROWS) as Facing[]) {

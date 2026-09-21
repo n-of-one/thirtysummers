@@ -9,7 +9,7 @@ import { costText, need } from "./hud.ts";
  * all written down.
  *
  * Building is never guessed from what is in the pack. Three sticks used to
- * mean a cache and could mean nothing else, and there was no way to say "a
+ * mean one build and could mean nothing else, and there was no way to say "a
  * well, once I have the logs" -- so what to build is said here, once, and the
  * tile ahead then does that and only that until it is changed.
  *
@@ -135,6 +135,5 @@ export class BuildMenu {
 /** What each build is called in the menu. */
 const NAME: Record<Build, string> = {
   bridge: "Bridge tile",
-  cache: "Cache",
   well: "Well",
 };

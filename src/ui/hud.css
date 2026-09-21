@@ -171,6 +171,99 @@ kbd {
 .notice-homeward { color: var(--gold); border-color: var(--gold); }
 .notice[hidden] { display: none; }
 
+/* The list: what this summer means to bring home, a box per line across the
+   top of the view. Amounts, never places. Two bars in each: what has been
+   collected, and what of it is back at camp. A finished line is taken away. */
+.hud-list {
+  position: absolute;
+  top: 14px;
+  left: 50%;
+  transform: translateX(-50%);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: flex;
+  gap: 10px;
+}
+.hud-list[hidden] { display: none; }
+.list-box {
+  /* As wide as its want line, and never narrower than the others. */
+  width: max-content;
+  min-width: 230px;
+  box-sizing: border-box;
+  padding: 8px 10px 9px;
+  background: var(--panel);
+  border: 1px solid var(--edge);
+  border-radius: var(--radius);
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.list-title { font-size: 16px; letter-spacing: 0.04em; }
+.list-want { color: var(--gold); font-variant-numeric: tabular-nums; margin-bottom: 2px; white-space: nowrap; }
+.list-bar {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 2px 6px;
+  border-radius: 3px;
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+  background: linear-gradient(to right, var(--bar) var(--through), rgba(255, 255, 255, 0.06) var(--through));
+}
+.list-bar.is-collected { --bar: rgba(232, 180, 60, 0.35); }
+.list-bar.is-home { --bar: rgba(111, 164, 48, 0.55); }
+.list-numbers { color: var(--ink); }
+
+/* A finished line, kept until it is closed: a dark green edge, and the rest
+   stepped back, so it reads as done without pulling the eye from the field. */
+.list-box.is-done {
+  border: 2px solid #3f6b22;
+  padding: 7px 9px 8px;
+  color: var(--ink-dim);
+}
+.list-box.is-done .list-title { color: #8fb86a; }
+.list-box.is-done .list-want { color: var(--ink-dim); }
+.list-box.is-done .list-numbers { color: var(--ink-dim); }
+.list-box.is-done .list-bar { --bar: rgba(63, 107, 34, 0.45); }
+.list-title { display: flex; justify-content: space-between; align-items: center; }
+.list-close {
+  pointer-events: auto;
+  font: inherit;
+  font-size: 15px;
+  line-height: 1;
+  color: var(--ink-dim);
+  background: transparent;
+  border: 1px solid #3f6b22;
+  border-radius: 3px;
+  padding: 0 6px 2px;
+  cursor: pointer;
+}
+.list-close:hover { color: var(--ink); background: rgba(63, 107, 34, 0.35); }
+/* The moment it is finished: one small pop, and nothing after. */
+.list-box.is-just-done { animation: list-done 400ms ease-out; }
+@keyframes list-done {
+  0%   { transform: scale(1); }
+  35%  { transform: scale(1.04); }
+  100% { transform: scale(1); }
+}
+
+/* Which summer this is, under the list and the debug panel, until the first
+   step. */
+.start-notice {
+  position: absolute;
+  top: 280px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: var(--panel);
+  border: 1px solid var(--edge);
+  border-radius: var(--radius);
+  padding: 10px 18px;
+  font-size: 18px;
+  white-space: nowrap;
+}
+.start-notice[hidden] { display: none; }
+
 /* Points at camp from the edge of the view in the last minute, while camp is
    off screen. Drawn pointing right, centred on its own middle, and placed and
    turned by one transform. */
@@ -228,17 +321,7 @@ kbd {
   100% { opacity: 0; transform: translateY(-8px); }
 }
 
-/* --- end of summer ------------------------------------------------------- */
-
-#summary {
-  position: fixed;
-  inset: 0;
-  display: grid;
-  place-items: center;
-  background: rgba(8, 10, 8, 0.82);
-  backdrop-filter: blur(3px);
-}
-#summary[hidden] { display: none; }
+/* --- paused -------------------------------------------------------------- */
 
 #paused {
   position: fixed;
@@ -259,16 +342,6 @@ kbd {
   text-align: center;
 }
 .summary-card h1 { margin: 0 0 18px; font-size: 22px; letter-spacing: 0.05em; }
-.summary-card dl {
-  margin: 0 0 22px;
-  display: grid;
-  grid-template-columns: auto auto;
-  gap: 7px 22px;
-  text-align: left;
-}
-.summary-card dt { color: var(--ink-dim); }
-.summary-card dd { margin: 0; text-align: right; font-variant-numeric: tabular-nums; }
-.summary-card dd.gold { color: var(--gold); }
 
 /* --- the build menu ------------------------------------------------------ */
 
@@ -400,7 +473,8 @@ button:hover { background: #363d27; }
    the same place every frame, because every field in it is a fixed width. */
 #debug {
   position: fixed;
-  top: 14px;
+  /* Below the list's boxes, which take the top of the view. */
+  top: 146px;
   left: 0;
   right: 0;
   width: fit-content;

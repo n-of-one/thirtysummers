@@ -2,7 +2,8 @@ import { describe, expect, it } from "vitest";
 import * as C from "../src/config.ts";
 import { RESOURCES } from "../src/sim/resources.ts";
 import { layoutSummerWorld } from "../src/sim/worldgen/layout.ts";
-import { checkRows, cutsFromCamp, THIN_CUTS, waterDistance } from "../src/sim/worldgen/rows.ts";
+import { nearRing } from "../src/sim/worldgen/reachability.ts";
+import { checkRows, cutsFromCamp, THIN_CUTS } from "../src/sim/worldgen/rows.ts";
 import { formatMap, parseMap } from "../src/sim/mapfile.ts";
 import type { GeneratedWorld } from "../src/sim/worldgen.ts";
 
@@ -80,19 +81,43 @@ describe("the five-summer layout", () => {
     expect(reach(world, cut, "stick", THIN_CUTS)).toBe(C.LAYOUT_NODES.standSticks);
   });
 
-  it.each(SEEDS)("keeps the shells of the dry pocket away from water (seed %i)", (seed) => {
+  it.each(SEEDS)("puts every feather field node across the stream, and every shell behind the copse (seed %i)", (seed) => {
     const world = layoutSummerWorld(seed);
+    const at = (cost: Float64Array, kind: string) =>
+      world.nodes.filter(
+        (n) => n.kind === kind && cost[Math.floor(n.y) * world.map.width + Math.floor(n.x)]! <= THIN_CUTS,
+      ).length;
+    const home = cutsFromCamp(world, { bridge: false, fell: false });
+    const bridged = cutsFromCamp(world, { bridge: true, fell: false });
     const felled = cutsFromCamp(world, { bridge: true, fell: true });
-    const reached = world.nodes.filter(
-      (n) =>
-        n.kind === "shell" &&
-        felled[Math.floor(n.y) * world.map.width + Math.floor(n.x)]! <= THIN_CUTS,
-    );
-    expect(reached.length).toBe(C.LAYOUT_NODES.dryPocketShells);
-    for (const shell of reached) {
-      expect(waterDistance(world, Math.floor(shell.x), Math.floor(shell.y))).toBeGreaterThan(
-        C.WELL_WATER_CLEARANCE,
-      );
+    const N = C.LAYOUT_NODES;
+
+    expect(at(bridged, "feather") - at(home, "feather")).toBe(N.featherFieldFeathers);
+    expect(at(bridged, "fruit") - at(home, "fruit")).toBe(N.featherFieldFruit);
+    expect(at(bridged, "shell")).toBe(0);
+    expect(at(felled, "shell")).toBe(N.shellFieldShells);
+    expect(world.nodes.filter((n) => n.kind === "ore")).toEqual([]);
+  });
+
+  it.each(SEEDS)("measures the near ring from the map, and a bridge does not move it (seed %i)", (seed) => {
+    const generated = layoutSummerWorld(seed);
+    const ring = nearRing(generated.map, generated.camp);
+    const home = cutsFromCamp(generated, { bridge: false, fell: false });
+    const w = generated.map.width;
+    // Every node the first summer can reach is in the ring, and none of the
+    // fields across the stream is.
+    for (const n of generated.nodes) {
+      const i = Math.floor(n.y) * w + Math.floor(n.x);
+      expect(ring[i] === 1).toBe(home[i]! <= THIN_CUTS);
     }
+    const stream = generated.map.clone();
+    let bridged = 0;
+    for (let i = 0; i < ring.length && bridged < 4; i++) {
+      if (stream.get(i % w, Math.floor(i / w)) === "stream") {
+        stream.set(i % w, Math.floor(i / w), "bridge");
+        bridged++;
+      }
+    }
+    expect(nearRing(stream, generated.camp)).toEqual(ring);
   });
 });

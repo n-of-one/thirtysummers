@@ -1,4 +1,6 @@
 import * as C from "../../config.ts";
+import { perfectPlayer, type MapCounts } from "../economy.ts";
+import { RESOURCES } from "../resources.ts";
 import type { TileMap } from "../tilemap.ts";
 import type { ResourceKind, ResourceNode } from "../types.ts";
 import { Grid, NEIGHBOURS_4 } from "./grid.ts";
@@ -6,7 +8,7 @@ import { thickenStream } from "./water.ts";
 import type { GeneratedWorld } from "../worldgen.ts";
 
 /**
- * Does a map hold the table of the first five summers?
+ * Does a map hold the table of the first three summers?
  *
  * Each summer opens one thing, and each barrier is short in the one currency
  * the summer before supplied (docs/current/five-summers.md). A map either
@@ -15,10 +17,13 @@ import type { GeneratedWorld } from "../worldgen.ts";
  * whether the map came out of the layout pass or was edited by hand.
  *
  * The map is filled from camp the way the player gets about in each summer: on
- * foot; with thin thicket cut; with the stream bridged; with the saplings
- * felled; and with the thick wall cut as well. The fill counts how many
- * thicket tiles the cheapest way to each tile cuts, so a thin ring and a thick
- * wall are told apart by their depth rather than by where they are.
+ * foot; with thin thicket cut; with the stream bridged; and with the saplings
+ * felled. The fill counts how many thicket tiles the cheapest way to each tile
+ * cuts, so a thin ring is told apart by its depth rather than by where it is.
+ *
+ * The last rows are the economy: the perfect player played over the map's
+ * counts through the winter model, so a number changed in config shows up
+ * here as a margin.
  */
 export interface Row {
   /** The summer this stands for, or 0 for a rule that is not a summer's. */
@@ -31,8 +36,6 @@ export interface Row {
 
 /** Most thicket a thin ring may take to cut through: "about three tiles". */
 export const THIN_CUTS = 4;
-/** Least thicket the wall into the last pocket may take: twelve tiles. */
-export const THICK_CUTS = 12;
 
 /** How the player can get about: what is open besides walkable ground. */
 interface Means {
@@ -141,22 +144,6 @@ const minus = (a: readonly ResourceNode[], b: readonly ResourceNode[]) => {
 const count = (nodes: readonly ResourceNode[], kind: ResourceKind) =>
   nodes.filter((n) => n.kind === kind).length;
 
-/** Chebyshev distance from (x, y) to the nearest stream tile or spring. */
-export function waterDistance(world: GeneratedWorld, x: number, y: number): number {
-  const { map } = world;
-  let best = Infinity;
-  for (const s of world.springs) {
-    best = Math.min(best, Math.max(Math.abs(s.x - x), Math.abs(s.y - y)));
-  }
-  for (let ty = 0; ty < map.height; ty++) {
-    for (let tx = 0; tx < map.width; tx++) {
-      if (map.get(tx, ty) !== "stream") continue;
-      best = Math.min(best, Math.max(Math.abs(tx - x), Math.abs(ty - y)));
-    }
-  }
-  return best;
-}
-
 /** Walking steps from the nearest drinking spot, with everything opened. */
 function stepsFromWater(world: GeneratedWorld): Int32Array {
   const { map } = world;
@@ -196,11 +183,11 @@ export function checkRows(world: GeneratedWorld): Row[] {
       bridged[s.y * map.width + s.x]! <= THIN_CUTS,
   );
 
-  // Summer 2: across the stream, and behind the copse.
+  // Summer 2: across the stream. Summer 3: behind the copse.
   const across = minus(within(world, bridged, THIN_CUTS), nearRing);
   const farField = minus(within(world, felled, THIN_CUTS), within(world, bridged, THIN_CUTS));
 
-  // Summer 3: a cart route. The cart runs on grass and bridge, so a route is
+  // The cart route, for M11. The cart runs on grass and bridge, so a route is
   // grass the whole way once the stream is bridged, the copse felled and the
   // thicket cut -- and it has to need the cutting, or there is no work in it.
   const campIdx = tileOf(world, world.camp);
@@ -224,35 +211,11 @@ export function checkRows(world: GeneratedWorld): Row[] {
   });
   const farWalk = farField.map((n) => walk[tileOf(world, n)]!).sort((a, b) => a - b);
 
-  // Summer 4: the dry pocket. Shells reachable without the thick wall, every
-  // one too far from water to be dry ground for nothing, and a spot among them
-  // where a well is allowed.
-  const reachedShells = within(world, felled, THIN_CUTS, ["shell"]);
-  const dryShells = reachedShells.filter(
-    (n) => waterDistance(world, Math.floor(n.x), Math.floor(n.y)) > C.WELL_WATER_CLEARANCE,
-  );
-  const wellSpot = reachedShells.some((n) => {
-    for (let dy = -3; dy <= 3; dy++) {
-      for (let dx = -3; dx <= 3; dx++) {
-        const x = Math.floor(n.x) + dx;
-        const y = Math.floor(n.y) + dy;
-        if (map.get(x, y) !== "grass" || felled[y * map.width + x]! > THIN_CUTS) continue;
-        if (waterDistance(world, x, y) > C.WELL_WATER_CLEARANCE) return true;
-      }
-    }
-    return false;
-  });
+  // Every node reachable, and no wall thicker than a thin one: the thick wall
+  // is parked, and a node behind one would be a node nobody can have.
+  const beyond = world.nodes.filter((n) => felled[tileOf(world, n)]! > THIN_CUTS);
 
-  // Summer 5: the last pocket, and no barrier between thin and thick, so every
-  // wall is plainly one or the other.
-  const lastPocket = world.nodes.filter((n) => felled[tileOf(world, n)]! >= THICK_CUTS);
-  const inBetween = world.nodes.filter((n) => {
-    const c = felled[tileOf(world, n)]!;
-    return c > THIN_CUTS && c < THICK_CUTS;
-  });
-  const unreachable = world.nodes.filter((n) => felled[tileOf(world, n)]! === Infinity);
-
-  return [
+  const rows: Row[] = [
     {
       summer: 1,
       label: "fruit and feathers on foot",
@@ -278,21 +241,21 @@ export function checkRows(world: GeneratedWorld): Row[] {
     },
     {
       summer: 2,
-      label: "ore only across the stream",
-      ok: count(nearRing, "ore") === 0 && count(across, "ore") > 0,
+      label: "feathers across the stream, no shells",
+      ok: count(across, "feather") > 0 && count(across, "shell") === 0,
       detail:
-        `before a bridge ${count(nearRing, "ore")}, after ` +
-        describe(world, across.filter((n) => n.kind === "ore"), steps),
-    },
-    {
-      summer: 2,
-      label: "a second field behind the copse",
-      ok: count(farField, "ore") > 0,
-      detail: `ore ${describe(world, farField.filter((n) => n.kind === "ore"), steps)}`,
+        `feathers ${describe(world, across.filter((n) => n.kind === "feather"), steps)}; ` +
+        `shells ${count(across, "shell")}`,
     },
     {
       summer: 3,
-      label: "a cart route from it that needs cutting",
+      label: "shells only behind the copse",
+      ok: count(farField, "shell") > 0 && count(nearRing, "shell") === 0 && count(across, "shell") === 0,
+      detail: `shells ${describe(world, farField.filter((n) => n.kind === "shell"), steps)}`,
+    },
+    {
+      summer: 3,
+      label: "a cart route to them that needs cutting",
       ok: farField.length > 0 && cartReaches.length === farField.length && cartWithoutCut.length === 0,
       detail:
         `cart reaches ${cartReaches.length} of ${farField.length} once cut, ` +
@@ -300,26 +263,90 @@ export function checkRows(world: GeneratedWorld): Row[] {
         `steps from camp`,
     },
     {
-      summer: 4,
-      label: "shells in a dry pocket, with room for a well",
-      ok: reachedShells.length > 0 && dryShells.length === reachedShells.length && wellSpot,
-      detail:
-        `${dryShells.length} of ${reachedShells.length} dry, ${describe(world, reachedShells, steps)}, ` +
-        `well spot ${wellSpot ? "yes" : "no"}`,
-    },
-    {
-      summer: 5,
-      label: `a pocket behind ${THICK_CUTS} tiles of thicket`,
-      ok: lastPocket.length > 0 && inBetween.length === 0 && unreachable.length === 0,
-      detail:
-        `${describe(world, lastPocket, steps)}; ${inBetween.length} between thin and thick, ` +
-        `${unreachable.length} unreachable`,
+      summer: 0,
+      label: "every node within a thin cut",
+      ok: beyond.length === 0,
+      detail: `${beyond.length} beyond`,
     },
     {
       summer: 0,
       label: "stream is nowhere one tile across",
       ok: pinches(world) === 0,
       detail: `${pinches(world)} pinched tiles`,
+    },
+  ];
+
+  const saplings = countTiles(map, felled, "sapling");
+  return [
+    ...rows,
+    ...economyRows({
+      ringFruit: count(nearRing, "fruit"),
+      ringFeathers: count(nearRing, "feather"),
+      sticks: count(nearRing, "stick"),
+      vines: count(nearRing, "vine"),
+      fieldFeathers: count(across, "feather"),
+      shells: count(farField, "shell"),
+      saplings,
+    }),
+  ];
+}
+
+/** Tiles of `kind` the cost map reaches at all. */
+function countTiles(map: TileMap, cost: Float64Array, kind: string): number {
+  let n = 0;
+  for (let y = 0; y < map.height; y++) {
+    for (let x = 0; x < map.width; x++) {
+      if (map.get(x, y) === kind && cost[y * map.width + x]! < Infinity) n++;
+    }
+  }
+  return n;
+}
+
+/**
+ * The perfect player over the map's counts, through the winter model: what
+ * five-summers.md says the first three winters come to, each with its margin.
+ */
+function economyRows(counts: MapCounts): Row[] {
+  const [w1, w2, w3] = perfectPlayer(counts, 3);
+  const L = C.FAMILY_LEVELS;
+  const ringGold = counts.ringFeathers * RESOURCES.feather.price;
+  const shortOnFoot = C.UPKEEP_GOLD + L[0]! - ringGold;
+  const cart = w3!.model.shop.find((line) => line.item.id === "cart");
+  return [
+    {
+      summer: 1,
+      label: "the near ring feeds the winter",
+      ok: counts.ringFruit >= C.UPKEEP_FRUIT,
+      detail: `fruit ${counts.ringFruit} of ${C.UPKEEP_FRUIT}`,
+    },
+    {
+      summer: 1,
+      label: "the near ring alone is short of rent and level 1",
+      ok: shortOnFoot > 0,
+      detail: `counted ${ringGold}, short by ${shortOnFoot}`,
+    },
+    {
+      summer: 1,
+      label: "the bridge reaches level 1",
+      ok: w1!.model.family.level >= 1,
+      detail: `counted ${w1!.counted}, family ${w1!.model.family.total}, margin ${w1!.model.family.total - L[0]!}`,
+    },
+    {
+      summer: 2,
+      label: "winter 2 buys the axe and reaches level 2",
+      ok: w2!.bought.includes("axe") && w2!.model.family.level >= 2,
+      detail:
+        `counted ${w2!.counted}, ${w2!.bought.join(", ") || "nothing"} bought, ` +
+        `family ${w2!.model.family.total}, margin ${w2!.model.family.total - L[1]!}`,
+    },
+    {
+      summer: 3,
+      label: "winter 3 buys the cart",
+      ok: w3!.bought.includes("cart"),
+      detail:
+        `counted ${w3!.counted}, ${w3!.bought.join(", ") || "nothing"} bought` +
+        (cart && !cart.bought ? ` (short ${cart.shortGold} gold)` : "") +
+        `, left ${w3!.model.left}, family ${w3!.model.family.total}`,
     },
   ];
 }

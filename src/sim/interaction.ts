@@ -40,7 +40,7 @@ export function nearestNodeWithin(
 
 /**
  * The spring nearest (x, y) and within reach of its tile's centre, or null.
- * Anything else standing on a tile, a cache, is found the same way.
+ * Anything else lying on a tile, a dropped item, is found the same way.
  *
  * Nearest to the player, not aimed: springs are sparse, and one is drunk from
  * by standing at it. Ties break on list order, which is fixed for a map.

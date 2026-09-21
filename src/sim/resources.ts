@@ -1,21 +1,11 @@
 import type { ResourceKind, TerrainKind } from "./types.ts";
 
 /**
- * Whether a kind is back after a winter: every winter, a share each winter,
- * or never. Nothing reads it until winter exists; it is here so the table is
- * the one place a kind is described.
+ * Whether a kind is back after a winter outside the near ring: every winter,
+ * `REPLENISH_SHARE` of what was picked, or never. Inside the near ring
+ * everything is back every year, whatever this says.
  */
 export type Returns = "yearly" | "slowly" | "never";
-
-/**
- * What banking at camp does with a kind. `gold` sells it there and then;
- * `store` puts it in the store, where winter's keep-or-sell question finds it.
- *
- * There used to be a third answer, `keep`, which left building material in the
- * pack. It made a pack full of vines a dead end for the whole run, so camp now
- * takes everything.
- */
-export type AtCamp = "gold" | "store";
 
 export interface ResourceDef {
   kind: ResourceKind;
@@ -29,16 +19,20 @@ export interface ResourceDef {
   ground: TerrainKind;
   /** Backpack slots one takes. Bulky kinds take two. */
   slots: number;
-  /** Gold one is worth. */
+  /** Gold one sells for in winter. */
   price: number;
   returns: Returns;
-  atCamp: AtCamp;
   /**
-   * Something a build is paid in, rather than only ever money. Winter asks
-   * whether to keep it or sell it; nothing else does.
+   * What it is for: `food` is eaten by the winter, `money` is only ever sold,
+   * and `material` is what a build is paid in. Winter asks whether to keep or
+   * sell material and nothing else; the list counts money as gold.
+   *
+   * Camp takes every kind and sells none: everything is sold in winter.
    */
-  material: boolean;
+  use: Use;
 }
+
+export type Use = "food" | "money" | "material";
 
 const def = (
   kind: ResourceKind,
@@ -47,28 +41,32 @@ const def = (
   slots: number,
   price: number,
   returns: Returns,
-  atCamp: AtCamp,
-  material = false,
-): ResourceDef => ({ kind, glyph, ground, slots, price, returns, atCamp, material });
+  use: Use,
+): ResourceDef => ({ kind, glyph, ground, slots, price, returns, use });
+
+/** Is it only ever sold? Then the list counts it as its price in gold. */
+export const isMoney = (kind: ResourceKind): boolean => RESOURCES[kind].use === "money";
+/** Is it something a build is paid in, which winter asks whether to keep? */
+export const isMaterial = (kind: ResourceKind): boolean => RESOURCES[kind].use === "material";
 
 /**
  * Every kind that is gathered, in the order the HUD lists them: the near ring
  * first, then out along the ladder. [DOC] the kinds, where they grow, which
- * come back, and the log's two slots, from docs/current/five-summers.md and
- * docs/design/. [GUESS] the prices, on the ladder's rule that near camp sells
- * for one and each barrier out roughly doubles it.
+ * come back, the prices and the log's two slots, from
+ * docs/current/five-summers.md and docs/design/. [GUESS] ore's price: it is
+ * placed nowhere until M12.
  *
  * The vine grows in the mud pocket that is its barrier, so a `y` means mud
  * under it; everything else stands on grass.
  */
 export const RESOURCES: Record<ResourceKind, ResourceDef> = {
-  fruit: def("fruit", "f", "grass", 1, 1, "yearly", "store"),
-  feather: def("feather", "p", "grass", 1, 1, "yearly", "gold"),
-  stick: def("stick", "s", "grass", 1, 1, "yearly", "store", true),
-  vine: def("vine", "y", "mud", 1, 1, "yearly", "store", true),
-  ore: def("ore", "v", "grass", 1, 2, "slowly", "gold"),
-  log: def("log", "l", "grass", 2, 3, "never", "store", true),
-  shell: def("shell", "h", "grass", 1, 4, "slowly", "gold"),
+  fruit: def("fruit", "f", "grass", 1, 1, "slowly", "food"),
+  feather: def("feather", "p", "grass", 1, 1, "slowly", "money"),
+  stick: def("stick", "s", "grass", 1, 1, "yearly", "material"),
+  vine: def("vine", "y", "mud", 1, 1, "yearly", "material"),
+  ore: def("ore", "v", "grass", 1, 2, "never", "money"),
+  log: def("log", "l", "grass", 2, 1, "never", "material"),
+  shell: def("shell", "h", "grass", 1, 2, "never", "money"),
 };
 
 export const RESOURCE_KINDS: readonly ResourceKind[] = Object.keys(RESOURCES) as ResourceKind[];

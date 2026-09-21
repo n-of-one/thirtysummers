@@ -57,20 +57,27 @@ player reads; `world.store` stays the code name.
    family is given. Winter 1 shows no shop, frosted or not; reaching level 1
    says the town will trade with them next winter.
 6. **The winter screen in the game.** The prototype's markup moves into
-   `index.html`, and `sim/winter.ts` gets its input from the world. The
-   summary card's button goes to winter, and next summer starts from the
-   winter screen. What the winter settles is applied by the world: kept
-   material stays at camp, what was sold and eaten leaves it, gold in hand
-   goes to the family's running total, and what was bought is owned. A
-   winter that could not be paid makes the next summer tired.
+   `index.html`, and `sim/winter.ts` gets its input from the world. The end
+   of a summer opens the winter screen, with the summer in numbers in a
+   closed section at the bottom and a link that saves the game at that
+   point; next summer starts from the winter screen. Camp sells nothing, so
+   the whole haul, feathers and shells included, is sold here. What the
+   winter settles is applied by the world: kept material stays at camp,
+   what was sold and eaten leaves it, what is left goes to the family's
+   running total, and what was bought is owned. A winter that could not be
+   paid makes the next summer tired.
 7. **The list.** Every upkeep line, every shop item, frosted ones included,
    and the family's next level have a box on the winter screen, ticked by
-   default. The ticked lines become the list, drawn in a HUD corner all
-   summer and filled from the top by what is at camp: food in fruit, rent,
-   then each item, its gold from what is left and its material in kind,
-   then the gold toward the next level. Gold counts from what sold at camp,
-   feathers and shells, never from building material. Summer 1's list is
-   food, rent and level 1. The list replaces the "fruit stored" readout.
+   default. In winter 1, what level 1 opens has its box in the family panel,
+   so the axe is on summer 2's list. The ticked lines become the list, drawn across the top of the
+   screen all summer as a box per line, filled from the top: food in fruit,
+   rent, then each item, its gold from what is left and its material in
+   kind, then the gold toward the next level. Gold counts feathers and
+   shells at their winter price, never building material, and a gold amount
+   says what it is in feathers. Each box has a bar for what is collected and
+   one for what is at camp, and goes once it is all at camp. Summer 1's list
+   is food, rent and level 1. The list replaces the "fruit stored" readout
+   and the gold count.
 8. **Between summers**, in `world.nextSummer`, all seeded so a map and a
    year always come out the same:
    - replenishment, as step 2 says;

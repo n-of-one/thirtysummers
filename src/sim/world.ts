@@ -9,7 +9,15 @@ import {
   type TileRef,
 } from "./interaction.ts";
 import { Inventory, type Amounts } from "./inventory.ts";
+import { FIRST_LIST, lineKey, offeredLines, type ListLine } from "./list.ts";
+import { fingerprint, SaveError, type SaveState } from "./save.ts";
+import type { SummerSummary } from "./summary.ts";
+import { TERRAIN_ORDER } from "./terrain.ts";
 import { RESOURCE_KINDS, RESOURCES } from "./resources.ts";
+import { mulberry32, shuffle } from "./rng.ts";
+import { shopStock } from "./shop.ts";
+import { initialKeep, levelAt, winterModel, type WinterInput } from "./winter.ts";
+import { nearRing } from "./worldgen/reachability.ts";
 import {
   canStand,
   createPlayer,
@@ -38,28 +46,14 @@ import type {
 import { layoutSummerWorld, type GeneratedWorld } from "./worldgen.ts";
 
 /**
- * A box in the field, built with sticks. Anything can be put in and taken back
- * out, and it holds any amount.
- */
-export interface Cache {
-  /** The tile it stands on, in integer tile coordinates. */
-  x: number;
-  y: number;
-  contents: Inventory;
-}
-
-/**
- * One side of an open transfer: where the player is standing, and the store
- * they are standing at. The other side is always the pack.
+ * One side of an open transfer: camp, and what it keeps. The other side is
+ * always the pack.
  */
 export interface Transfer {
-  readonly at: "camp" | "cache";
-  /** The tile it stands on, for the panel's heading and for the log. */
+  /** The tile it stands on, for the log. */
   readonly x: number;
   readonly y: number;
   readonly store: Inventory;
-  /** Camp turns a feather into gold on the way in; a cache cannot. */
-  readonly sells: boolean;
 }
 
 /**
@@ -72,33 +66,27 @@ export interface Transfer {
  * for a well. Null means it can.
  */
 export type Action =
-  | { type: "deposit"; sold: number; stored: number; blocked: BlockedReason | null }
+  | { type: "deposit"; stored: number; blocked: BlockedReason | null }
   | { type: "harvest"; node: ResourceNode; blocked: BlockedReason | null }
   | { type: "pickUp"; item: Dropped; blocked: BlockedReason | null }
   | { type: "drink"; x: number; y: number; blocked: null }
-  | { type: "stash"; x: number; y: number; items: number; blocked: null }
-  | { type: "fetch"; x: number; y: number; items: number; blocked: BlockedReason | null }
   | { type: "cut"; x: number; y: number; blocked: null }
   | { type: "fell"; x: number; y: number; blocked: BlockedReason | null }
   | { type: "build"; x: number; y: number; blocked: BlockedReason | null }
-  | { type: "dig"; x: number; y: number; blocked: BlockedReason | null }
-  | { type: "cache"; x: number; y: number; blocked: BlockedReason | null };
+  | { type: "dig"; x: number; y: number; blocked: BlockedReason | null };
 
 /** What each thing on the build menu costs. */
 export const BUILD_COST: Record<Build, Amounts> = {
   bridge: { stick: C.BRIDGE_STICKS, vine: C.BRIDGE_VINES },
-  cache: { stick: C.CACHE_STICKS },
   well: { log: C.WELL_LOGS, stick: C.WELL_STICKS },
 };
 
 export const BRIDGE_COST = BUILD_COST.bridge;
 export const WELL_COST = BUILD_COST.well;
-export const CACHE_COST = BUILD_COST.cache;
 
 /** The action each build carries out, which is also its hold. */
-const BUILD_ACTION: Record<Build, "build" | "dig" | "cache"> = {
+const BUILD_ACTION: Record<Build, "build" | "dig"> = {
   bridge: "build",
-  cache: "cache",
   well: "dig",
 };
 
@@ -112,19 +100,16 @@ export interface BuildOption {
 
 /** Seconds of holding the interact key each action takes; 0 for a tap. */
 const HOLD_TIME: Record<Action["type"], number> = {
-  // The three transfers are a tap on the release and a hold to the panel, so
-  // their time is how long the panel takes to open, not how long the tap does.
+  // Banking is a tap on the release and a hold to the panel, so its time is
+  // how long the panel takes to open, not how long the tap does.
   deposit: C.TRANSFER_HOLD_TIME,
   harvest: C.HARVEST_TIME,
   pickUp: 0,
   drink: C.DRINK_TIME,
-  stash: C.TRANSFER_HOLD_TIME,
-  fetch: C.TRANSFER_HOLD_TIME,
   cut: C.CUT_TIME,
   fell: C.FELL_TIME,
   build: C.BUILD_TIME,
   dig: C.WELL_TIME,
-  cache: C.CACHE_TIME,
 };
 
 /**
@@ -162,8 +147,6 @@ export class World {
    * the summer is appended, flagged, and drinks the same.
    */
   readonly springs: Spring[];
-  /** Caches built so far, in the order they were built. */
-  readonly caches: Cache[] = [];
   /**
    * Items lying on the ground, one to a tile. Cleared by the winter: nothing
    * left in a field survives a year of rain and animals.
@@ -179,10 +162,36 @@ export class World {
    *
    * Called "camp" in everything the player reads, and `store` here only
    * because {@link camp} is already the tile it stands on. `store` is the verb
-   * in the HUD -- you store something at camp -- and there is a shop coming in
-   * winter, so it is not a noun worth showing.
+   * in the HUD -- you store something at camp -- and winter has a shop, so it
+   * is not a noun worth showing.
    */
   readonly store = new Inventory(Infinity);
+  /**
+   * What the family has been given, over every winter so far. Its level is
+   * what opens the shop.
+   */
+  family = 0;
+  /**
+   * The last winter could not be paid, so this summer every hold takes longer
+   * and rough ground is slower. Set by each winter, for the summer after it.
+   */
+  tired = false;
+  /** What the player means to bring home this summer, ticked in winter. */
+  list: ListLine[] = [...FIRST_LIST];
+  /** The player has moved this summer, which puts the start-of-summer notice away. */
+  movedThisSummer = false;
+  /**
+   * The near ring, 1 per tile inside it: what camp reaches without crossing
+   * water. Measured once, on the map as it came, because inside it everything
+   * is back every year and a bridge laid later does not move the ring.
+   */
+  private readonly ring: Uint8Array;
+  /** Nodes picked this summer, by id: a share of these comes back outside the ring. */
+  private readonly pickedThisSummer = new Set<number>();
+  /** Tiles felled, by tile index, and the summer each was felled in. */
+  private readonly felledIn = new Map<number, number>();
+  /** Thicket tiles cut, by tile index, which the thicket can creep back onto. */
+  private readonly cutTiles = new Set<number>();
   /**
    * The kind the drop key throws away, or null with an empty pack.
    *
@@ -191,15 +200,15 @@ export class World {
    * most slots, so it is never undefined and never hidden.
    */
   private selected: ResourceKind | null = null;
-  /** What the player owns. The knife from the start, the rest from the year table. */
+  /** What the player owns. The knife from the start, the rest bought in winter. */
   readonly tools = new Set<Tool>(["knife"]);
-  /** What the player knows how to build. The cache from the start, the well from the year table. */
-  readonly recipes = new Set<Recipe>(["cache"]);
+  /** What the player knows how to build beyond a bridge. Nothing, until the well in M12. */
+  readonly recipes = new Set<Recipe>();
   /**
    * What the build menu is set to, or null for not building.
    *
    * Building is chosen rather than guessed from what is in the pack: carrying
-   * three sticks used to mean a cache and nothing else, with no way to say
+   * three sticks used to mean one build and nothing else, with no way to say
    * "a well, once I have the logs". It lasts until it is changed or dropped,
    * so a crossing is one choice and a hold per tile, and it does not survive
    * the end of a summer.
@@ -209,10 +218,7 @@ export class World {
   /** Seconds of the summer already spent. Stops at SUMMER_LENGTH_SEC. */
   elapsedSec = 0;
 
-  /**
-   * Which summer this is, counting from 1. A year is one summer and one
-   * winter; there is no winter yet, so the year advances with the summer.
-   */
+  /** Which summer this is, counting from 1. A year is one summer and the winter after it. */
   year = 1;
 
   /** Append-only log of what happened. Readers keep their own cursor. */
@@ -232,10 +238,9 @@ export class World {
    */
   private held = { interact: false, drop: false, dropSwitch: false };
   /**
-   * The transfer waiting on the key coming up: banking at camp, or a cache's
-   * whole-pack stash or fetch.
+   * The banking at camp waiting on the key coming up.
    *
-   * These act on the release rather than on the press, because the same key
+   * It acts on the release rather than on the press, because the same key
    * held opens the transfer panel instead. A quick arrival is still one press
    * and reads as one; letting go is what tells the two apart.
    */
@@ -274,19 +279,97 @@ export class World {
     this.nodes = generated.nodes;
     this.springs = generated.springs;
     this.player = createPlayer(generated.camp);
-    this.grant();
+    this.ring = nearRing(this.map, this.camp);
+    this.original = this.map.clone();
+    this.fingerprint = fingerprint(this.map, this.nodes, this.camp);
+  }
+
+  /** The map as it came, which a save is written against. */
+  private readonly original: TileMap;
+  /** A hash of that map, so a save is only ever read onto the map it was made on. */
+  readonly fingerprint: string;
+
+  /**
+   * The game as it stands at the end of a summer, for saving. Only what the
+   * summers changed: the map itself comes from the same file or seed.
+   */
+  snapshot(summary: SummerSummary): SaveState {
+    const amounts = (inv: Inventory): Amounts =>
+      Object.fromEntries(RESOURCE_KINDS.filter((k) => inv.count(k) > 0).map((k) => [k, inv.count(k)]));
+    const now = this.map.layerData(0);
+    const was = this.original.layerData(0);
+    const terrain: [number, number][] = [];
+    for (let i = 0; i < now.length; i++) if (now[i] !== was[i]) terrain.push([i, now[i]!]);
+    return {
+      v: 2,
+      fingerprint: this.fingerprint,
+      year: this.year,
+      elapsedSec: this.elapsedSec,
+      awayAtEnd: this.awayAtEnd,
+      family: this.family,
+      tired: this.tired,
+      list: this.list.map((line) => ({ ...line })),
+      tools: [...this.tools],
+      recipes: [...this.recipes],
+      pack: amounts(this.inventory),
+      camp: amounts(this.store),
+      terrain,
+      harvested: this.nodes.filter((n) => n.harvested).map((n) => n.id),
+      picked: [...this.pickedThisSummer],
+      felled: [...this.felledIn],
+      cut: [...this.cutTiles],
+      wells: this.springs.filter((s) => s.well).map((s) => [s.x, s.y]),
+      dropped: this.dropped.map((d) => [d.kind, d.x, d.y]),
+      summary,
+    };
   }
 
   /**
-   * Hand over what the year table gives for this year, once. Recorded as an
-   * event only after summer 1, so a new world does not open on toasts.
+   * Put a saved game back onto this world, fresh from the same file or seed,
+   * and leave it at the end of the summer it was saved at. Refuses a save made
+   * on another map.
    */
-  private grant(): void {
-    for (const what of C.YEAR_GRANTS[this.year] ?? []) {
-      if (what === "well") this.recipes.add(what);
-      else this.tools.add(what);
-      if (this.year > 1) this.record({ type: "granted", what });
+  restore(state: SaveState): void {
+    if (state.fingerprint !== this.fingerprint) {
+      throw new SaveError("the save was made on another map; open it with the same ?map= or ?seed=");
     }
+    const w = this.map.width;
+    for (const [i, id] of state.terrain) this.map.set(i % w, Math.floor(i / w), TERRAIN_ORDER[id]!);
+    const harvested = new Set(state.harvested);
+    for (const node of this.nodes) node.harvested = harvested.has(node.id);
+    for (const [x, y] of state.wells) this.springs.push({ x, y, well: true });
+    this.dropped.push(...state.dropped.map(([kind, x, y]) => ({ kind, x, y })));
+    this.inventory.clear();
+    this.store.clear();
+    for (const kind of RESOURCE_KINDS) {
+      this.inventory.add(kind, state.pack[kind] ?? 0);
+      this.store.add(kind, state.camp[kind] ?? 0);
+    }
+    this.tools.clear();
+    for (const t of state.tools) this.tools.add(t);
+    this.recipes.clear();
+    for (const r of state.recipes) this.recipes.add(r);
+    this.pickedThisSummer.clear();
+    for (const id of state.picked) this.pickedThisSummer.add(id);
+    this.felledIn.clear();
+    for (const [i, year] of state.felled) this.felledIn.set(i, year);
+    this.cutTiles.clear();
+    for (const i of state.cut) this.cutTiles.add(i);
+    this.year = state.year;
+    this.elapsedSec = state.elapsedSec;
+    this.awayAtEnd = state.awayAtEnd;
+    this.family = state.family;
+    this.tired = state.tired;
+    this.list = state.list.map((line) => ({ ...line }));
+    this.ended = true;
+    this.movedThisSummer = true;
+    this.stopHarvesting();
+    this.pendingTap = null;
+  }
+
+  /** Is the tile under (x, y) inside the near ring? */
+  inNearRing(x: number, y: number): boolean {
+    return this.ring[Math.floor(y) * this.map.width + Math.floor(x)] === 1;
   }
 
   /**
@@ -315,11 +398,11 @@ export class World {
   /**
    * End the summer where the player stands, by the clock or from camp.
    *
-   * What is carried is banked as if brought home, so what sells becomes gold,
-   * the rest goes into the store, and a last trip out is never wasted. What was
-   * dropped on the ground is not: it stays where it was thrown, and the winter
-   * takes it. Ending out of reach of camp is remembered, because winter will
-   * charge for the fetching. Does nothing the second time.
+   * What is carried is banked as if brought home, so a last trip out is never
+   * wasted. What was dropped on the ground is not: it stays where it was
+   * thrown, and the winter takes it. Ending out of reach of camp is
+   * remembered, because winter will charge for the fetching. Does nothing the
+   * second time.
    */
   endSummer(): void {
     if (this.ended) return;
@@ -329,69 +412,31 @@ export class World {
     // A transfer waiting on a release is dropped with the summer, so letting
     // go next summer cannot bank a load that was already banked by the end.
     this.pendingTap = null;
-    const banked = this.bank();
-    this.record({ type: "summerEnded", away: this.awayAtEnd, ...banked });
+    this.record({ type: "summerEnded", away: this.awayAtEnd, stored: this.bank() });
   }
 
   /**
-   * Bank the whole pack, as the resource table says: feathers, ore and shells
-   * sold for gold, everything else into the store.
+   * Bank the whole pack at camp, and say how many items that was.
    *
-   * Camp takes every kind. It used to leave sticks, vines and logs in the pack
-   * on purpose, which made a pack filled with building material a dead end for
-   * the whole run: the pack survived the winter, and the only way to be rid of
-   * a vine was to spend it on a build that cost sticks. A store where the
-   * material waits for next summer costs nothing and closes that.
+   * Camp takes every kind and sells none: feathers and shells wait at camp
+   * with the fruit and the sticks, and everything is sold in winter. It used
+   * to sell them on arrival, which hid the haul from the winter screen and
+   * left the summer with a gold count that meant nothing yet.
    */
-  private bank(): { sold: number; stored: number; gold: number } {
-    const { sold, gold } = this.inventory.sell();
-    const stored = this.inventory.moveAllTo(this.store);
-    return { sold, stored, gold };
+  private bank(): number {
+    return this.inventory.moveAllTo(this.store);
   }
 
-  /** How many items in the pack banking at camp would sell, and how many store. */
-  private bankable(): { sold: number; stored: number } {
-    let sold = 0;
-    for (const kind of RESOURCE_KINDS) {
-      if (RESOURCES[kind].atCamp === "gold") sold += this.inventory.count(kind);
-    }
-    return { sold, stored: this.inventory.items - sold };
-  }
-
-  /**
-   * The store the player is standing at, or null for standing nowhere in
-   * particular.
-   *
-   * Camp is a cache that is already built and that also sells, so the panel
-   * has one thing to learn and three places it works. `sells` is the whole
-   * difference: a cache cannot turn a shell into gold, so at a cache a shell
-   * is an ordinary item.
-   */
+  /** Camp, when the player is standing at it, or null anywhere else. */
   transferTarget(): Transfer | null {
-    if (this.atCamp) {
-      return { at: "camp", x: this.camp.x, y: this.camp.y, store: this.store, sells: true };
-    }
-    const cache = nearestSpringWithin(this.caches, this.player.x, this.player.y);
-    if (!cache) return null;
-    return { at: "cache", x: cache.x, y: cache.y, store: cache.contents, sells: false };
+    return this.atCamp ? { x: this.camp.x, y: this.camp.y, store: this.store } : null;
   }
 
-  /**
-   * Open the transfer panel where the player stands, and say so in the log.
-   *
-   * Opening at camp banks the pure sellables first. Feathers, ore and shells
-   * are sold the moment they reach camp and there is no decision in them, so
-   * they are never a line in the panel -- and they would be stranded in the
-   * pack if the panel were the only thing the hold did.
-   */
+  /** Open the transfer panel at camp, and say so in the log. */
   private openTransfer(): void {
     const target = this.transferTarget();
     if (!target) return;
-    if (target.sells) {
-      const { sold, gold } = this.inventory.sell();
-      if (sold > 0) this.record({ type: "deposited", sold, stored: 0, gold });
-    }
-    this.record({ type: "transferOpened", where: target.at, x: target.x, y: target.y });
+    this.record({ type: "transferOpened", x: target.x, y: target.y });
   }
 
   /**
@@ -402,12 +447,6 @@ export class World {
     const moved = Math.min(n, this.inventory.count(kind));
     if (moved <= 0) return 0;
     this.inventory.remove(kind, moved);
-    if (target.sells && RESOURCES[kind].atCamp === "gold") {
-      const gold = moved * RESOURCES[kind].price;
-      this.inventory.gold += gold;
-      this.record({ type: "deposited", sold: moved, stored: 0, gold });
-      return moved;
-    }
     target.store.add(kind, moved);
     this.record({ type: "putAway", kind, n: moved });
     return moved;
@@ -505,6 +544,49 @@ export class World {
     return found;
   }
 
+  /**
+   * What the winter screen opens on: camp as the summer left it, the family,
+   * and what the town will sell a family of its level. Nothing is bought
+   * until the player says so.
+   */
+  winterInput(): WinterInput {
+    const store: Amounts = {};
+    for (const kind of RESOURCE_KINDS) store[kind] = this.store.count(kind);
+    return {
+      year: this.year,
+      store,
+      awayAtEnd: this.awayAtEnd,
+      keep: initialKeep(store),
+      stock: shopStock(levelAt(this.family), this.tools),
+      bought: [],
+      familySurplus: this.family,
+    };
+  }
+
+  /**
+   * Settle the winter the player chose on the winter screen, before the next
+   * summer starts.
+   *
+   * The arithmetic is `winterModel`'s, the same the screen was drawn from, so
+   * what is applied is what was shown: what is kept stays at camp, what was
+   * sold, eaten and paid in material leaves it, the gold left over goes to the
+   * family, and what was bought is owned. A winter that could not be paid
+   * makes the next summer a tired one. `ticked` names the lines of the list,
+   * by {@link lineKey}, that the next summer carries.
+   */
+  endWinter(input: WinterInput, ticked: ReadonlySet<string>): void {
+    const model = winterModel(input);
+    for (const line of model.lines) {
+      this.store.clear(line.kind);
+      this.store.add(line.kind, line.kept - line.committed);
+    }
+    this.family += model.left;
+    for (const id of input.bought) this.tools.add(id);
+    this.tired = !model.upkeep.met;
+    this.list = offeredLines(model).filter((line) => ticked.has(lineKey(line)));
+    this.record({ type: "winterEnded", given: model.left, tired: this.tired });
+  }
+
   /** Open ground with nothing already on it, and nothing already dropped. */
   private freeToDrop(x: number, y: number): boolean {
     if (!this.map.isPassable(x, y, this.player.z)) return false;
@@ -515,26 +597,23 @@ export class World {
   /**
    * Start the next summer on the same map.
    *
-   * The point of the discovery test is that what you changed stays changed, so
-   * the terrain, the wells, the caches, the gold and the backpack are left
-   * exactly as they are. What comes back is the year: every node regrows,
-   * hydration refills, the player wakes at camp, the clock restarts, and the
-   * year table hands over whatever this summer's row needs.
+   * What you changed stays changed, so the wells, the gold and the backpack
+   * are left as they are. The winter has had its way with the map first: see
+   * {@link winterOnMap}. Hydration refills, the player wakes at camp, and the
+   * clock restarts.
    *
    * The event log is kept too, so readers walking it with a cursor carry on
    * from where they were rather than replaying the summer that just ended.
    */
   nextSummer(): void {
+    // Nothing left on the ground survives a winter; camp keeps the lot, and is
+    // the only place a fruit becomes winter food.
+    this.dropped.length = 0;
+    this.winterOnMap();
     this.year++;
     this.elapsedSec = 0;
     this.ended = false;
-    for (const node of this.nodes) node.harvested = false;
-    // The three tiers of keeping, at the one moment they differ. The ground
-    // keeps nothing over a winter; a cache keeps everything but fruit, which
-    // rots wherever it is left; the store at camp keeps the lot, and is the
-    // only place a fruit becomes winter food.
-    this.dropped.length = 0;
-    for (const cache of this.caches) cache.contents.clear("fruit");
+    this.movedThisSummer = false;
     this.stats.startSummer();
     this.player.x = this.camp.x;
     this.player.y = this.camp.y;
@@ -551,25 +630,103 @@ export class World {
     // a fresh press, not mid-cut.
     this.interactSpent = true;
     this.pendingTap = null;
-    this.record({ type: "summerStarted", year: this.year });
-    this.grant();
+    this.record({ type: "summerStarted", year: this.year, tired: this.tired });
+  }
+
+  /**
+   * What the map does over the winter after summer {@link year}, all of it
+   * drawn from the seed and the year, so a map and a year always come out the
+   * same.
+   *
+   * - Inside the near ring every node is back. Outside it the resource table
+   *   says: every year, a share of what was picked this summer, or never.
+   *   What was picked in an earlier summer and did not come back then is gone.
+   * - A sapling stands again {@link C.SAPLING_RETURN_YEARS} winters after it
+   *   was felled, if nothing stands on its tile.
+   * - Thicket creeps back onto a cut tile that touches it, by chance.
+   * - A bridge loses one tile every {@link C.BRIDGE_WEAR_EVERY} winters.
+   */
+  private winterOnMap(): void {
+    const rng = mulberry32((this.seed ^ Math.imul(this.year, 0x9e3779b1)) >>> 0);
+    const z = this.player.z;
+    const w = this.map.width;
+
+    const share = new Map<ResourceKind, ResourceNode[]>();
+    for (const node of this.nodes) {
+      if (!node.harvested) continue;
+      const returns = RESOURCES[node.kind].returns;
+      if (this.inNearRing(node.x, node.y) || returns === "yearly") {
+        node.harvested = false;
+      } else if (returns === "slowly" && this.pickedThisSummer.has(node.id)) {
+        const picked = share.get(node.kind) ?? [];
+        picked.push(node);
+        share.set(node.kind, picked);
+      }
+    }
+    for (const picked of share.values()) {
+      const back = Math.floor(picked.length * C.REPLENISH_SHARE);
+      for (const node of shuffle(rng, picked).slice(0, back)) node.harvested = false;
+    }
+    this.pickedThisSummer.clear();
+
+    for (const [idx, year] of this.felledIn) {
+      const x = idx % w;
+      const y = (idx - x) / w;
+      if (this.map.get(x, y, z) !== "grass") {
+        this.felledIn.delete(idx);
+      } else if (this.year - year + 1 >= C.SAPLING_RETURN_YEARS && this.freeToBuild({ x, y })) {
+        this.map.set(x, y, "sapling", z);
+        this.felledIn.delete(idx);
+      }
+    }
+
+    // Every candidate is taken before any tile changes, so thicket that crept
+    // back this winter does not carry the creep further along the same path.
+    const creep: number[] = [];
+    for (const idx of this.cutTiles) {
+      const x = idx % w;
+      const y = (idx - x) / w;
+      if (this.map.get(x, y, z) !== C.CUT_LEAVES) {
+        this.cutTiles.delete(idx);
+        continue;
+      }
+      const touches = [
+        [1, 0],
+        [-1, 0],
+        [0, 1],
+        [0, -1],
+      ].some(([dx, dy]) => this.map.get(x + dx!, y + dy!, z) === "thicket");
+      if (touches && this.freeToBuild({ x, y })) creep.push(idx);
+    }
+    for (const idx of creep) {
+      if (rng() >= C.THICKET_CREEP_CHANCE) continue;
+      const x = idx % w;
+      this.map.set(x, (idx - x) / w, "thicket", z);
+      this.cutTiles.delete(idx);
+    }
+
+    if (this.year % C.BRIDGE_WEAR_EVERY === 0) {
+      const bridges: TileRef[] = [];
+      for (let y = 0; y < this.map.height; y++) {
+        for (let x = 0; x < w; x++) {
+          if (this.map.get(x, y, z) === "bridge") bridges.push({ x, y });
+        }
+      }
+      if (bridges.length > 0) {
+        const lost = bridges[Math.floor(rng() * bridges.length)]!;
+        this.map.set(lost.x, lost.y, "stream", z);
+      }
+    }
   }
 
   /** What the interact key would do from here, or null for nothing in reach. */
   availableAction(): Action | null {
     const { x, y, z } = this.player;
     const atCamp = withinReach(x, y, this.camp);
-    const { sold, stored } = this.bankable();
+    const stored = this.inventory.items;
     // Banking wins at camp, but only when there is something to bank, so a
     // node next to the camp is still harvestable with an empty pack.
-    if (atCamp && sold + stored > 0) return { type: "deposit", sold, stored, blocked: null };
-
-    // The same at a cache, which takes everything, so it wins while there is
-    // anything in the pack at all.
-    const cache = nearestSpringWithin(this.caches, x, y);
-    if (cache && this.inventory.items > 0) {
-      return { type: "stash", x: cache.x, y: cache.y, items: this.inventory.items, blocked: null };
-    }
+    if (atCamp && stored > 0) return { type: "deposit", stored, blocked: null };
 
     const node = nearestNodeWithin(this.nodes, x, y);
     if (node) {
@@ -595,22 +752,11 @@ export class World {
       return { type: "pickUp", item, blocked };
     }
 
-    // Fetching comes after picking, so a node beside a full cache can still be
-    // picked into an empty pack.
-    if (cache && cache.contents.items > 0) {
-      const blocked = RESOURCE_KINDS.some(
-        (kind) => cache.contents.count(kind) > 0 && this.inventory.fits(kind),
-      )
-        ? null
-        : "backpackFull";
-      return { type: "fetch", x: cache.x, y: cache.y, items: cache.contents.items, blocked };
-    }
-
     // Tools come after picking, so a vine growing against the thicket that
     // walls it in can still be picked up. They act only on the tile ahead.
     const ahead = tileAhead(this.map, x, y, this.player.heading, z);
     return (ahead && this.toolAction(ahead)) ??
-      (atCamp ? { type: "deposit", sold: 0, stored: 0, blocked: "nothingToBank" } : null);
+      (atCamp ? { type: "deposit", stored: 0, blocked: "nothingToBank" } : null);
   }
 
   /**
@@ -659,8 +805,6 @@ export class World {
         return { type: "build", ...spot };
       case "dig":
         return { type: "dig", ...spot };
-      case "cache":
-        return { type: "cache", ...spot };
     }
   }
 
@@ -710,15 +854,14 @@ export class World {
     return this.map.get(ahead.x, ahead.y, this.player.z) === "stream" ? "bridge" : null;
   }
 
-  /** Nothing already stands on the tile: no camp, node, spring, well or cache. */
+  /** Nothing already stands on the tile: no camp, node, spring or well. */
   private freeToBuild({ x, y }: TileRef): boolean {
     const on = (p: Vec2) => Math.floor(p.x) === x && Math.floor(p.y) === y;
     return (
       !on(this.camp) &&
       // Picked nodes too, since they grow back next summer.
       !this.nodes.some(on) &&
-      !this.springs.some(on) &&
-      !this.caches.some(on)
+      !this.springs.some(on)
     );
   }
 
@@ -747,9 +890,14 @@ export class World {
     return this.map.defAt(this.player.x, this.player.y, this.player.z);
   }
 
-  /** Tiles per second on the ground under the player. */
+  /**
+   * Tiles per second on the ground under the player. A tired summer is slower
+   * on rough ground only; easy ground is walked as fast as ever.
+   */
   speed(): number {
-    return C.WALK_SPEED * this.groundUnderPlayer().speedMul;
+    const ground = this.groundUnderPlayer();
+    if (this.tired && ground.difficult) return C.WALK_SPEED * C.TIRED_DIFFICULT_SPEED_MUL;
+    return C.WALK_SPEED * ground.speedMul;
   }
 
   /**
@@ -808,9 +956,9 @@ export class World {
    * stops being true -- walking away mid-cut loses the cut, which is what
    * makes the timer a cost rather than a formality.
    *
-   * The three transfers are the odd ones: the tap banks and the hold opens the
-   * panel, which are different things on the one key, so the tap waits for the
-   * release. A quick arrival still reads as one press.
+   * Banking is the odd one: the tap banks and the hold opens the panel, which
+   * are different things on the one key, so the tap waits for the release. A
+   * quick arrival still reads as one press.
    */
   private interact(dt: number, input: InputState): void {
     if (!input.interact) {
@@ -822,7 +970,7 @@ export class World {
       this.stopHarvesting();
       if (tap) {
         if (tap.blocked) this.blocked(tap.blocked);
-        else this.tap(tap as Action & { type: "deposit" | "stash" | "fetch" });
+        else this.record({ type: "deposited", stored: this.bank() });
       }
       return;
     }
@@ -841,7 +989,7 @@ export class World {
       return;
     }
 
-    if (action.type === "deposit" || action.type === "stash" || action.type === "fetch") {
+    if (action.type === "deposit") {
       // Held on to, rather than done now. A blocked one is held on to as well,
       // because an empty pack at camp is still a store worth opening.
       this.pendingTap = action;
@@ -891,8 +1039,17 @@ export class World {
       this.holdKey = key;
       this.harvestProgress = 0;
     }
-    this.harvestProgress += dt / HOLD_TIME[action.type];
+    this.harvestProgress += dt / this.holdTime(action.type);
     return this.harvestProgress;
+  }
+
+  /**
+   * Seconds a hold takes this summer. A tired summer makes every hold longer
+   * except the one that opens the transfer panel, which is not work.
+   */
+  holdTime(type: Action["type"]): number {
+    const tired = this.tired && type !== "deposit";
+    return HOLD_TIME[type] * (tired ? C.TIRED_HOLD_MUL : 1);
   }
 
   /** Take one dropped item off the ground and into the pack. */
@@ -903,33 +1060,18 @@ export class World {
     this.record({ type: "pickedUp", kind: item.kind });
   }
 
-  /** Carry out a tap: banking at camp, or putting into or taking out of a cache. */
-  private tap(action: Action & { type: "deposit" | "stash" | "fetch" }): void {
-    if (action.type === "deposit") {
-      this.record({ type: "deposited", ...this.bank() });
-      return;
-    }
-    const cache = this.caches.find((c) => c.x === action.x && c.y === action.y)!;
-    const { x, y } = cache;
-    if (action.type === "stash") {
-      const items = this.inventory.moveAllTo(cache.contents);
-      this.record({ type: "stashed", x, y, items });
-    } else {
-      const items = cache.contents.moveAllTo(this.inventory);
-      this.record({ type: "fetched", x, y, items });
-    }
-  }
-
   /** Carry out a hold that has run its full time. */
   private complete(action: Action): void {
     switch (action.type) {
       case "harvest":
         action.node.harvested = true;
+        this.pickedThisSummer.add(action.node.id);
         this.inventory.add(action.node.kind);
         this.record({ type: "harvested", kind: action.node.kind });
         return;
       case "fell":
         this.map.set(action.x, action.y, "grass", this.player.z);
+        this.felledIn.set(action.y * this.map.width + action.x, this.year);
         this.inventory.add("log");
         this.record({ type: "felled", x: action.x, y: action.y });
         return;
@@ -941,20 +1083,13 @@ export class World {
         this.springs.push({ x: action.x, y: action.y, well: true });
         this.record({ type: "dug", x: action.x, y: action.y });
         return;
-      case "cache":
-        if (!this.inventory.pay(CACHE_COST)) {
-          this.blocked("noMaterials");
-          return;
-        }
-        this.caches.push({ x: action.x, y: action.y, contents: new Inventory(Infinity) });
-        this.record({ type: "cached", x: action.x, y: action.y });
-        return;
       case "drink":
         this.stats.drink();
         this.record({ type: "drank" });
         return;
       case "cut":
         this.map.set(action.x, action.y, C.CUT_LEAVES, this.player.z);
+        this.cutTiles.add(action.y * this.map.width + action.x);
         this.record({ type: "cut", x: action.x, y: action.y });
         return;
       case "build":
@@ -968,8 +1103,6 @@ export class World {
         this.record({ type: "built", x: action.x, y: action.y });
         return;
       case "deposit":
-      case "stash":
-      case "fetch":
       case "pickUp":
         return;
     }
@@ -991,6 +1124,7 @@ export class World {
       player.moving = false;
       return;
     }
+    this.movedThisSummer = true;
     // What the input asked for, whether or not a wall let it happen: pressing
     // into the stream is how a player says which tile they mean.
     player.heading = headingFor(input.moveX, input.moveY);

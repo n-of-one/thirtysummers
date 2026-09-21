@@ -38,7 +38,6 @@ class PlaceholderPack implements AssetPack {
   readonly camp: PropSprite;
   readonly spring: PropSprite;
   readonly well: PropSprite;
-  readonly cache: PropSprite;
 
   /** The drawn legs end at y=15 of a 16px tile. */
   readonly playerAnchor = { x: 0.5, y: 15 / 16 };
@@ -65,7 +64,6 @@ class PlaceholderPack implements AssetPack {
     this.camp = { texture: this.bake(drawCamp), anchorX: 0.5, anchorY: 0.5, bounds: WHOLE_TILE };
     this.spring = { texture: this.bake(drawSpring), anchorX: 0.5, anchorY: 0.5, bounds: WHOLE_TILE };
     this.well = { texture: this.bake(drawWell), anchorX: 0.5, anchorY: 0.5, bounds: WHOLE_TILE };
-    this.cache = { texture: this.bake(drawCache), anchorX: 0.5, anchorY: 0.5, bounds: WHOLE_TILE };
     for (const facing of FACINGS) {
       this.walks.set(
         facing,
@@ -356,14 +354,6 @@ function drawWell(g: Graphics): void {
   g.rect(2.5, 2, 1.5, 7).fill(0x6e4a2b);
   g.rect(12, 2, 1.5, 7).fill(0x6e4a2b);
   g.rect(2.5, 2, 11, 1.5).fill(0x86603a);
-}
-
-/** A cache: a lidded wooden box. */
-function drawCache(g: Graphics): void {
-  g.rect(3, 6, 10, 8).fill(0x8a6039);
-  g.rect(2.5, 5, 11, 2.5).fill(0x6e4a2b);
-  g.rect(3, 10, 10, 1).fill(0x694627);
-  g.rect(7, 7.5, 2, 2).fill(0xc9a24a);
 }
 
 /** A spring on the bank: a droplet. */

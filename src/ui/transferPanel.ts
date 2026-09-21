@@ -6,13 +6,9 @@ import type { Transfer, World } from "../sim/world.ts";
 import { need } from "./hud.ts";
 
 /**
- * The transfer panel: the pack on one side, a store on the other, and a
- * cursor over the kinds.
- *
- * One thing to learn, three places it works. Camp is a cache that is already
- * built and that also sells, so the same panel serves both; a tap at either
- * still moves the whole load, and this is what opens when the key is held
- * instead.
+ * The transfer panel: the pack on one side, camp on the other, and a cursor
+ * over the kinds. A tap at camp still banks the whole load; this is what opens
+ * when the key is held instead.
  *
  * It writes no simulation state of its own: every move goes through
  * {@link World.putAway} and {@link World.takeOut}, which keeps the one-way
@@ -21,11 +17,8 @@ import { need } from "./hud.ts";
  */
 export class TransferPanel {
   private readonly root: HTMLElement;
-  private readonly title: HTMLElement;
   private readonly list: HTMLElement;
   private readonly free: HTMLElement;
-  /** The right-hand column's heading: which side of the transfer this is. */
-  private readonly there: HTMLElement;
   /**
    * The stack under the player: the prompt, the End summer button and the
    * toasts. It is put away while the panel is up, because the panel is drawn
@@ -48,10 +41,8 @@ export class TransferPanel {
     private readonly keyTarget: EventTarget = window,
   ) {
     this.root = need(root, "#transfer");
-    this.title = need(root, "#transfer-title");
     this.list = need(root, "#transfer-list");
     this.free = need(root, "#transfer-free");
-    this.there = need(root, "#transfer-there");
     this.anchor = need(root, "#player-anchor");
     this.keyTarget.addEventListener("keydown", this.onKeyDown);
   }
@@ -103,13 +94,7 @@ export class TransferPanel {
     const target = this.target;
     if (!target || !this.world) return [];
     const pack = this.world.inventory;
-    return RESOURCE_KINDS.filter((kind) => {
-      // A feather at camp is gold the moment it arrives, so there is no
-      // decision in it and it is never a line. At a cache it is an ordinary
-      // item, because a cache cannot sell.
-      if (target.sells && RESOURCES[kind].atCamp === "gold") return false;
-      return pack.count(kind) > 0 || target.store.count(kind) > 0;
-    });
+    return RESOURCE_KINDS.filter((kind) => pack.count(kind) > 0 || target.store.count(kind) > 0);
   }
 
   /** The kind the cursor is on, pulled back onto the list when it falls off. */
@@ -125,10 +110,6 @@ export class TransferPanel {
     const world = this.world;
     const target = this.target;
     if (!world || !target) return;
-
-    const where = target.at === "camp" ? "Camp" : "Cache";
-    this.title.textContent = target.at === "camp" ? "Camp storage" : "Cache storage";
-    this.there.textContent = where;
 
     const lines = this.lines();
     const cursor = this.at();
@@ -147,10 +128,7 @@ export class TransferPanel {
         // Not a row of the three-column grid the kinds are laid out in: a
         // sentence dropped into that grid becomes one word per line.
         li.classList.add("is-empty");
-        li.textContent =
-          target.at === "camp"
-            ? "Camp is empty, and so is the pack"
-            : "The cache is empty, and so is the pack";
+        li.textContent = "Camp is empty, and so is the pack";
         this.list.appendChild(li);
       }
     }

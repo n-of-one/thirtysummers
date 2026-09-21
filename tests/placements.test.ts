@@ -118,7 +118,7 @@ describe("placementsIn", () => {
     const map = arena(64, "grass");
     const pack = new StubPack();
     const w = windowAt();
-    const out = collect(map, pack, w, NOWHERE, NO_NODES, [], [], [
+    const out = collect(map, pack, w, NOWHERE, NO_NODES, [], [
       { kind: "vine", x: 32, y: 22 },
       { kind: "vine", x: w.originX + w.cols + 3, y: 22 },
     ]);

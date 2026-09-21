@@ -1,17 +1,10 @@
 import * as C from "../config.ts";
 import type { SummerSummary } from "../sim/summary.ts";
 import type { Amounts, Inventory } from "../sim/inventory.ts";
-import { RESOURCE_KINDS } from "../sim/resources.ts";
-import type {
-  BlockedReason,
-  Build,
-  Recipe,
-  ResourceKind,
-  Tool,
-  Vec2,
-  WorldEvent,
-} from "../sim/types.ts";
-import { BRIDGE_COST, BUILD_COST, WELL_COST, type Action, type World } from "../sim/world.ts";
+import { fillList, type ListPart, type ListRow } from "../sim/list.ts";
+import { RESOURCE_KINDS, RESOURCES } from "../sim/resources.ts";
+import type { BlockedReason, Build, ResourceKind, Vec2, WorldEvent } from "../sim/types.ts";
+import { BRIDGE_COST, BUILD_COST, type Action, type World } from "../sim/world.ts";
 
 /**
  * Everything the HUD draws, as plain numbers.
@@ -35,9 +28,13 @@ export interface HudModel {
    */
   dropSelection: string;
   capacity: number;
-  gold: number;
-  /** Fruit in the store at camp. */
-  storedFruit: number;
+  /** The list ticked in winter: its unfinished lines, one box each. */
+  list: ListBox[];
+  /**
+   * The notice at the start of a summer: how long it is, and whether it is a
+   * tired one. Null once the player has moved.
+   */
+  startNotice: string | null;
   /** The tools owned and the recipes known, in words: "knife, axe, well". */
   tools: string;
   /** What is being built, in words, or null for nothing. */
@@ -78,15 +75,6 @@ const RESOURCE_NAME: Record<ResourceKind, string> = {
   shell: "shell",
 };
 
-/** The toast for each thing the year table can hand over. */
-const GRANTED_TEXT: Record<Tool | Recipe, string> = {
-  knife: "You have a knife",
-  axe: "You have an axe",
-  cart: "You have a cart",
-  cache: "You know how to build a cache",
-  well: `You know how to dig a well: ${costText(WELL_COST)}`,
-};
-
 /** The pack's contents in words, listing only what is actually in it. */
 export function backpackText(inventory: Inventory): string {
   const parts = RESOURCE_KINDS.filter((kind) => inventory.count(kind) > 0).map(
@@ -111,12 +99,10 @@ const BLOCKED_TEXT: Record<BlockedReason, string> = {
 /** What each build is called in a prompt, and the verb it takes. */
 const BUILD_NAME: Record<Build, string> = {
   bridge: "a bridge tile",
-  cache: "a cache",
   well: "a well",
 };
 const BUILD_VERB: Record<Build, string> = {
   bridge: "lay",
-  cache: "build",
   well: "dig",
 };
 
@@ -168,9 +154,9 @@ export function costText(cost: Amounts): string {
  * away, which is the one thing that gets a player out of it. Every refusal for
  * want of room says the same thing, so the reminder is never somewhere else.
  *
- * The three transfers say both halves of the key: a press does the obvious
- * thing, and holding opens the panel. The progress is the hold's, so the
- * prompt fills as the panel comes.
+ * Banking says both halves of the key: a press does the obvious thing, and
+ * holding opens the panel. The progress is the hold's, so the prompt fills as
+ * the panel comes.
  */
 function actionPrompt(action: Action, progress: number, full: string): Prompt {
   switch (action.type) {
@@ -178,26 +164,7 @@ function actionPrompt(action: Action, progress: number, full: string): Prompt {
       return action.blocked
         ? { text: `${BLOCKED_TEXT.nothingToBank}. ${OPEN_CAMP}`, progress, blocked: true }
         : {
-            text: `Press E to ${[
-              action.sold > 0 ? `sell ${action.sold}` : "",
-              action.stored > 0 ? `store ${action.stored}` : "",
-            ]
-              .filter(Boolean)
-              .join(" and ")} at camp, ${HOLD_FOR_CAMP}`,
-            progress,
-            blocked: false,
-          };
-    case "stash":
-      return {
-        text: `Press E to put ${action.items} in the cache, ${HOLD_TO_OPEN}`,
-        progress,
-        blocked: false,
-      };
-    case "fetch":
-      return action.blocked
-        ? { text: full, progress, blocked: true }
-        : {
-            text: `Press E to take from the cache (${action.items}), ${HOLD_TO_OPEN}`,
+            text: `Press E to store ${action.stored} at camp, ${HOLD_FOR_CAMP}`,
             progress,
             blocked: false,
           };
@@ -217,10 +184,6 @@ function actionPrompt(action: Action, progress: number, full: string): Prompt {
       return action.blocked
         ? { text: refusedText("well", action.blocked), progress: 0, blocked: true }
         : { text: buildPrompt("well"), progress, blocked: false };
-    case "cache":
-      return action.blocked
-        ? { text: refusedText("cache", action.blocked), progress: 0, blocked: true }
-        : { text: buildPrompt("cache"), progress, blocked: false };
     case "harvest":
       return action.blocked
         ? { text: full, progress: 0, blocked: true }
@@ -246,13 +209,12 @@ function buildPrompt(build: Build): string {
 }
 
 /**
- * The second half of every transfer prompt: the press, then the hold.
+ * The second half of the banking prompt: the press, then the hold.
  *
  * What camp keeps is called "camp", not "the store": `store` is already the
- * verb for putting something there, and a shop is coming in winter, so a noun
- * that is neither is worth the small awkwardness.
+ * verb for putting something there, and winter has a shop, so a noun that is
+ * neither is worth the small awkwardness.
  */
-const HOLD_TO_OPEN = "hold to open it";
 const HOLD_FOR_CAMP = "hold to access the camp items";
 const OPEN_CAMP = "Hold E to access the camp items";
 
@@ -312,13 +274,8 @@ export function toastFor(event: WorldEvent): string | null {
       return `+1 ${RESOURCE_NAME[event.kind]}`;
     case "drank":
       return "Drank your fill";
-    case "deposited": {
-      const parts = [
-        event.sold > 0 ? `sold ${event.sold} for ${event.gold} gold` : "",
-        event.stored > 0 ? `stored ${event.stored} at camp` : "",
-      ].filter(Boolean);
-      return capitalise(parts.join(", "));
-    }
+    case "deposited":
+      return `Stored ${event.stored} at camp`;
     case "putAway":
       return `Stored ${event.n} ${RESOURCE_NAME[event.kind]}`;
     case "tookOut":
@@ -331,14 +288,6 @@ export function toastFor(event: WorldEvent): string | null {
       return `Felled a sapling, +1 ${RESOURCE_NAME.log}`;
     case "dug":
       return "Dug a well";
-    case "cached":
-      return "Built a cache";
-    case "stashed":
-      return `Put ${event.items} in the cache`;
-    case "fetched":
-      return `Took ${event.items} from the cache`;
-    case "granted":
-      return GRANTED_TEXT[event.what];
     case "blocked":
       return BLOCKED_TEXT[event.reason];
     case "cut":
@@ -347,9 +296,88 @@ export function toastFor(event: WorldEvent): string | null {
       return "Laid a bridge tile";
     case "summerEnded":
       return "Summer over";
+    // The winter screen is its own announcement, and the notice at the start
+    // of a summer says which one it is.
+    case "winterEnded":
     case "summerStarted":
-      return `Summer ${event.year}`;
+      return null;
   }
+}
+
+/**
+ * One line of the list as the HUD draws it: a box with what the line wants,
+ * and two bars under it, one for what has been collected and one for what is
+ * back at camp. A line that is all at camp stays, drawn as done, until the
+ * player closes it.
+ */
+export interface ListBox {
+  /** Stable across frames, for redrawing only what changed. */
+  key: string;
+  title: string;
+  /** Everything on it is at camp. */
+  done: boolean;
+  /** What it wants, in words: "10 gold (10 feathers)", "8 gold (8 feathers), 3 sticks". */
+  want: string;
+  collected: Progress;
+  atCamp: Progress;
+}
+
+export interface Progress {
+  /** "7/10", or "5/8 · 3/3" when there is more than one amount, in the want line's order. */
+  text: string;
+  /** How far, from 0 to 1, over every amount on the line together. */
+  share: number;
+}
+
+/**
+ * What an amount of gold is in feathers, the one thing a first summer can
+ * earn it with: rent is ten gold, and ten gold is ten feathers.
+ */
+function goldText(gold: number): string {
+  const feathers = Math.ceil(gold / RESOURCES.feather.price);
+  return `${gold} gold (${feathers} ${plural("feather", feathers)})`;
+}
+
+/** The list's lines, as boxes, finished ones included. */
+export function listBoxes(rows: readonly ListRow[]): ListBox[] {
+  return rows.map((row) => ({
+    key: row.line.kind === "item" ? `item:${row.line.id}` : row.line.kind,
+    title: row.label,
+    done: row.done,
+    want: row.parts
+      .map((p) => (p.unit === "gold" ? goldText(p.need) : `${p.need} ${plural(p.unit, p.need)}`))
+      .join(", "),
+    collected: progress(row.parts, (p) => p.collected),
+    atCamp: progress(row.parts, (p) => p.atCamp),
+  }));
+}
+
+function progress(parts: readonly ListPart[], have: (p: ListPart) => number): Progress {
+  const need = parts.reduce((s, p) => s + p.need, 0);
+  const got = parts.reduce((s, p) => s + Math.min(have(p), p.need), 0);
+  // The want line above names the units, in the same order, so the bar only
+  // needs the numbers.
+  const text = parts.map((p) => `${have(p)}/${p.need}`).join(" · ");
+  return { text, share: need > 0 ? got / need : 1 };
+}
+
+/** A kind's name for `n` of it. Fruit and ore are the same either way. */
+function plural(kind: ResourceKind, n: number): string {
+  const name = RESOURCE_NAME[kind];
+  return n === 1 || kind === "fruit" || kind === "ore" ? name : `${name}s`;
+}
+
+/**
+ * The notice at the start of a summer, until the player moves: which summer,
+ * how long it is, and whether it is a tired one. What winter will need is on
+ * the list, and what grew back and what wore is met on the map.
+ */
+export function startNoticeText(world: World): string | null {
+  if (world.movedThisSummer || world.summerOver) return null;
+  const head = `Summer ${world.year}, ${formatClock(C.SUMMER_LENGTH_SEC)} long`;
+  return world.tired
+    ? `${head}. A tired summer: every job takes longer, and rough ground is slower.`
+    : head;
 }
 
 /** `viewWidth` is the logical view's width, which the fog is sized against. */
@@ -367,9 +395,9 @@ export function hudModel(world: World, viewWidth: number = C.VIEW_W): HudModel {
     carried: inventory.carried,
     contents: backpackText(inventory),
     capacity: inventory.capacity,
-    gold: inventory.gold,
-    storedFruit: world.store.count("fruit"),
-    tools: [...world.tools, ...[...world.recipes].filter((r) => r !== "cache")].join(", "),
+    list: listBoxes(fillList(world.list, amountsOf(inventory), amountsOf(world.store))),
+    startNotice: startNoticeText(world),
+    tools: [...world.tools, ...world.recipes].join(", "),
     building: world.buildMode ? BUILD_NAME[world.buildMode] : null,
     secondsLeft: world.remainingSec,
     homeward,
@@ -384,6 +412,13 @@ export function hudModel(world: World, viewWidth: number = C.VIEW_W): HudModel {
     fogRadiusPx: fogRadiusPx(stats.hydration, viewWidth),
     prompt: promptFor(world),
   };
+}
+
+/** What an inventory holds, kind by kind, for filling the list. */
+function amountsOf(inventory: Inventory): Amounts {
+  const amounts: Amounts = {};
+  for (const kind of RESOURCE_KINDS) amounts[kind] = inventory.count(kind);
+  return amounts;
 }
 
 /**
@@ -560,8 +595,16 @@ export class Hud {
   private readonly backpack: HTMLElement;
   private readonly backpackContents: HTMLElement;
   private readonly dropSelection: HTMLElement;
-  private readonly gold: HTMLElement;
-  private readonly storedFruit: HTMLElement;
+  private readonly list: HTMLElement;
+  private readonly startNotice: HTMLElement;
+  /** What the list was last drawn from, so an unchanged frame writes nothing. */
+  private listDrawn = "";
+  /** Finished lines the player has closed this summer, by key. */
+  private listClosed = new Set<string>();
+  /** Lines drawn as finished last time, so only a newly finished one pops. */
+  private listDone = new Set<string>();
+  /** A first draw pops nothing: what was finished before it is not news. */
+  private listSeeded = false;
   private readonly tools: HTMLElement;
   private readonly buildPill: HTMLElement;
   private readonly buildName: HTMLElement;
@@ -574,10 +617,6 @@ export class Hud {
   private readonly fog: HTMLElement;
   private readonly dusk: HTMLElement;
   private readonly endSummer: HTMLButtonElement;
-  private readonly summary: HTMLElement;
-  private readonly summaryTitle: HTMLElement;
-  private readonly summaryStats: HTMLElement;
-  private readonly restart: HTMLButtonElement;
 
   /** How far through `world.events` the toasts have got. */
   private seenEvents = 0;
@@ -616,8 +655,8 @@ export class Hud {
     this.backpack = need(root, "#backpack-count");
     this.backpackContents = need(root, "#backpack-contents");
     this.dropSelection = need(root, "#drop-selection");
-    this.gold = need(root, "#gold-count");
-    this.storedFruit = need(root, "#store-fruit");
+    this.list = need(root, "#hud-list");
+    this.startNotice = need(root, "#start-notice");
     this.tools = need(root, "#tools");
     this.buildPill = need(root, "#build-pill");
     this.buildName = need(root, "#build-name");
@@ -632,10 +671,6 @@ export class Hud {
     this.dusk = need(root, "#dusk");
     this.dusk.style.backgroundColor = `#${C.DUSK_COLOR.toString(16).padStart(6, "0")}`;
     this.endSummer = need(root, "#end-summer");
-    this.summary = need(root, "#summary");
-    this.summaryTitle = need(root, "#summary-title");
-    this.summaryStats = need(root, "#summary-stats");
-    this.restart = need(root, "#summary-restart");
 
     setText(need(root, "#backpack-cap"), String(C.BACKPACK_CAPACITY));
   }
@@ -675,8 +710,9 @@ export class Hud {
     setText(this.backpackContents, model.contents);
     this.dropSelection.hidden = model.dropSelection === "";
     setText(this.dropSelection, model.dropSelection);
-    setText(this.gold, String(model.gold));
-    setText(this.storedFruit, String(model.storedFruit));
+    this.drawList(model.list);
+    this.startNotice.hidden = model.startNotice === null;
+    if (model.startNotice) setText(this.startNotice, model.startNotice);
     setText(this.tools, model.tools);
     this.buildPill.hidden = model.building === null;
     if (model.building) setText(this.buildName, model.building);
@@ -765,6 +801,62 @@ export class Hud {
     this.dusk.style.opacity = opacity;
   }
 
+  /**
+   * The list, one box per line: what it wants, and a bar each for collected
+   * and at camp. A finished line turns green, with a pop the moment it is
+   * finished, and stays until its × is clicked. Rebuilt only when a number on
+   * it changes, which is a few times a summer.
+   */
+  private drawList(all: readonly ListBox[]): void {
+    // A closed box stays closed only while it is done: a line undone again,
+    // by taking fruit back out of camp, is back on the list.
+    const boxes = all.filter((b) => !(b.done && this.listClosed.has(b.key)));
+    const drawn = boxes
+      .map((b) => `${b.key}:${b.collected.text}:${b.atCamp.text}:${b.done}`)
+      .join("|");
+    if (drawn === this.listDrawn) return;
+    this.listDrawn = drawn;
+    const wasDone = this.listDone;
+    this.listDone = new Set(boxes.filter((b) => b.done).map((b) => b.key));
+    this.list.hidden = boxes.length === 0;
+    this.list.replaceChildren(
+      ...boxes.map((box) => {
+        const li = document.createElement("li");
+        li.className = "list-box";
+        li.classList.toggle("is-done", box.done);
+        // Only on the frame it was finished, not on every redraw after.
+        li.classList.toggle("is-just-done", box.done && !wasDone.has(box.key) && this.listSeeded);
+        li.dataset.line = box.key;
+        const title = document.createElement("div");
+        title.className = "list-title";
+        title.textContent = box.done ? `✓ ${box.title}` : box.title;
+        if (box.done) {
+          const close = document.createElement("button");
+          close.className = "list-close";
+          close.textContent = "×";
+          close.title = "Put this away";
+          close.onclick = () => {
+            close.blur();
+            this.listClosed.add(box.key);
+            this.drawList(all);
+          };
+          title.append(close);
+        }
+        const want = document.createElement("div");
+        want.className = "list-want";
+        want.textContent = box.want;
+        li.append(
+          title,
+          want,
+          progressBar("Collected", box.collected, "is-collected"),
+          progressBar("At camp", box.atCamp, "is-home"),
+        );
+        return li;
+      }),
+    );
+    this.listSeeded = true;
+  }
+
   /** Point at camp from the edge of the view, or put the arrow away. */
   private placeArrow(arrow: EdgeArrow | null): void {
     this.campArrow.hidden = arrow === null;
@@ -798,7 +890,7 @@ export class Hud {
   }
 
   /**
-   * Put the summary away and start reading the log from `cursor`.
+   * Start reading the log from `cursor`.
    *
    * Two callers with opposite needs, which is why the cursor is a parameter. A
    * regenerated world has a brand new, empty log, so it resumes at 0; the next
@@ -807,51 +899,14 @@ export class Hud {
    * either swallows a summer of toasts or replays one.
    */
   reset(cursor = 0): void {
-    this.summary.hidden = true;
     this.toasts.replaceChildren();
     this.seenEvents = cursor;
     this.anchorContent = "";
-  }
-
-  /** Show the end-of-summer card. `onRestart` is wired to the button. */
-  showSummary(summer: SummerSummary, onRestart: () => void): void {
-    const rows: [string, string, boolean][] = [
-      ["Gold", String(summer.gold), true],
-      ["Fruit stored", String(summer.fruitStored), false],
-      ["Fruit picked", String(summer.harvested.fruit), false],
-      ["Feathers found", String(summer.harvested.feather), false],
-      ["Sticks gathered", String(summer.harvested.stick), false],
-      ["Vines cut", String(summer.harvested.vine), false],
-      ["Ore mined", String(summer.harvested.ore), false],
-      ["Shells found", String(summer.harvested.shell), false],
-      ["Sold at the end", String(summer.soldAtEnd), false],
-      ["Stored at the end", String(summer.storedAtEnd), false],
-      ["Dropped on the ground", String(summer.dropped), false],
-      ["Drinks", String(summer.drinks), false],
-      ["Paths cut", String(summer.tilesCut), false],
-      ["Bridge tiles laid", String(summer.bridgesBuilt), false],
-      ["Saplings felled", String(summer.saplingsFelled), false],
-      ["Wells dug", String(summer.wellsDug), false],
-      ["Caches built", String(summer.cachesBuilt), false],
-      ["Distance walked", `${summer.distanceWalked.toFixed(0)} tiles`, false],
-      ["Ended away from camp", summer.endedAway ? "yes" : "no", false],
-    ];
-
-    setText(this.summaryTitle, `Summer ${summer.year} over`);
-
-    this.summaryStats.replaceChildren();
-    for (const [label, value, isGold] of rows) {
-      const dt = document.createElement("dt");
-      dt.textContent = label;
-      const dd = document.createElement("dd");
-      dd.textContent = value;
-      if (isGold) dd.className = "gold";
-      this.summaryStats.append(dt, dd);
-    }
-
-    this.restart.onclick = onRestart;
-    this.summary.hidden = false;
-    this.restart.focus();
+    // A new summer has a new list: nothing on it is closed, or news yet.
+    this.listClosed.clear();
+    this.listDone.clear();
+    this.listSeeded = false;
+    this.listDrawn = "";
   }
 
   /**
@@ -871,4 +926,40 @@ export class Hud {
     setText(value, text);
     bar.classList.toggle("is-low", warn);
   }
+}
+
+/** One of a list box's two bars: a label, how far, and the numbers. */
+function progressBar(label: string, progress: Progress, cls: string): HTMLElement {
+  const row = document.createElement("div");
+  row.className = `list-bar ${cls}`;
+  row.style.setProperty("--through", `${Math.round(progress.share * 100)}%`);
+  const name = document.createElement("span");
+  name.textContent = label;
+  const numbers = document.createElement("span");
+  numbers.className = "list-numbers";
+  numbers.textContent = progress.text;
+  row.append(name, numbers);
+  return row;
+}
+
+/** The summer in numbers, as label, value and whether the value is gold. */
+export function summaryRows(summer: SummerSummary): [string, string, boolean][] {
+  return [
+    ["Fruit at camp", String(summer.fruitStored), false],
+    ["Fruit picked", String(summer.harvested.fruit), false],
+    ["Feathers found", String(summer.harvested.feather), false],
+    ["Sticks gathered", String(summer.harvested.stick), false],
+    ["Vines cut", String(summer.harvested.vine), false],
+    ["Ore mined", String(summer.harvested.ore), false],
+    ["Shells found", String(summer.harvested.shell), false],
+    ["Stored at the end", String(summer.storedAtEnd), false],
+    ["Dropped on the ground", String(summer.dropped), false],
+    ["Drinks", String(summer.drinks), false],
+    ["Paths cut", String(summer.tilesCut), false],
+    ["Bridge tiles laid", String(summer.bridgesBuilt), false],
+    ["Saplings felled", String(summer.saplingsFelled), false],
+    ["Wells dug", String(summer.wellsDug), false],
+    ["Distance walked", `${summer.distanceWalked.toFixed(0)} tiles`, false],
+    ["Ended away from camp", summer.endedAway ? "yes" : "no", false],
+  ];
 }

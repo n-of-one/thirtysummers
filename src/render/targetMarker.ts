@@ -21,7 +21,7 @@ export interface TargetTile {
 }
 
 /** The actions that work on the tile ahead: the tools, and what is built on grass. */
-const TILE_ACTIONS: ReadonlySet<Action["type"]> = new Set(["cut", "fell", "build", "dig", "cache"]);
+const TILE_ACTIONS: ReadonlySet<Action["type"]> = new Set(["cut", "fell", "build", "dig"]);
 
 export function targetTile(action: Action | null): TargetTile | null {
   if (!action || !TILE_ACTIONS.has(action.type)) return null;

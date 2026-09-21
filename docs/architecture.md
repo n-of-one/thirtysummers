@@ -69,7 +69,7 @@ in [development.md](development.md).
 |---|---|
 | Projection | Top-down orthogonal. Z-levels, when they come, are discrete stacked layers viewed one at a time. |
 | Movement | Free and continuous, with a tile grid underneath for collision and terrain cost. |
-| Map | 168×168 tiles generated, inside a rock border 20 thick so the camera can stay centred at the edge of play; 200×180 for a laid-out five-summer map, with a rock border 2 thick. `TILE = 32` logical px, 8px source art at 4× scale. |
+| Map | 168×168 tiles generated, inside a rock border 20 thick so the camera can stay centred at the edge of play; 200×180 for a laid-out map, with a rock border 2 thick. `TILE = 32` logical px, 8px source art at 4× scale. |
 | View | A fixed logical view of `VIEW_W × VIEW_H`, 1920×1080, scaled to fit the window in steps of 1/8 with black bars. |
 | HUD | HTML/CSS overlay on top of the canvas. |
 | Art | Minifantasy, behind a swappable pack layer. |
@@ -78,28 +78,41 @@ in [development.md](development.md).
 ## Modules
 
 - **`src/sim/`** is the whole game with no renderer. `world.ts` owns
-  everything: `world.step(dt, input)`, `nextSummer()` with the year table's
-  grants and the winter's clearing of the ground, the tools and recipes owned,
-  the wells, the caches and what is stored at camp, the items dropped on the
-  ground and the selected kind the drop key throws, `transferTarget()` with
-  `putAway` and `takeOut` for the transfer panel, and `availableAction`, the
-  one query that decides what the interact key does. Around it: `stats.ts`,
-  `resources.ts` (the resource table: glyph, ground, slots, price, whether it
-  comes back, what camp does with it, whether it is building material),
-  `inventory.ts` (slots, and camp and the caches with no limit),
-  `player.ts` (collision, per-axis moving flags, the heading),
+  everything: `world.step(dt, input)`, the tools and recipes owned, the wells
+  and what is stored at camp, the items dropped on the ground and the
+  selected kind the drop key throws, `transferTarget()` with `putAway` and
+  `takeOut` for the transfer panel, and `availableAction`, the one query that
+  decides what the interact key does. Between summers it owns the family's
+  total, the list and whether the next summer is tired: `winterInput()` is
+  what the winter screen opens on, `endWinter()` applies what was chosen
+  there, and `nextSummer()` lets the winter have its way with the map first
+  (nodes back by the near ring and the resource table, saplings back,
+  thicket creeping, a bridge tile lost), all from the seed and the year.
+  Around it: `winter.ts` (winter as arithmetic: what is kept and sold, upkeep,
+  the shop, the family and the frosted line, with no DOM), `shop.ts` (the
+  shop's table, each item with the family level that unlocks it), `list.ts`
+  (the list's lines and how they fill from the top), `economy.ts` (the
+  perfect player, played over a map's counts through `winter.ts`),
+  `stats.ts`, `resources.ts` (the resource table: glyph, ground, slots,
+  price, whether it comes back outside the near ring, what camp does with it,
+  whether it is building material), `inventory.ts` (slots, and camp with no
+  limit), `player.ts` (collision, per-axis moving flags, the heading),
   `interaction.ts` (what is in reach, the tile ahead, water nearby),
   `terrain.ts` and `tilemap.ts` (the terrain table and the grid),
   `mapfile.ts` (the text map format), `summary.ts` (a summer counted from
-  the event log).
+  the event log), `save.ts` (a game at the end of a summer as a URL string;
+  `world.snapshot` and `world.restore` fill and read it).
 - **`src/sim/worldgen/`** turns a seed into a map: noise into terrain and a
   camp, stream thickening and fords, a flood fill from camp, resources
   scattered by terrain, springs on the bank. `worldgen.ts` says what order the
-  steps run in, and why. On top of that, `layout.ts` stamps the five-summer
-  table onto the landscape -- the stream round camp, the near ring, the
-  pockets beyond -- and is what `World.fromSeed` and `npm run map` build;
-  `rows.ts` measures whether a map holds that table, and is shared by the
-  layout's tests and `npm run map:check`.
+  steps run in, and why. On top of that, `layout.ts` stamps the table of the
+  first three summers onto the landscape -- the stream round camp, the near
+  ring, the feather field across the stream, the shell field behind its copse
+  -- and is what `World.fromSeed` and `npm run map` build; `rows.ts` measures
+  whether a map holds that table, economy included, and is shared by the
+  layout's tests and `npm run map:check`. `reachability.ts` has `nearRing`,
+  the near ring worked out from the map, so a hand-edited file keeps the
+  rule that everything inside it is back every year.
 - **`src/render/`** is Pixi only. `tileLayer.ts` is the culled, autotiled
   ground. `propLayer.ts` is the y-sorted props and player, with pixel
   snapping. `silhouette.ts` redraws the player where a canopy covers them.
@@ -116,9 +129,14 @@ in [development.md](development.md).
   `index.html`; `edgeArrow` and `anchorPosition` are its geometry, pure.
   `buildMenu.ts` is the menu B opens: it draws `world.buildOptions()` and
   reports the choice back, and never writes simulation state itself.
-  `transferPanel.ts` is the panel a held interact key opens at camp or a
-  cache; the world announces it in the log, and every move goes back through
-  `world.putAway` and `world.takeOut`.
+  `transferPanel.ts` is the panel a held interact key opens at camp; the
+  world announces it in the log, and every move goes back through
+  `world.putAway` and `world.takeOut`. `winter.ts` is the winter screen the
+  end of a summer opens: it holds only the player's choices and the list's
+  unticked boxes, draws every number from `sim/winter.ts`, and hands the
+  choices back for `world.endWinter`. It also shows the save link and the
+  summer in numbers. The list and the start-of-summer notice
+  are part of the HUD model.
   `view.ts` scales the one wrapper that holds everything on screen.
 - **`src/input/`, `src/debug/`, `src/main.ts`, `src/frameClock.ts`** are the
   keyboard and pause, the debug overlay, the wiring, and the fixed-step

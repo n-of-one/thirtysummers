@@ -46,6 +46,6 @@ for (const kind of ["tree", "underbrush", "sapling"] as TerrainKind[]) {
   row(`prop ${kind}`, props);
 }
 row("resources", RESOURCE_KINDS.map((k) => pack.resource(k).texture));
-row("camp, spring, well, cache", [pack.camp.texture, pack.spring.texture, pack.well.texture, pack.cache.texture]);
+row("camp, spring, well", [pack.camp.texture, pack.spring.texture, pack.well.texture]);
 for (const f of FACINGS) row(`walk ${f}`, pack.walk(f));
 label(`pack: ${pack.id}  tileSize ${pack.tileSize}px`, 4);

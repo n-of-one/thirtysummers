@@ -139,12 +139,12 @@ The backpack is the limit: ten slots, bulky things taking two. It survives
 the winter as it is, so it has to have a way out that never depends on what
 is in it.
 
-**Camp takes everything.** It also sells: feathers, shells and ore are sold
-the moment they reach it, because there is no decision in them. Everything
-else, fruit and building material alike, is stored at camp, where winter's
-keep or sell finds it. Fruit stored at camp is winter food, and may be taken
-back out at any time; every fruit taken is one not there for winter. What is
-still carried when the clock stops is stored too.
+**Camp takes everything, and sells nothing.** Feathers, shells, fruit and
+building material alike are stored at camp, and everything is sold in
+winter, where the haul is shown with what it makes. A summer has no gold in
+it. Fruit stored at camp is winter food, and may be taken back out at any
+time; every fruit taken is one not there for winter. What is still carried
+when the clock stops is stored too.
 
 **A press stores the whole load; a hold opens both sides.** At camp, and at
 the cart once there is one, a press of the interact key stores everything

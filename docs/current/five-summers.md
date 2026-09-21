@@ -109,10 +109,11 @@ The cache is parked there too. The cart does its job.
 
 ## What is gathered
 
-The list counts gold from feathers and shells only. Sticks, vines and logs
-still sell, for one, and that gold still reaches the family, but selling
-material is not meant to be the way to earn. Whether they should sell at all
-is for the log.
+Camp sells nothing; everything is sold in winter. The list counts gold from
+feathers and shells only, at what winter will sell them for. Sticks, vines
+and logs still sell, for one, and that gold still reaches the family, but
+selling material is not meant to be the way to earn. Whether they should
+sell at all is for the log.
 
 | Where | What | Comes back | Price | Slots |
 |---|---|---|---|---|
@@ -184,14 +185,16 @@ frosted in winter 3 and buys it in winter 4.
 Made in winter, carried through the summer. Every line of upkeep, every item
 in the shop, frosted ones included, and the family's next level has a box,
 ticked by default; the player unticks what they will not go for. The ticked
-lines are the list the summer shows, filled top to bottom by what is at
-camp:
+lines are the list the summer shows across the top of the screen, a box per
+line, filled top to bottom:
 
-1. food, counted in fruit at camp;
-2. rent;
-3. each ticked item, its gold from what is left and its material in kind at
-   camp;
+1. food, counted in fruit;
+2. rent, 10 gold, which the box says is 10 feathers;
+3. each ticked item, its gold from what is left and its material in kind;
 4. the gold the family still needs for its next level.
+
+Each box has two bars, what has been collected, in the pack or at camp, and
+what of it is at camp. A box goes once everything on it is at camp.
 
 Summer 1's list is the same thing with no shop: food, rent, level 1.
 

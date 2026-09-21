@@ -150,46 +150,56 @@ export const FOG_STOPS: readonly (readonly [number, number])[] = [
 export const BACKPACK_CAPACITY = 10;
 
 // ---------------------------------------------------------------- winter ----
-// What winter costs and what the surplus is worth. Everything here is a
-// [GUESS] until winter 1 has been played against a real summer-1 haul; what
-// the numbers have to hold is in docs/current/five-summers.md: winter 1 can
-// afford the axe from a first summer, and the near ring always has enough
-// fruit in reach to pay the food.
+// What winter costs and what the surplus is worth, from
+// docs/current/five-summers.md: the near ring's feathers pay the rent exactly,
+// its fruit pays the food, and anything for the family comes from across the
+// stream.
 
 /** [DOC] Upkeep is flat for all five winters, since none of the improvements
- * is a structure. [GUESS] the two numbers: the fruit winter eats... */
+ * is a structure: the fruit winter eats... */
 export const UPKEEP_FRUIT = 12;
-/** ...and the gold it wants besides. */
-export const UPKEEP_GOLD = 4;
-/**
- * [GUESS] Extra gold owed for ending the summer away from camp. Enough to
- * notice, not enough to ruin a winter.
- */
+/** ...and the rent it wants besides. */
+export const UPKEEP_GOLD = 10;
+/** [DOC] Extra gold owed for ending the summer away from camp. */
 export const AWAY_GOLD_CHARGE = 3;
 /**
- * [GUESS] What the town charges for one fruit. Above what fruit sells for, so
+ * [DOC] What the town charges for one fruit. Above what fruit sells for, so
  * buying food back is always the worse end of the deal.
  */
 export const FRUIT_BUY_PRICE = 2;
 /**
- * [GUESS] What the family's levels cost, as a running total of the surplus
- * given over every winter. A level does nothing yet.
+ * [DOC] What the family's levels cost, as a running total of the surplus
+ * given over every winter. A level opens more of the shop.
  */
-export const FAMILY_LEVELS: readonly number[] = [10, 30, 60, 100, 150];
+export const FAMILY_LEVELS: readonly number[] = [10, 35, 80, 140, 220];
 
-// ----------------------------------------------------------------- years ----
+// -------------------------------------------------------- between summers ----
+// What the map does while the family is away. Everything here is drawn from a
+// seed and the year, so a map and a year always come out the same.
 
 /**
- * [DOC] What the start of each summer hands over, by year, until the shop
- * sells it: the axe for summer 2, the cart for summer 3, the well for summer 4.
- * Every map follows the same five-summer table, so this is one table and not
- * one per map. Anything granted stays granted.
+ * [DOC] Share of what was picked outside the near ring this summer that is
+ * back next summer, for a kind whose `returns` is `slowly`. Rounded down, so
+ * 30 picked is 15 back, and 15 picked is 7.
  */
-export const YEAR_GRANTS: Readonly<Record<number, readonly ("axe" | "cart" | "well")[]>> = {
-  2: ["axe"],
-  3: ["cart"],
-  4: ["well"],
-};
+export const REPLENISH_SHARE = 0.5;
+/** [DOC] Winters after it was felled that a sapling stands again. */
+export const SAPLING_RETURN_YEARS = 3;
+/**
+ * [GUESS] Chance each winter that a cut tile touching thicket grows back, so a
+ * path through a wall narrows at its edges.
+ */
+export const THICKET_CREEP_CHANCE = 0.3;
+/** [DOC] A bridge loses one tile every this many winters. */
+export const BRIDGE_WEAR_EVERY = 2;
+/**
+ * [DOC] A tired summer, after a winter that could not be paid: every hold
+ * takes this many times as long, except the one that opens the transfer
+ * panel...
+ */
+export const TIRED_HOLD_MUL = 1.5;
+/** ...and rough ground is walked at this share of walking speed instead of DIFFICULT_SPEED_MUL. */
+export const TIRED_DIFFICULT_SPEED_MUL = 0.25;
 
 // -------------------------------------------------------------------- HUD ----
 // Purely cosmetic thresholds: when a readout turns from calm to alarming.
@@ -291,15 +301,10 @@ export const WELL_TIME = 6;
  */
 export const WELL_WATER_CLEARANCE = 16;
 
-/** [GUESS] Sticks a cache costs. */
-export const CACHE_STICKS = 3;
-/** [GUESS] Seconds of holding the key to build a cache. */
-export const CACHE_TIME = 3;
-
 // -------------------------------------------------------- the transfer ----
 
 /**
- * [GUESS] Seconds of holding the interact key at camp or a cache to open the
+ * [GUESS] Seconds of holding the interact key at camp to open the
  * transfer panel. Short, because the tap that banks everything happens on the
  * release: hold any longer than this and the arrival was never a quick one.
  */
@@ -443,13 +448,13 @@ export const STAND_SAPLING_SHARE = 0.3;
  */
 export const MUD_POCKET_RADIUS = 8;
 
-/** The ore field across the stream, as tiles beyond the stream's radius. */
-export const ORE_FIELD_BEYOND = 16;
-export const ORE_FIELD_RADIUS = 10;
-/** The field the copse hides, and the copse: a wall of saplings round it. */
-export const FAR_FIELD_BEYOND = 44;
-export const FAR_FIELD_SIDE = 36;
-export const FAR_FIELD_RADIUS = 9;
+/** The feather field across the stream, as tiles beyond the stream's radius. */
+export const FEATHER_FIELD_BEYOND = 16;
+export const FEATHER_FIELD_RADIUS = 10;
+/** The shell field the copse hides, and the copse: a wall of saplings round it. */
+export const SHELL_FIELD_BEYOND = 44;
+export const SHELL_FIELD_SIDE = 36;
+export const SHELL_FIELD_RADIUS = 9;
 export const COPSE_WALL = 3;
 /**
  * A band of underbrush round the copse, so the only grass into the far field
@@ -467,31 +472,19 @@ export const HEDGE_RADIUS = 2.5;
  */
 export const ROUTE_BEND_FROM_FIELD = 30;
 
-/** The dry pocket, far enough past the stream that hydration is the barrier. */
-export const DRY_POCKET_BEYOND = 88;
-export const DRY_POCKET_SIDE = 40;
-export const DRY_POCKET_RADIUS = 7;
-
-/** The last pocket, behind [DOC] twelve tiles of thicket. */
-export const LAST_POCKET_SIDE = 70;
-export const LAST_POCKET_FROM_TOP = 16;
-export const LAST_POCKET_RADIUS = 7;
-export const LAST_POCKET_WALL = 13;
-
-/** How many of each kind the layout scatters, by where it goes. */
+/**
+ * [DOC] How many of each kind the layout scatters, by where it goes. The dry
+ * pocket and the last pocket are out of the layout until they are needed: the
+ * dry pocket comes back with M12, and the thick wall is parked.
+ */
 export const LAYOUT_NODES = {
-  nearRingFruit: 8,
+  nearRingFruit: 14,
   nearRingFeathers: 10,
-  standSticks: 10,
-  pocketVines: 10,
-  oreFieldOre: 28,
-  oreFieldFruit: 5,
-  oreFieldFeathers: 3,
-  farFieldOre: 30,
-  farFieldFruit: 6,
-  dryPocketShells: 12,
-  lastPocketShells: 8,
-  lastPocketOre: 12,
+  standSticks: 6,
+  pocketVines: 6,
+  featherFieldFeathers: 30,
+  featherFieldFruit: 4,
+  shellFieldShells: 30,
 } as const;
 /**
  * Closest two nodes of the near ring may stand, in tiles. The ring is large

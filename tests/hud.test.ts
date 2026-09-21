@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import * as C from "../src/config.ts";
+import { NO_INPUT } from "../src/input/keyboard.ts";
 import { Inventory } from "../src/sim/inventory.ts";
 import { TileMap } from "../src/sim/tilemap.ts";
 import { World } from "../src/sim/world.ts";
@@ -58,15 +59,15 @@ describe("formatClock", () => {
 describe("hudModel", () => {
   it("reports a fresh summer at full", () => {
     const model = hudModel(world());
-    expect(model).toEqual({
+    expect({ ...model, list: model.list.map((r) => r.title) }).toEqual({
       hydration: 100,
       hydrationWarn: false,
       carried: 0,
       contents: "empty",
       dropSelection: "",
       capacity: C.BACKPACK_CAPACITY,
-      gold: 0,
-      storedFruit: 0,
+      list: ["Food", "Rent", "Family level 1"],
+      startNotice: "Summer 1, 5:00 long",
       tools: "knife",
       building: null,
       secondsLeft: C.SUMMER_LENGTH_SEC,
@@ -91,22 +92,42 @@ describe("hudModel", () => {
     expect(fogRadiusPx(10)).toBeLessThan(WIDEST);
   });
 
-  it("shows the store's fruit beside the gold", () => {
+  it("shows the first summer's list: what is collected, what is at camp, and gold in feathers", () => {
     const w = world();
     w.store.add("fruit", 7);
-    expect(hudModel(w).storedFruit).toBe(7);
+    w.store.add("feather", 11);
+    w.inventory.add("feather", 4);
+    w.inventory.add("fruit", 2);
+    const boxes = hudModel(w).list;
+    // Rent takes the first ten feathers at camp, so it is done and stays on
+    // the list as done; the level gets the one left at camp and the four in
+    // the pack.
+    expect(boxes.map((b) => [b.title, b.want, b.collected.text, b.atCamp.text, b.done])).toEqual([
+      ["Food", "12 fruit", "9/12", "7/12", false],
+      ["Rent", "10 gold (10 feathers)", "10/10", "10/10", true],
+      ["Family level 1", "10 gold (10 feathers)", "5/10", "1/10", false],
+    ]);
+    expect(boxes[2]!.collected.share).toBeCloseTo(0.5);
+    expect(boxes[2]!.atCamp.share).toBeCloseTo(0.1);
   });
 
-  it("follows the backpack, the gold and the clock", () => {
+  it("says which summer it is until the player moves", () => {
+    const w = world();
+    expect(hudModel(w).startNotice).toBe("Summer 1, 5:00 long");
+    w.tired = true;
+    expect(hudModel(w).startNotice).toContain("A tired summer");
+    w.step(C.TICK_SEC, { ...NO_INPUT, moveX: 1 });
+    expect(hudModel(w).startNotice).toBeNull();
+  });
+
+  it("follows the backpack and the clock", () => {
     const w = world();
     w.inventory.add("ore", 3);
     w.inventory.add("fruit", 1);
-    w.inventory.gold = 12;
     w.elapsedSec = C.SUMMER_LENGTH_SEC - 30;
     const model = hudModel(w);
     expect(model.carried).toBe(4);
     expect(model.contents).toBe("fruit 1, ore 3");
-    expect(model.gold).toBe(12);
     expect(model.secondsLeft).toBe(30);
     expect(model.homeward).toBe(true);
     expect(formatClock(model.secondsLeft)).toBe("0:30");
@@ -208,24 +229,15 @@ describe("the action prompt", () => {
     w.player.x = 1.5;
     w.player.y = 1.5;
     w.inventory.add("ore", 6);
+    w.inventory.add("fruit", 2);
     expect(hudModel(w).prompt).toEqual({
-      text: "Press E to sell 6 at camp, hold to access the camp items",
+      text: "Press E to store 8 at camp, hold to access the camp items",
       progress: 0,
       blocked: false,
     });
 
-    w.inventory.add("fruit", 2);
-    expect(hudModel(w).prompt?.text).toBe(
-      "Press E to sell 6 and store 2 at camp, hold to access the camp items",
-    );
-
-    w.inventory.sell();
-    expect(hudModel(w).prompt?.text).toBe(
-      "Press E to store 2 at camp, hold to access the camp items",
-    );
-
     // Nothing to store is still somewhere to take things out of.
-    w.inventory.remove("fruit", 2);
+    w.inventory.clear();
     expect(hudModel(w).prompt).toEqual({
       text: "Nothing to store. Hold E to access the camp items",
       progress: 0,
@@ -371,20 +383,12 @@ describe("toastFor", () => {
   it("puts every kind of event into words", () => {
     expect(toastFor({ type: "harvested", kind: "ore", at: 0 })).toBe("+1 ore");
     expect(toastFor({ type: "pickedUp", kind: "vine", at: 0 })).toBe("+1 vine");
-    expect(toastFor({ type: "deposited", sold: 5, stored: 0, gold: 5, at: 0 })).toBe(
-      "Sold 5 for 5 gold",
-    );
-    expect(toastFor({ type: "deposited", sold: 5, stored: 2, gold: 5, at: 0 })).toBe(
-      "Sold 5 for 5 gold, stored 2 at camp",
-    );
-    expect(toastFor({ type: "deposited", sold: 0, stored: 2, gold: 0, at: 0 })).toBe(
-      "Stored 2 at camp",
-    );
+    expect(toastFor({ type: "deposited", stored: 7, at: 0 })).toBe("Stored 7 at camp");
     expect(toastFor({ type: "putAway", kind: "vine", n: 3, at: 0 })).toBe("Stored 3 vine");
     expect(toastFor({ type: "tookOut", kind: "fruit", n: 2, at: 0 })).toBe("Took 2 fruit");
     expect(toastFor({ type: "dropped", kind: "vine", n: 6, at: 0 })).toBe("Dropped 6 vine");
     // The panel opening in front of the player is its own announcement.
-    expect(toastFor({ type: "transferOpened", where: "camp", x: 1, y: 1, at: 0 })).toBeNull();
+    expect(toastFor({ type: "transferOpened", x: 1, y: 1, at: 0 })).toBeNull();
     expect(toastFor({ type: "drank", at: 0 })).toBe("Drank your fill");
     expect(toastFor({ type: "blocked", reason: "backpackFull", at: 0 })).toBe("Backpack full");
     expect(toastFor({ type: "blocked", reason: "noAxe", at: 0 })).toBe(
@@ -392,11 +396,10 @@ describe("toastFor", () => {
     );
     expect(toastFor({ type: "felled", x: 0, y: 0, at: 0 })).toBe("Felled a sapling, +1 log");
     expect(toastFor({ type: "dug", x: 0, y: 0, at: 0 })).toBe("Dug a well");
-    expect(toastFor({ type: "cached", x: 0, y: 0, at: 0 })).toBe("Built a cache");
-    expect(toastFor({ type: "stashed", x: 0, y: 0, items: 4, at: 0 })).toBe("Put 4 in the cache");
-    expect(toastFor({ type: "fetched", x: 0, y: 0, items: 3, at: 0 })).toBe("Took 3 from the cache");
-    expect(toastFor({ type: "granted", what: "axe", at: 0 })).toBe("You have an axe");
-    expect(toastFor({ type: "summerEnded", away: false, sold: 0, stored: 0, gold: 0, at: 0 })).toBe(
+    // The start-of-summer notice says which summer it is, not a toast.
+    expect(toastFor({ type: "summerStarted", year: 2, tired: false, at: 0 })).toBeNull();
+    expect(toastFor({ type: "winterEnded", given: 5, tired: false, at: 0 })).toBeNull();
+    expect(toastFor({ type: "summerEnded", away: false, stored: 0, at: 0 })).toBe(
       "Summer over",
     );
   });

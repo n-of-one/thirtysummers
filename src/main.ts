@@ -1,4 +1,5 @@
 import "./ui/hud.css";
+import "./ui/winter.css";
 import * as C from "./config.ts";
 import { DebugOverlay, formatReadout } from "./debug/overlay.ts";
 import { FrameClock } from "./frameClock.ts";
@@ -7,16 +8,19 @@ import { Pause } from "./input/pause.ts";
 import { createApp, setResolution } from "./render/app.ts";
 import { loadAssetPack } from "./render/atlas.ts";
 import { Camera } from "./render/camera.ts";
+import { loadIcons } from "./render/packs/icons.ts";
 import { PropLayer } from "./render/propLayer.ts";
 import { TargetMarker, targetTile } from "./render/targetMarker.ts";
 import { TileLayer } from "./render/tileLayer.ts";
 import { parseMap } from "./sim/mapfile.ts";
-import { summarise } from "./sim/summary.ts";
+import { decodeSave, encodeSave } from "./sim/save.ts";
+import { summarise, type SummerSummary } from "./sim/summary.ts";
 import { World } from "./sim/world.ts";
 import { BuildMenu } from "./ui/buildMenu.ts";
 import { Hud, hudModel } from "./ui/hud.ts";
 import { TransferPanel } from "./ui/transferPanel.ts";
 import { bindFullscreenButton, FixedView, parseViewParam } from "./ui/view.ts";
+import { WinterScreen } from "./ui/winter.ts";
 
 /**
  * Surface startup failures on the page. A module with top-level await that
@@ -50,6 +54,19 @@ let seed = params.get("seed") && Number.isFinite(requestedSeed) ? requestedSeed 
  */
 const mapName = params.get("map");
 let world = mapName ? await loadMap(mapName) : World.fromSeed(seed);
+
+/**
+ * `?save=` picks a game up at the end of the summer it was saved at, on the
+ * map the other parameters name, and opens straight onto that winter. The
+ * summer's numbers come with it, since the event log does not.
+ */
+let savedSummary: SummerSummary | null = null;
+const saveParam = params.get("save");
+if (saveParam) {
+  const state = decodeSave(saveParam);
+  world.restore(state);
+  savedSummary = state.summary;
+}
 
 async function loadMap(name: string): Promise<World> {
   const res = await fetch(`/maps/${encodeURIComponent(name)}.txt`);
@@ -116,6 +133,9 @@ buildMenu.onChoose = (build) => {
 // Opened by the world, in the log, because the hold that opens it is the same
 // key the tap uses and only the simulation can tell the two apart.
 const transfer = new TransferPanel();
+// The map's own sprites, cut out of the sheets for the winter screen's rows.
+// Without the licensed art each kind is drawn as a flat chip instead.
+const winter = new WinterScreen(await loadIcons());
 // The same from the keyboard, on the same terms as the button: only at camp,
 // and not while paused, when the button is under the card.
 addEventListener("keydown", (e) => {
@@ -142,8 +162,9 @@ let summaryShown = false;
 function regenerate(nextSeed: number): void {
   seed = nextSeed;
   world = World.fromSeed(seed);
-  // A panel onto a store that no longer exists.
+  // A panel onto a camp that no longer exists, and a winter for another world.
   transfer.close();
+  winter.hide();
 
   tiles.destroy();
   props.destroy();
@@ -163,9 +184,47 @@ function regenerate(nextSeed: number): void {
   const url = new URL(location.href);
   url.searchParams.set("seed", String(seed));
   // A regenerate replaces an edited map with a generated one, so the parameter
-  // that would load the edited one back on reload has to go with it.
+  // that would load the edited one back on reload has to go with it, and so
+  // does a save made on the old one.
   url.searchParams.delete("map");
+  url.searchParams.delete("save");
   history.replaceState(null, "", url);
+}
+
+/** Set `?save=` in the address bar, or take it out with null. */
+function setSaveParam(save: string | null): string {
+  const url = new URL(location.href);
+  if (save === null) url.searchParams.delete("save");
+  else url.searchParams.set("save", save);
+  history.replaceState(null, "", url);
+  return url.href;
+}
+
+/**
+ * The winter between two summers, straight after the last one ends. The
+ * screen owns the choosing; the world applies what was chosen, and then the
+ * next summer starts.
+ *
+ * The game is saved as it opens: the address bar carries the save, so a
+ * reload comes back to this winter, and the screen shows the same link to
+ * copy. The next summer takes it out again.
+ */
+function openWinter(summary: SummerSummary): void {
+  const at = world;
+  const link = setSaveParam(encodeSave(at.snapshot(summary)));
+  winter.show(
+    at.winterInput(),
+    (choices, ticked) => {
+      // A regenerate while the screen was up has already put it away.
+      if (at !== world) return;
+      world.endWinter(choices, ticked);
+      winter.hide();
+      setSaveParam(null);
+      nextSummer();
+    },
+    summary,
+    link,
+  );
 }
 
 /**
@@ -174,13 +233,14 @@ function regenerate(nextSeed: number): void {
  * Nothing is rebuilt: the map, the layers and the camera are the ones already
  * on screen, and the event log carries on where it left off -- so the HUD
  * resumes at the cursor it had reached rather than replaying the summer that
- * just ended.
+ * just ended. The winter changed the ground itself, so both layers redraw.
  */
 function nextSummer(): void {
   world.nextSummer();
   transfer.close();
   summaryShown = false;
   hud.reset(seenEvents);
+  tiles.invalidate();
   props.invalidate();
   camera.centreOn(world.player);
   camera.clampTo(world.map.width, world.map.height);
@@ -219,6 +279,7 @@ function exposeGame(): void {
     hud,
     buildMenu,
     transfer,
+    winter,
     world,
     camera,
     props,
@@ -289,11 +350,11 @@ app.ticker.add(({ deltaMS }) => {
     for (let i = 0; i < steps; i++) world.step(C.TICK_SEC, input);
   } else if (!summaryShown) {
     summaryShown = true;
-    // Another summer on the same map, with every cut and every bridge kept.
-    // That persistence is the whole question the discovery test asks, so the
-    // button in front of the player is the one that keeps it; a fresh map is
-    // the debug overlay's job.
-    hud.showSummary(summarise(world), nextSummer);
+    // On to the winter, and from it another summer on the same map, with
+    // every cut and every bridge kept, less what the winter wore away. A fresh
+    // map is the debug overlay's job.
+    openWinter(savedSummary ?? summarise(world));
+    savedSummary = null;
   }
 
   // Neither layer rebuilds unless the camera crosses a tile boundary, so
@@ -304,14 +365,12 @@ app.ticker.add(({ deltaMS }) => {
     const type = world.events[i]!.type;
     if (
       type === "harvested" ||
-      type === "summerStarted" ||
       type === "dug" ||
-      type === "cached" ||
       type === "dropped" ||
       type === "pickedUp"
     ) {
       props.invalidate();
-    } else if (type === "cut" || type === "built" || type === "felled") {
+    } else if (type === "cut" || type === "built" || type === "felled" || type === "summerStarted") {
       tiles.invalidate();
       props.invalidate();
     } else if (type === "transferOpened") {
@@ -334,7 +393,6 @@ app.ticker.add(({ deltaMS }) => {
     playerTexture(),
     frameSec,
     world.springs,
-    world.caches,
     world.dropped,
   );
   marker.update(camera, targetTile(world.availableAction()));
@@ -356,7 +414,7 @@ console.log(
   `${mapName ? `map "${mapName}"` : `seed ${seed}`} | pack "${pack.id}" @${pack.tileSize}px | ` +
     `${world.map.width}x${world.map.height} | ${world.nodes.length} nodes | ` +
     `renderer ${app.renderer.name} | WASD move, ` +
-    `E/Space gather, drink, cut, fell, build, bank and pick up (hold at camp or ` +
-    `a cache for the transfer panel), X drop, C switch, B build menu, P pause, ` +
+    `E/Space gather, drink, cut, fell, build, bank and pick up (hold at camp ` +
+    `for the transfer panel), X drop, C switch, B build menu, P pause, ` +
     `\` debug panel | view ${view.size.width}x${view.size.height} at x${view.scale}`,
 );

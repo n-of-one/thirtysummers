@@ -309,13 +309,6 @@ export const SAPLING_COLORS: Readonly<Record<string, readonly [number, number, n
   b: [138, 128, 106],
 };
 
-/** The cache: the farm's small chest. The camp is its large one. */
-export const CACHE_CELL = ["farmProps", 18, 5] as const satisfies readonly [
-  SheetName,
-  number,
-  number,
-];
-
 /**
  * A well: the farm's water trough, standing upright, one tile wide and two
  * tall. Water in a built thing, so it reads apart from the reeds of a spring.

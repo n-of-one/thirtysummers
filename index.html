@@ -4,6 +4,10 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>thirtysummers</title>
+    <!-- Black from the first paint. The stylesheets arrive with the script, and
+         until then a reload would flash the browser's white. -->
+    <meta name="color-scheme" content="dark" />
+    <style>html, body { background: #000; }</style>
   </head>
   <body>
     <!-- The fixed view: everything the player sees, scaled together to fit the window. -->
@@ -22,6 +26,12 @@
         </div>
       </div>
 
+      <!-- The list ticked in winter: a box per unfinished line, across the top. -->
+      <ul class="hud-list" id="hud-list" hidden></ul>
+
+      <!-- Which summer this is, until the first step. -->
+      <div class="start-notice" id="start-notice" hidden></div>
+
       <div class="hud-corner hud-tr">
         <div class="clock"><span id="clock-time">5:00</span><small>left in summer</small></div>
         <div class="pill" id="year-pill">Year <b id="year-count">1</b></div>
@@ -32,8 +42,6 @@
         <div class="pill">Backpack <b id="backpack-count">0</b>/<span id="backpack-cap">10</span>
           <span class="pill-note" id="backpack-contents">empty</span>
           <span class="pill-note" id="drop-selection" hidden></span></div>
-        <div class="pill">Gold <b id="gold-count">0</b>
-          <span class="pill-note">fruit stored</span> <b id="store-fruit">0</b></div>
         <div class="pill">Tools <span class="pill-note" id="tools">knife</span></div>
         <div class="pill" id="build-pill" hidden>Building <b id="build-name"></b>
           <span class="pill-note"><kbd>Esc</kbd> to stop</span></div>
@@ -48,13 +56,13 @@
         </div>
       </div>
 
-      <!-- The pack on one side, the store on the other. Opened by holding E at
-           camp or at a cache; the clock runs while it is up. -->
+      <!-- The pack on one side, camp on the other. Opened by holding E at
+           camp; the clock runs while it is up. -->
       <div id="transfer" hidden>
         <div class="transfer-card">
-          <h2 id="transfer-title">Stored in camp</h2>
+          <h2>Camp storage</h2>
           <div class="transfer-head">
-            <span>Pack</span><span></span><span id="transfer-there">Camp</span>
+            <span>Pack</span><span></span><span>Camp</span>
           </div>
           <ul id="transfer-list"></ul>
           <p class="transfer-note" id="transfer-free"></p>
@@ -80,11 +88,76 @@
       </div>
     </div>
 
-    <div id="summary" hidden>
-      <div class="summary-card">
-        <h1 id="summary-title">Summer over</h1>
-        <dl id="summary-stats"></dl>
-        <button id="summary-restart">Next summer</button>
+    <!--
+      The winter screen, between the summary card and the next summer. Four
+      panels in a two-row grid: the haul and what winter costs side by side,
+      the family beside them and as tall as both, and the town underneath, as
+      wide as the two above it. Everything is pinned to the top of the view,
+      so a line appearing anywhere -- a level gained, a row of food -- moves
+      nothing else. The boxes on its rows are the next summer's list.
+    -->
+    <div id="winter" hidden>
+      <div class="winter-card">
+        <header class="winter-head">
+          <h1 id="winter-year">Winter</h1>
+        </header>
+
+        <div class="winter-cols">
+          <section class="winter-panel winter-town" id="winter-town">
+            <!-- What is in hand, beside the prices it is measured against:
+                 gold not spent here goes to the family without being asked,
+                 so the shop is the one place that has to say what is left. -->
+            <div class="winter-shop-head">
+              <h2>Shop</h2>
+              <p class="winter-spend" id="winter-spend"></p>
+            </div>
+            <ul class="winter-shop" id="winter-shop"></ul>
+          </section>
+
+          <hr class="winter-rule" id="winter-rule" />
+
+          <section class="winter-panel winter-haul">
+            <h2>Summer haul</h2>
+            <ul class="winter-list" id="winter-sold"></ul>
+            <ul class="winter-list" id="winter-materials"></ul>
+            <ul class="winter-list winter-foot-list" id="winter-sales"></ul>
+          </section>
+
+          <section class="winter-panel winter-winter">
+            <h2>Winter upkeep</h2>
+            <ul class="winter-list" id="winter-upkeep"></ul>
+            <ul class="winter-list winter-foot-list" id="winter-totals"></ul>
+            <ul class="winter-list winter-foot-list" id="winter-balance"></ul>
+          </section>
+
+          <section class="winter-panel winter-family">
+            <h2>Family</h2>
+            <ul class="winter-list" id="winter-family"></ul>
+            <ul class="winter-list winter-foot-list" id="winter-family-gold"></ul>
+            <ul class="winter-list winter-foot-list" id="winter-family-final"></ul>
+            <ul class="winter-list" id="winter-family-total"></ul>
+          </section>
+        </div>
+
+        <footer class="winter-foot">
+          <span class="winter-list-note">Ticked lines are next summer's list</span>
+          <span class="winter-warning" id="winter-warning" hidden></span>
+          <button id="winter-next">Next summer</button>
+        </footer>
+
+        <!-- This winter as a link: opening it starts here again, at the end of
+             the same summer, on the same map. -->
+        <div class="winter-save">
+          <span class="winter-save-label">Saved at the end of this summer</span>
+          <input id="winter-save-url" readonly spellcheck="false" />
+          <button id="winter-save-copy">Copy link</button>
+        </div>
+
+        <!-- What the summer came to, in numbers. Closed unless asked for. -->
+        <details class="winter-details">
+          <summary id="winter-details-title">Summer in numbers</summary>
+          <dl id="summary-stats"></dl>
+        </details>
       </div>
     </div>
 
@@ -102,7 +175,7 @@
         <label>Speed <input type="range" id="debug-speed" /><b id="debug-speed-value"></b></label>
         <label><input type="checkbox" id="debug-grid" /> Grid</label>
         <label><input type="checkbox" id="debug-freeze" /> Freeze hydration and clock</label>
-        <span class="debug-hint">click the map to teleport &middot; [ ] steps the seed &middot; ` or Esc closes</span>
+        <span class="debug-hint">click the map to teleport &middot; [ ] steps the seed &middot; ` closes</span>
       </div>
       <div id="debug-readout"></div>
     </div>

@@ -17,7 +17,8 @@ import type { GeneratedWorld } from "../worldgen.ts";
  * be short in the one currency the summer before supplied. So the landscape is
  * the generator's -- its woods, its mud, its thinning tree line -- and this
  * pass stamps the table onto it: the half circle of stream round camp, the
- * near ring inside it, and the pockets beyond, each at its own distance.
+ * near ring inside it, the feather field across the stream, and the shell
+ * field behind its copse. The dry pocket comes back with M12.
  *
  * Positions are jittered and the whole arrangement is mirrored by the seed, so
  * two seeds are not the same walk, while every seed still holds the same
@@ -53,19 +54,11 @@ export function layoutSummerWorld(seed: number): GeneratedWorld {
   const R = C.NEAR_RING_RADIUS;
 
   const at = (dx: number, dy: number): Vec2 => ({ x: cx + dx, y: cy + dy });
-  const oreField = at(jitter(10), -(R + C.ORE_FIELD_BEYOND + jitter(4)));
-  const farField = at(
-    side * (C.FAR_FIELD_SIDE + jitter(8)),
-    -(R + C.FAR_FIELD_BEYOND + jitter(6)),
+  const featherField = at(jitter(10), -(R + C.FEATHER_FIELD_BEYOND + jitter(4)));
+  const shellField = at(
+    side * (C.SHELL_FIELD_SIDE + jitter(8)),
+    -(R + C.SHELL_FIELD_BEYOND + jitter(6)),
   );
-  const dryPocket = at(
-    -side * (C.DRY_POCKET_SIDE + jitter(10)),
-    -(R + C.DRY_POCKET_BEYOND + jitter(4)),
-  );
-  const lastPocket = {
-    x: cx + side * (C.LAST_POCKET_SIDE + jitter(8)),
-    y: C.LAST_POCKET_FROM_TOP + jitter(3),
-  };
   // The two pockets sit well off the line out of camp, one to each side, so
   // the route north never cuts through the stand's wall.
   const UP = -Math.PI / 2;
@@ -76,10 +69,8 @@ export function layoutSummerWorld(seed: number): GeneratedWorld {
   // The clearings each pocket and field is worked in, before anything is
   // walled off, so a wall is never drawn over its own field.
   stamp.disc(camp, 0, C.CAMP_CLEARING, "grass");
-  stamp.disc(oreField, 0, C.ORE_FIELD_RADIUS, "grass");
-  stamp.disc(farField, 0, C.FAR_FIELD_RADIUS, "grass");
-  stamp.disc(dryPocket, 0, C.DRY_POCKET_RADIUS, "grass");
-  stamp.disc(lastPocket, 0, C.LAST_POCKET_RADIUS, "grass");
+  stamp.disc(featherField, 0, C.FEATHER_FIELD_RADIUS, "grass");
+  stamp.disc(shellField, 0, C.SHELL_FIELD_RADIUS, "grass");
 
   // The first stream: a half circle above camp, run down to the bottom border
   // so the near ring is closed, with both banks walkable for springs.
@@ -92,33 +83,30 @@ export function layoutSummerWorld(seed: number): GeneratedWorld {
   stamp.disc(stand, C.STAND_RADIUS + 0.5, C.STAND_RADIUS + C.STAND_WALL + 0.5, "thicket");
   stamp.disc(mudPocket, 0, C.MUD_POCKET_RADIUS, "mud");
 
-  // The route a cart could one day run: camp, through the ore field, to the
-  // far field. Grass all the way except where it crosses the stream, which is
-  // what the bridge is for, and it is drawn after the stream so the banks
-  // cannot wipe it.
-  const bend = towards(farField, oreField, C.ROUTE_BEND_FROM_FIELD);
-  stamp.line(camp, { x: oreField.x, y: oreField.y }, 1, "grass");
-  stamp.line(oreField, bend, 1, "grass");
-  stamp.line(bend, farField, 1, "grass");
+  // The route the cart will run, from M11: camp, through the feather field, to
+  // the shell field. Grass all the way except where it crosses the stream,
+  // which is what the bridge is for, and it is drawn after the stream so the
+  // banks cannot wipe it.
+  const bend = towards(shellField, featherField, C.ROUTE_BEND_FROM_FIELD);
+  stamp.line(camp, { x: featherField.x, y: featherField.y }, 1, "grass");
+  stamp.line(featherField, bend, 1, "grass");
+  stamp.line(bend, shellField, 1, "grass");
 
-  // The copse that hides the far field, and the underbrush round it that
+  // The copse that hides the shell field, and the underbrush round it that
   // leaves the route the only grass in. Both go on after the route, so the
   // wall of saplings is unbroken.
-  stamp.disc(farField, C.FAR_FIELD_RADIUS - 0.5, C.FAR_FIELD_RADIUS + C.COPSE_WALL - 0.5, "sapling");
-  stamp.moat(
-    farField,
-    C.FAR_FIELD_RADIUS + C.COPSE_WALL,
-    C.FAR_FIELD_RADIUS + C.COPSE_WALL + C.COPSE_MOAT,
-  );
-  stamp.disc(towards(farField, oreField, C.HEDGE_FROM_FIELD), 0, C.HEDGE_RADIUS, "thicket");
-
-  // The wall into the last pocket: twelve tiles of thicket and more.
   stamp.disc(
-    lastPocket,
-    C.LAST_POCKET_RADIUS + 0.5,
-    C.LAST_POCKET_RADIUS + C.LAST_POCKET_WALL + 0.5,
-    "thicket",
+    shellField,
+    C.SHELL_FIELD_RADIUS - 0.5,
+    C.SHELL_FIELD_RADIUS + C.COPSE_WALL - 0.5,
+    "sapling",
   );
+  stamp.moat(
+    shellField,
+    C.SHELL_FIELD_RADIUS + C.COPSE_WALL,
+    C.SHELL_FIELD_RADIUS + C.COPSE_WALL + C.COPSE_MOAT,
+  );
+  stamp.disc(towards(shellField, featherField, C.HEDGE_FROM_FIELD), 0, C.HEDGE_RADIUS, "thicket");
 
   thickenStream(map);
   stamp.border();
@@ -148,16 +136,11 @@ export function layoutSummerWorld(seed: number): GeneratedWorld {
     (x, y) => openStand.has(y * W + x),
   );
   nodes.spread("vine", mudPocket, C.MUD_POCKET_RADIUS - 0.5, N.pocketVines, C.FIELD_SPACING);
-  // Across the stream.
-  nodes.spread("ore", oreField, C.ORE_FIELD_RADIUS - 1, N.oreFieldOre, C.FIELD_SPACING);
-  nodes.spread("fruit", oreField, C.ORE_FIELD_RADIUS - 1, N.oreFieldFruit, C.FIELD_SPACING);
-  nodes.spread("feather", oreField, C.ORE_FIELD_RADIUS - 1, N.oreFieldFeathers, C.FIELD_SPACING);
-  // Behind the copse, in the dry pocket, and behind the wall.
-  nodes.spread("ore", farField, C.FAR_FIELD_RADIUS - 1, N.farFieldOre, C.FIELD_SPACING);
-  nodes.spread("fruit", farField, C.FAR_FIELD_RADIUS - 1, N.farFieldFruit, C.FIELD_SPACING);
-  nodes.spread("shell", dryPocket, C.DRY_POCKET_RADIUS - 0.5, N.dryPocketShells, C.FIELD_SPACING);
-  nodes.spread("shell", lastPocket, C.LAST_POCKET_RADIUS - 0.5, N.lastPocketShells, C.FIELD_SPACING);
-  nodes.spread("ore", lastPocket, C.LAST_POCKET_RADIUS - 0.5, N.lastPocketOre, C.FIELD_SPACING);
+  // Across the stream, and behind the copse.
+  const field = C.FEATHER_FIELD_RADIUS - 1;
+  nodes.spread("feather", featherField, field, N.featherFieldFeathers, C.FIELD_SPACING);
+  nodes.spread("fruit", featherField, field, N.featherFieldFruit, C.FIELD_SPACING);
+  nodes.spread("shell", shellField, C.SHELL_FIELD_RADIUS - 1, N.shellFieldShells, C.FIELD_SPACING);
 
   // Springs are placed from the finished map with the map file's own seed, so
   // a dump of this world and the world itself have the same drinking spots:

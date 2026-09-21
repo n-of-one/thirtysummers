@@ -1,7 +1,6 @@
 import { describe, expect, it } from "vitest";
 import * as C from "../src/config.ts";
 import { NO_INPUT, type InputState } from "../src/input/keyboard.ts";
-import { RESOURCES } from "../src/sim/resources.ts";
 import { Stats } from "../src/sim/stats.ts";
 import { TileMap } from "../src/sim/tilemap.ts";
 import type { TerrainKind } from "../src/sim/types.ts";
@@ -139,7 +138,7 @@ describe("World — the end of a summer", () => {
     world.step(C.TICK_SEC, still);
 
     expect(world.summerOver).toBe(true);
-    expect(world.inventory.gold).toBe(3 * RESOURCES.ore.price);
+    expect(world.store.count("ore")).toBe(3);
     expect(world.inventory.count("ore")).toBe(0);
     expect(world.inventory.count("fruit")).toBe(0);
     expect(world.store.count("fruit")).toBe(1);
@@ -150,9 +149,7 @@ describe("World — the end of a summer", () => {
     expect(world.events[world.events.length - 1]).toEqual({
       type: "summerEnded",
       away: true,
-      sold: 3,
-      stored: 2,
-      gold: 3 * RESOURCES.ore.price,
+      stored: 5,
       at: C.SUMMER_LENGTH_SEC,
     });
   });

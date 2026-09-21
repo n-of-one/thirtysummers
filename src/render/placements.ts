@@ -28,7 +28,7 @@ export const PROP_JITTER_PX = 1;
 
 /**
  * Everything standing on the ground inside the window: trees, saplings,
- * underbrush, the camp, the springs and wells, the caches, whatever has been
+ * underbrush, the camp, the springs and wells, whatever has been
  * dropped, and resource nodes still waiting to be harvested.
  *
  * This is the decision -- what to draw and where it stands in the world -- with
@@ -43,7 +43,6 @@ export function* placementsIn(
   camp: Vec2,
   nodes: readonly ResourceNode[],
   springs: readonly Spring[] = [],
-  caches: readonly Vec2[] = [],
   dropped: readonly Dropped[] = [],
   z = 0,
 ): Generator<Placement> {
@@ -79,8 +78,8 @@ export function* placementsIn(
     yield { worldX: camp.x, worldY: camp.y, art: pack.camp, jitter: 0, occludes: false };
   }
 
-  // Springs, wells and caches are tile positions, drawn standing at the tile's
-  // centre like a node.
+  // Springs and wells are tile positions, drawn standing at the tile's centre
+  // like a node.
   for (const spring of springs) {
     if (!window.covers(spring.x, spring.y)) continue;
     yield {
@@ -90,10 +89,6 @@ export function* placementsIn(
       jitter: 0,
       occludes: false,
     };
-  }
-  for (const cache of caches) {
-    if (!window.covers(cache.x, cache.y)) continue;
-    yield { worldX: cache.x + 0.5, worldY: cache.y + 0.5, art: pack.cache, jitter: 0, occludes: false };
   }
 
   // Items lying on the ground, each its own small drawing at the same pixel

@@ -16,12 +16,6 @@ function hold(world: World, input: InputState, seconds: number): void {
   for (let i = 0; i < ticks; i++) world.step(C.TICK_SEC, input);
 }
 
-/** Press and release. */
-function tap(world: World): void {
-  world.step(C.TICK_SEC, INTERACT);
-  world.step(C.TICK_SEC, NO_INPUT);
-}
-
 let nextId = 1;
 const node = (kind: ResourceKind, x: number, y: number): ResourceNode => ({
   id: nextId++,
@@ -119,13 +113,13 @@ describe("digging a well", () => {
     return world;
   }
 
-  it("is not on the menu before the year table hands it over", () => {
+  it("is not on the menu until it is known", () => {
     const world = arena();
     world.inventory.add("log", C.WELL_LOGS);
     world.inventory.add("stick", C.WELL_STICKS);
-    expect(world.buildOptions().map((o) => o.build)).toEqual(["bridge", "cache"]);
+    expect(world.buildOptions().map((o) => o.build)).toEqual(["bridge"]);
     world.recipes.add("well");
-    expect(world.buildOptions().map((o) => o.build)).toEqual(["bridge", "cache", "well"]);
+    expect(world.buildOptions().map((o) => o.build)).toEqual(["bridge", "well"]);
   });
 
   it("is a hold that spends the materials and makes a drinking spot", () => {
@@ -191,102 +185,28 @@ describe("digging a well", () => {
   });
 });
 
-describe("a cache", () => {
-  function built(): World {
-    const world = arena();
-    world.inventory.add("stick", C.CACHE_STICKS);
-    world.buildMode = "cache";
-    hold(world, INTERACT, C.CACHE_TIME + C.TICK_SEC);
-    world.step(C.TICK_SEC, NO_INPUT);
-    world.buildMode = null;
-    return world;
-  }
-
-  it("is built only once it is chosen, and then says what it needs", () => {
-    const world = arena();
-    world.inventory.add("stick", C.CACHE_STICKS);
-    // Carrying the sticks is not choosing to build: grass says nothing.
-    expect(world.availableAction()).toBeNull();
-    expect(hudModel(world).prompt).toBeNull();
-
-    world.buildMode = "cache";
-    expect(world.availableAction()).toEqual({ type: "cache", x: 25, y: 24, blocked: null });
-
-    world.inventory.remove("stick");
-    expect(world.availableAction()).toEqual({
-      type: "cache",
-      x: 25,
-      y: 24,
-      blocked: "noMaterials",
-    });
-    expect(hudModel(world).prompt?.text).toBe(`A cache needs ${C.CACHE_STICKS} stick`);
-  });
-
-  it("is a hold that spends the sticks and stands on the tile ahead", () => {
-    const world = built();
-    expect(world.caches.map(({ x, y }) => ({ x, y }))).toEqual([{ x: 25, y: 24 }]);
-    expect(world.inventory.count("stick")).toBe(0);
-    expect(summarise(world).cachesBuilt).toBe(1);
-  });
-
-  it("holds everything put in it, and gives it back with the same key", () => {
-    const world = built();
-    world.inventory.add("shell", 4);
-    world.inventory.add("log", 2);
-    world.inventory.add("fruit", 1);
-
-    expect(world.availableAction()).toEqual({ type: "stash", x: 25, y: 24, items: 7, blocked: null });
-    tap(world);
-    expect(world.inventory.carried).toBe(0);
-    const contents = world.caches[0]!.contents;
-    expect([contents.count("shell"), contents.count("log"), contents.count("fruit")]).toEqual([4, 2, 1]);
-
-    expect(world.availableAction()).toEqual({ type: "fetch", x: 25, y: 24, items: 7, blocked: null });
-    tap(world);
-    expect(world.inventory.count("shell")).toBe(4);
-    expect(world.inventory.count("log")).toBe(2);
-    expect(world.inventory.count("fruit")).toBe(1);
-    expect(contents.items).toBe(0);
-    expect(types(world).slice(-2)).toEqual(["stashed", "fetched"]);
-  });
-
-  it("holds more than a pack, and hands back what fits", () => {
-    const world = built();
-    for (let i = 0; i < 3; i++) {
-      world.inventory.add("shell", C.BACKPACK_CAPACITY);
-      tap(world);
-    }
-    expect(world.caches[0]!.contents.count("shell")).toBe(3 * C.BACKPACK_CAPACITY);
-    // An empty pack now: the next press fetches a packful and leaves the rest.
-    tap(world);
-    expect(world.inventory.count("shell")).toBe(C.BACKPACK_CAPACITY);
-    expect(world.caches[0]!.contents.count("shell")).toBe(2 * C.BACKPACK_CAPACITY);
-  });
-
-  it("stays, with what is in it, into the next summer", () => {
-    const world = built();
-    world.inventory.add("ore", 3);
-    tap(world);
-    world.endSummer();
-    world.nextSummer();
-    expect(world.caches).toHaveLength(1);
-    expect(world.caches[0]!.contents.count("ore")).toBe(3);
-  });
-});
-
 describe("the build menu", () => {
   it("lists what is known, with whether the pack can pay for it", () => {
     const world = arena();
     world.recipes.add("well");
     expect(world.buildOptions()).toEqual([
       { build: "bridge", cost: { stick: C.BRIDGE_STICKS, vine: C.BRIDGE_VINES }, affordable: false },
-      { build: "cache", cost: { stick: C.CACHE_STICKS }, affordable: false },
       { build: "well", cost: { log: C.WELL_LOGS, stick: C.WELL_STICKS }, affordable: false },
     ]);
 
-    world.inventory.add("stick", C.CACHE_STICKS);
+    world.inventory.add("stick", C.BRIDGE_STICKS);
+    world.inventory.add("vine", C.BRIDGE_VINES);
     const affordable = world.buildOptions().filter((o) => o.affordable).map((o) => o.build);
-    expect(affordable).toEqual(["cache"]);
+    expect(affordable).toEqual(["bridge"]);
+  });
+
+  it("builds nothing until something is chosen", () => {
+    const world = arena();
+    world.inventory.add("stick", C.BRIDGE_STICKS);
+    world.inventory.add("vine", C.BRIDGE_VINES);
+    // Carrying the materials is not choosing to build: grass says nothing.
+    expect(world.availableAction()).toBeNull();
+    expect(hudModel(world).prompt).toBeNull();
   });
 
   it("says nothing about building until the water's edge, and nothing there once chosen", () => {
@@ -295,18 +215,20 @@ describe("the build menu", () => {
     world.player.heading = { x: 0, y: 1 };
     expect(world.buildHint()).toBeNull();
     world.player.heading = { x: 1, y: 0 };
-    world.buildMode = "cache";
+    world.buildMode = "bridge";
     expect(world.buildHint()).toBeNull();
   });
 
   it("builds only what was chosen, and refuses it on the wrong ground", () => {
     const world = arena((map) => map.set(25, 24, "stream"));
-    world.inventory.add("stick", C.CACHE_STICKS);
+    world.recipes.add("well");
+    world.inventory.add("stick", C.WELL_STICKS);
     world.inventory.add("vine", C.BRIDGE_VINES);
-    // Sticks and a vine in the pack: a cache and a bridge are both paid for,
-    // so the choice is what decides, not the ground.
-    world.buildMode = "cache";
-    expect(world.availableAction()).toMatchObject({ type: "cache", blocked: "wrongGround" });
+    world.inventory.add("log", C.WELL_LOGS);
+    // A well and a bridge are both paid for, so the choice is what decides,
+    // not the ground.
+    world.buildMode = "well";
+    expect(world.availableAction()).toMatchObject({ type: "dig", blocked: "wrongGround" });
     world.buildMode = "bridge";
     expect(world.availableAction()).toMatchObject({ type: "build", blocked: null });
     hold(world, INTERACT, C.BUILD_TIME + C.TICK_SEC);
@@ -315,37 +237,22 @@ describe("the build menu", () => {
 
   it("is put down at the end of a summer", () => {
     const world = arena();
-    world.buildMode = "cache";
+    world.buildMode = "bridge";
     world.endSummer();
     world.nextSummer();
     expect(world.buildMode).toBeNull();
   });
 });
 
-describe("the year table", () => {
-  it("starts with the knife and the cache, and nothing else", () => {
+describe("what is owned", () => {
+  it("starts with the knife and no recipe, and a summer hands nothing over", () => {
     const world = arena();
     expect([...world.tools]).toEqual(["knife"]);
-    expect([...world.recipes]).toEqual(["cache"]);
+    expect([...world.recipes]).toEqual([]);
     expect(types(world)).toEqual([]);
-  });
-
-  it("hands over the axe for summer 2, the cart for 3 and the well for 4, and keeps them", () => {
-    const world = arena();
-    const owned = () => [...world.tools, ...world.recipes].sort();
-
     world.nextSummer();
-    expect(owned()).toEqual(["axe", "cache", "knife"]);
     world.nextSummer();
-    expect(owned()).toEqual(["axe", "cache", "cart", "knife"]);
-    world.nextSummer();
-    expect(owned()).toEqual(["axe", "cache", "cart", "knife", "well"]);
-    world.nextSummer();
-    expect(world.year).toBe(5);
-    expect(owned()).toEqual(["axe", "cache", "cart", "knife", "well"]);
-
-    const granted = world.events.filter((e) => e.type === "granted");
-    expect(granted.map((e) => e.type === "granted" && e.what)).toEqual(["axe", "cart", "well"]);
-    expect(hudModel(world).tools).toBe("knife, axe, cart, well");
+    expect([...world.tools]).toEqual(["knife"]);
+    expect(hudModel(world).tools).toBe("knife");
   });
 });
