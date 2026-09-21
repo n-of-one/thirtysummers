@@ -26,6 +26,11 @@ repair is half the work of building and not a yearly chore. Wells never
 decay. Caches stay where they are. Over a life, better work lasts longer, as
 [map-arc.md](map-arc.md) describes.
 
+**What was left out does not keep.** Anything dropped on the ground is gone
+by spring, and fruit left in a cache has rotted; everything else in a cache
+is still there. Camp keeps the lot. The three tiers are in
+[summer.md](summer.md), under *Getting it home*.
+
 **Trails form.** Underbrush the family crosses often turns to grass over the
 winters, gradually and with some chance, not every tile walked and not all at
 once. The route the player prefers becomes the road, without a tool.
@@ -35,17 +40,18 @@ once. The route the player prefers becomes the road, without a tool.
 Winter is a screen, not a place. There is no clock. It shows what came home,
 what winter costs, what the town sells, and a button for the next summer.
 Nothing about winter is announced during the summer except the two numbers
-the HUD carries all along: what winter needs, and what the store holds.
+the HUD carries all along: what winter needs, and what is stored at camp.
 
 In order:
 
-1. **Keep or sell.** The store holds everything banked and everything carried
-   when the clock stopped. The player chooses what to keep for tools and
-   improvements: sticks and vines for a bridge, logs for the cart or a well.
-   The rest sells at the ladder's prices, and the sum is shown with its
-   breakdown.
+1. **Keep or sell.** Camp holds everything stored there and everything
+   carried when the clock stopped, building material included. The player
+   chooses what to keep for tools and improvements: sticks and vines for a
+   bridge, logs for the cart or a well. What is kept stays at camp for next
+   summer. The rest sells at the ladder's prices, and the sum is shown with
+   its breakdown.
 2. **Upkeep.** Winter needs a number of fruit and a number of gold. Fruit
-   comes from the store. If there is not enough, the shortfall is bought from
+   comes from camp. If there is not enough, the shortfall is bought from
    the town at its price. If there is too much, the surplus sells like
    anything else. Gold comes off what was earned. Ending the summer away from
    camp adds to the gold owed.

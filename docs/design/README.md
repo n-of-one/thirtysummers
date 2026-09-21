@@ -42,8 +42,9 @@ In-game words, not game-design words.
 - **Hydration** is the one bar. A **tired** summer is the one after a
   missed upkeep.
 - **Upkeep** is what a winter costs, in fruit and gold. The **shop** is what
-  the town sells. The **store** is what is banked at camp. A **cache** is a
-  box in the field.
+  the town sells. **Camp** is also what is kept there: to **store** something
+  is to put it at camp or in a cache, and there is no noun "store", because a
+  store is a shop. A **cache** is a box in the field; camp is the first one.
 - The **family** takes the gold left over after upkeep and has **levels**.
 - A **domain** is an area of play: natural, animal, spiritual. A
   **structure** is something built in a domain, named for its result: a mine,

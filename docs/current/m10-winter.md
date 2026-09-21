@@ -5,21 +5,33 @@ does between summers, as [../design/winter.md](../design/winter.md)
 describes. After this the five-summer unit is complete and the log can say
 whether summers 2 to 5 held.
 
-**Depends on** what M8 and M9 left: `world.awayAtEnd`, the resource table in
-`sim/resources.ts` with its prices and its `returns`, the cache, the layout
-pass that lays every seed out to the table, and `YEAR_GRANTS` in `config.ts`,
-which this milestone removes in favour of the shop. `src/sim/trace.ts`, kept
-on main by the chores, for trails.
+**Depends on** what M8, M9 and the pack left: `world.awayAtEnd`, the resource
+table in `sim/resources.ts` with its prices, its `returns` and its `material`
+flag, the cache, the layout pass that lays every seed out to the table, and
+`YEAR_GRANTS` in `config.ts`, which this milestone removes in favour of the
+shop. From the pack: camp already takes everything, so `world.store` holds
+every kind that does not sell on arrival, building material included, and
+`nextSummer` already clears the ground and rots the fruit in caches.
+`src/sim/trace.ts`, kept on main by the chores, for trails. The winter
+prototype, `sim/winter.ts`, `ui/winter.ts` and `winterPrototype.ts`, is where
+the screen starts from.
+
+The player calls what camp keeps **camp**, never "the store": `store` is the
+verb, and the shop is the noun this milestone brings. `world.store` stays the
+code name. Every line this milestone adds to the HUD or the winter screen
+follows that.
 
 ## Steps
 
-1. **The store.** Banking moves everything into `world.store`, a second
-   inventory with no limit, valued at the ladder's prices. The HUD's gold
-   readout becomes the store's worth plus gold in hand. "Winter needs N
-   fruit, store has M" sits beside it all summer.
+1. **What camp holds, all summer.** Banking into `world.store` is done; what
+   is left is the HUD. The gold readout becomes camp's worth at the ladder's
+   prices plus gold in hand, and "Winter needs N fruit, camp has M" sits
+   beside it all summer.
 2. **The winter screen**, in `index.html` and `ui/winter.ts`, with a model
    in `sim/winter.ts` that is pure:
-   - keep or sell per kind, sell by default, with the sum and breakdown;
+   - keep or sell per kind, sell by default for what is only money and keep
+     by default for material, with the sum and breakdown; what is kept stays
+     in `world.store` for next summer;
    - upkeep in fruit and gold, with fruit bought or sold automatically and
      the away-from-camp charge;
    - the shop as a list from `SHOP_BY_YEAR`, stocked as
@@ -50,7 +62,8 @@ on main by the chores, for trails.
 ## Verification
 
 - The winter model over a synthetic store gives the right gold, the right
-  fruit bought and sold, the right surplus and level.
+  fruit bought and sold, the right surplus and level, and what is kept is
+  still at camp the next summer.
 - Missed upkeep makes next summer tired, with the hold and the mud speed
   read back, and only for one summer.
 - Replenishment, creep, sapling return, bridge loss and trails, each over

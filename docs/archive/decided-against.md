@@ -53,7 +53,17 @@ chosen instead.
   instead.
 - **Health on built things.** Wear removes a tile, so repair is half the work
   of building and no number needs tracking.
-- **Fruit surviving winter in a cache.** It rots. Bank it or eat it.
+- **Fruit surviving winter in a cache.** It rots wherever it is left; only
+  camp turns it into winter food. Store it at camp or eat it.
+- **Camp taking only what it sells.** Sticks, vines and logs were left in the
+  pack, and the pack survives the winter, so a pack full of vines was a dead
+  end for the whole run.
+- **Refusing to let the player drop things.** A game about carrying things
+  cannot say no to putting one down; the prompt names the count instead.
+- **Drawing a dropped item as its node art scaled down.** Any fractional
+  scale breaks the one-art-pixel rule, 0.5 included; it is resampled to whole
+  pixels instead. A bar under the art read as a shelf, and a quarter turn did
+  nothing for the round kinds.
 - **Regions as biomes**, with palette swaps. Three biomes forty tiles apart
   look like a theme park, and a test could not say whether the opening or
   the art felt good. A region is a resource field on the same grass.

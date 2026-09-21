@@ -79,11 +79,14 @@ in [development.md](development.md).
 
 - **`src/sim/`** is the whole game with no renderer. `world.ts` owns
   everything: `world.step(dt, input)`, `nextSummer()` with the year table's
-  grants, the tools and recipes owned, the wells and the caches, and
-  `availableAction`, the one query that decides what the interact key does.
-  Around it: `stats.ts`, `resources.ts` (the resource table: glyph, ground,
-  slots, price, whether it comes back, what camp does with it),
-  `inventory.ts` (slots, and the store and caches with no limit),
+  grants and the winter's clearing of the ground, the tools and recipes owned,
+  the wells, the caches and what is stored at camp, the items dropped on the
+  ground and the selected kind the drop key throws, `transferTarget()` with
+  `putAway` and `takeOut` for the transfer panel, and `availableAction`, the
+  one query that decides what the interact key does. Around it: `stats.ts`,
+  `resources.ts` (the resource table: glyph, ground, slots, price, whether it
+  comes back, what camp does with it, whether it is building material),
+  `inventory.ts` (slots, and camp and the caches with no limit),
   `player.ts` (collision, per-axis moving flags, the heading),
   `interaction.ts` (what is in reach, the tile ahead, water nearby),
   `terrain.ts` and `tilemap.ts` (the terrain table and the grid),
@@ -105,12 +108,17 @@ in [development.md](development.md).
   where, as data) sit under both layers.
 - **`src/render/packs/`** holds the `AssetPack` interface, the autotile
   masks, the code-drawn placeholder pack, and the Minifantasy loader with
-  its sheet table.
+  its sheet table. Art the sheets do not have -- the feather, the sapling, a
+  dropped item on its shadow -- is built there as pixels, never by scaling a
+  sprite.
 - **`src/ui/`** is the HUD and the view. `hudModel(world)` turns state into
   plain numbers and `Hud.update` writes them into the markup in
   `index.html`; `edgeArrow` and `anchorPosition` are its geometry, pure.
   `buildMenu.ts` is the menu B opens: it draws `world.buildOptions()` and
   reports the choice back, and never writes simulation state itself.
+  `transferPanel.ts` is the panel a held interact key opens at camp or a
+  cache; the world announces it in the log, and every move goes back through
+  `world.putAway` and `world.takeOut`.
   `view.ts` scales the one wrapper that holds everything on screen.
 - **`src/input/`, `src/debug/`, `src/main.ts`, `src/frameClock.ts`** are the
   keyboard and pause, the debug overlay, the wiring, and the fixed-step

@@ -44,7 +44,7 @@ streams further out, and a stream in a far part of it is a relief.
 
 **Fruit** is winter food. Eating one, once that is in, gives a burst of
 speed for a moment that matters, such as a full pack and a minute left.
-Every fruit eaten is one not in the store, and the choice each time is now
+Every fruit eaten is one not stored at camp, and the choice each time is now
 or winter. There are no meals.
 
 **A tired summer** follows a missed upkeep. Every hold takes half as long
@@ -107,8 +107,9 @@ the tile ahead.
 - **Bridge** a stream tile with planks.
 - **Well**, dug where there is no water, from logs and sticks. It is a spring
   the family can work from, further from any stream.
-- **Cache**, a box in the field: bank there, fetch later. It holds any
-  amount. Fruit may be left in one but does not survive winter there.
+- **Cache**, a box in the field: store there, fetch later. It holds any
+  amount of anything; what it keeps over a winter is under *Getting it
+  home*.
 
 Cutting and felling are the tools, and act on what is in front of you. The
 other three are **built, and building is chosen rather than guessed**: a build
@@ -132,10 +133,49 @@ What wears, and how fast, is in [winter.md](winter.md).
 
 ## Getting it home
 
-The backpack is the limit: ten slots, bulky things taking two. The store at
-camp holds any amount. What is banked at camp is sold in winter, and what is
-still carried when the clock stops is banked too. Fruit banked is winter
-food.
+The backpack is the limit: ten slots, bulky things taking two. It survives
+the winter as it is, so it has to have a way out that never depends on what
+is in it.
+
+**Camp is the first cache.** It is a cache that is already built and that
+also sells, and it takes every kind. Feathers, ore and shells are sold the
+moment they reach it, because there is no decision in them. Everything else,
+fruit and building material alike, is stored at camp, where winter's keep or
+sell finds it. Fruit stored at camp is winter food, and may be taken back out
+at any time; every fruit taken is one not there for winter. What is still
+carried when the clock stops is stored too. A cache's value is then distance
+alone: somewhere to store things where the work is.
+
+**A press stores the whole load; a hold opens both sides.** At camp or a cache
+a press of the interact key stores everything that place will take, so the
+common arrival is one press. Holding it opens the same panel at either: the
+pack on one side and what that place keeps on the other, moved a kind at a
+time. The key that opened it closes it.
+
+**Where things are kept, over a winter.** One rule, three tiers:
+
+- **The ground** keeps nothing. Whatever was dropped is gone by spring.
+- **A cache** keeps everything but fruit, which rots wherever it is left.
+- **Camp** keeps everything, and is the only place a fruit becomes winter
+  food.
+
+A heap in a field is scattered by a year of rain and animals, a box is a
+box, and a fruit is a fruit anywhere: the tiers read as physics rather than
+as rules, which is why fruit is not named twice.
+
+**Dropping** is for being full in a field with nothing to spend on, and it
+is one key, not a screen. The pack always names a selected kind, falling to
+whatever takes the most slots when that kind runs out; one key drops all of
+it, another moves the selection on. A dropped item lands one to a tile,
+spilling outward onto open ground, so the scatter is honest about how much
+was carried; a drop is refused only when there is no open ground near at
+all. A full pack's prompt names the kind and the count, which is the whole
+safeguard against throwing winter meals on the grass, and enough, because
+they can be picked back up. Picking one up is a press, not a hold: gathering
+is prying a vine out of the mud, picking up is bending down. A dropped item is
+drawn as a smaller version of itself on a shadow, so it is never taken for
+one still growing. Ending a summer away from camp stores what is carried,
+never what was dropped.
 
 The cart holds any amount, is pushed, and runs only on grass and bridge. The
 route from a cache to camp has to be cut continuously, and a route across mud

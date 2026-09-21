@@ -316,14 +316,19 @@ is where the line from the player to camp leaves the view,
 like `anchorPosition`. At camp the End summer button under the player already
 says it, so neither shows.
 
-**The store is an inventory with no capacity.** `world.store` is
-`new Inventory(Infinity)` rather than a second class, because winter will
-need counts, removal and costs from it, which is what `Inventory` already
-does. Banking moves fruit into it and ore into gold in one press, and so
-does the end of a summer. Sticks and vines stay in the pack: until winter
-can sell them, banking them is losing them, and a bridge gets rid of them.
-The stored fruit carries across summers like the gold, so the summary reads
-it from the store rather than counting the log.
+**What camp keeps is an inventory with no capacity.** `world.store` is
+`new Inventory(Infinity)` rather than a second class, because winter needs
+counts, removal and costs from it, which is what `Inventory` already does.
+Banking sells what sells and moves everything else into it in one press, and
+so does the end of a summer. The player calls it "camp"; the code cannot,
+because `world.camp` is the tile. The stored fruit carries across summers like
+the gold, so the summary reads it from the store rather than counting the log.
+
+**Material is its own flag, not a camp rule.** Winter asks "is this something
+a build is paid in" to decide what is held back from the sale. That used to
+be read off `atCamp === "keep"`, the table entry that left material in the
+pack. When camp began taking everything, `keep` went, and the question needed
+a field of its own: `material` in `sim/resources.ts`.
 
 **The backpack says what is in it.** The count alone (`6/10`) does not tell you
 whether you are carrying the fruit or the bridge materials you need. The pill
@@ -417,9 +422,40 @@ to maintain against every spring dug and every stream bridged.
 
 **A cache is an inventory with no capacity, and the same key both ways.** A
 press with anything in the pack puts all of it in; a press with an empty pack
-takes back what fits, in table order. The two-press round trip that follows,
-needed when something is carried and something else is wanted out, is the known
-rough edge of that simplicity.
+takes back what fits, in table order. Anything finer is the transfer panel.
+
+**A press acts on the release where a hold means something else.** At camp and
+a cache the tap stores the load and holding opens the panel. A tap that fired
+on the press would have stored the load before the hold could become a hold, so
+the world keeps it as `pendingTap` and carries it out when the key comes up,
+unless the hold has run out and opened the panel first. Walking away mid-press
+drops it, like walking away from a cut.
+
+**A held key repeats, and a panel opened by holding it must ignore that.** The
+first version closed the transfer panel on the interact key. Holding the key
+opens the panel, the browser keeps sending keydowns for as long as it is held,
+and the first of them after the panel appeared shut it: from a real keyboard it
+could never be opened. CDP does not repeat keys unless told to, so the protocol
+tests had not seen it. The panel now ignores `KeyboardEvent.repeat`, which lets
+the key that opened it close it on a fresh press, and `main.ts` keeps the
+interact key from the world until it has been let go once after the panel
+closes, or the hold would start again and reopen it. The tests now hold keys
+with `autoRepeat` set. Escape was tried as the only close key and was worse:
+the browser takes it to leave full screen first.
+
+**Dropped items are a list on the world, like the caches.** A kind and a tile
+each, one to a tile. The spill is a ring search out from the player's tile,
+reading order within a ring so the same drop from the same place always lands
+the same way, and it reuses the check a build uses for "nothing stands here".
+`nextSummer` empties the list and takes the fruit out of every cache, which
+is the whole of the three tiers in code.
+
+**Two union fields in one object literal have a ceiling.** `buildAction` built
+its action as one literal with `type: BUILD_ACTION[build]`. tsc checks such a
+literal against a discriminated union by the cross product of its union-typed
+fields and gives up past 25 combinations; three action types against
+`BlockedReason | null` was 24, and adding a reason made it 27 and a type error
+in code nobody had touched. It is written out one arm per build now.
 
 **A new seed is built in place.** Until M6 it reloaded the page. Rebuilding means
 new render layers, because each one holds the map it was built with, and that is
@@ -749,6 +785,20 @@ spring drinks at a well with no change, and the map format writes it as its own
 glyph because it is not on a bank and cannot be placed again from the map. A
 cache is a position and an inventory. Neither blocks the tile: walking over what
 you built is not a barrier worth having.
+
+**A dropped item is its node art with three quarters of the pixels, on a
+shadow, all baked into one texture.** The one-art-pixel rule leaves two ways
+to make something smaller: draw it smaller, or resample it to a whole number of
+pixels before it is a sprite. Hand-drawn miniatures at five or six pixels came
+out as coloured lozenges that resembled nothing, so the 8×8 cell is resampled
+nearest-neighbour to 6×6 (`DROPPED_ART_SHARE`), which keeps every kind
+recognisable; the vine, a sparse sprite, loses the most and is accepted as it
+is. Fewer pixels alone was a difference you had to look for, so a transparent
+dark ellipse (`DROPPED_SHADOW_ALPHA`) is composited underneath, fitted to what
+the art actually draws rather than to its mostly empty cell. Baking it into the
+same texture means it snaps, sorts and scrolls with the item and can never be a
+pixel out of step. The placeholder pack's art is vector, so it redraws at three
+quarters into a smaller cell instead of resampling, to the same effect.
 
 ## Method
 

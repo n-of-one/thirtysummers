@@ -144,15 +144,20 @@ ones.
   pixel snapping, the view's scale steps, the fixed-step clock under a
   stall, the scroll window,
   both layers against the stub pack, the stat rules over simulated time, the
-  backpack's slots, the store and the cache, the HUD model with the last
+  backpack's slots, camp and the cache, the HUD model with the last
   minute's notice, dusk and camp arrow, aiming, spring placement, the map
   file round trip with the resource table and wells and every way it
   refuses a bad one, every action in the loop and every way it refuses,
   felling, the well and the cache, the build menu's contents and what it
-  refuses, the year table, next summer, the layout pass over several seeds
-  against every row of the table, and the debug overlay's arithmetic.
-  The menu's own markup has no test: there is no DOM in the test run, so it
-  is checked over the protocol instead.
+  refuses, storing everything at camp, the tap against the hold that opens
+  the transfer panel and every move through it, dropping with its spill and
+  refusal, the selected kind, picking up, the three tiers over a winter, the
+  year table, next summer, the layout pass over several seeds against every
+  row of the table, and the debug overlay's arithmetic.
+  The build menu's and the transfer panel's markup have no test: there is no
+  DOM in the test run, so they are checked over the protocol instead,
+  holding keys with `autoRepeat` set as a real keyboard does. So is how a
+  dropped item looks, in both packs.
 - `npm run map:check public/maps/*.txt` passes on every shipped map. Run it
   after editing one by hand.
 - `?pack=placeholder` still draws every terrain.

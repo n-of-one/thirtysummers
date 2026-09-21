@@ -2,7 +2,7 @@
 
 The experiment that replaces meals: eating a fruit makes the character
 faster for a short while. Fruit is still winter food, so every fruit eaten
-is one not in the store, and the choice each time is now or winter. The
+is one not stored at camp, and the choice each time is now or winter. The
 speed is for a moment that matters, such as getting a full pack home before
 the clock stops.
 
@@ -30,7 +30,7 @@ one costs something.
 ## What the log should answer
 
 - Was fruit eaten for a reason, or by habit?
-- Did the store ever run short of fruit for winter because of it? If a
+- Did camp ever run short of fruit for winter because of it? If a
   summer's reach becomes "how much fruit did I bring", a meal count or
   diminishing returns per fruit is the fallback, as
   [../archive/decided-against.md](../archive/decided-against.md) records.

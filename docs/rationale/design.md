@@ -101,7 +101,7 @@ without stopping play. Slowness is held back in case fog is not enough.
 **Fruit is winter food, and a burst of speed.** With stamina gone there is
 nothing for a meal to refill, and meals went with it. Eating a fruit for a
 few seconds of speed keeps what the meal was for: every fruit eaten in
-summer is one not in the store, so eating is a choice between now and
+summer is one not stored at camp, so eating is a choice between now and
 winter, and it gives the last minute of a summer a move. It is uncapped on
 purpose, to find out whether the clock alone stops fruit from becoming an
 exchange rate, where a summer's reach is how much fruit was brought. If it
@@ -114,6 +114,37 @@ in the one number every summer is measured by.
 **What is carried at the hard stop is banked.** So the last minute is never
 wasted, and a final trip out is a good move, not a gamble. The extra gold
 for ending away from camp keeps coming home worth something.
+
+**Camp takes everything.** It used to take only what it sold, and leave
+sticks, vines and logs in the pack so they were not lost before winter could
+sell them. With the pack surviving the winter, and a cache costing sticks,
+that made a pack full of vines a dead end for the whole run: no way to be rid
+of them, this summer or any after. Camp as a cache that also sells closes it,
+and makes the cache the same concept built somewhere else, worth only the
+distance it saves.
+
+**Three tiers, not a fruit rule.** The ground keeps nothing over a winter, a
+cache keeps everything but fruit, camp keeps everything. That says what the
+old line, "fruit may be left in a cache but does not survive there", said,
+without naming fruit twice, and it reads as physics: a heap in a field is
+scattered, a box is a box, a fruit is a fruit anywhere.
+
+**Dropping is never refused for what is dropped.** Refusing a drop is
+unthematic in a game about carrying things. The safeguard against throwing
+six winter meals on the grass is the count in the prompt, and it is enough,
+because they can be picked back up. A drop is refused only when there is no
+open ground near enough to put anything on.
+
+**Picking up is not harvesting.** Gathering is prying a vine out of the mud,
+and its hold is the price of the vine. Picking up is bending down to take
+back what was already paid for, so it is a press. For the same reason a
+dropped item gives way to a node on the same key: standing on what you just
+dropped must not stop you picking the fruit you dropped it for.
+
+**A press and a hold on one key.** At camp and a cache a press stores the
+whole load and a hold opens the panel, so the common arrival is still one
+press and the choice is there when it is wanted. The press acts on the
+release, because that is the only moment the two can be told apart.
 
 **The grave gives something that lasts.** A visit is worth the walk over a
 life, and it must not be a refill. What it gives is open again now that
@@ -248,6 +279,10 @@ is the sum of the map's play.
 **In-game words over game-design words.** Upkeep, not floor. Hydration,
 not leash. Shop, not shelf. The design documents use the words the player
 will see.
+
+**Camp, not the store.** What is kept at camp is called camp. "Store" was
+both the verb and the noun on one line, and too near "shop" for a game with a
+town that sells things. The verb stays: you store something at camp.
 
 **Summer and winter, not day and night.** The game is called thirtysummers,
 and a year is the unit the player counts.
