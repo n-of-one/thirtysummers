@@ -46,6 +46,23 @@ const requestedSeed = Number(params.get("seed"));
 let seed = params.get("seed") && Number.isFinite(requestedSeed) ? requestedSeed : C.DEFAULT_SEED;
 
 /**
+ * A bare address rolls a seed and puts it in the address bar.
+ *
+ * Playtesting wants a different map each time without having to think of a
+ * number, and wants to know afterwards which map it was. So opening the game
+ * with nothing after the slash picks one under `SEED_ROLL_MAX` and rewrites
+ * the URL to it: a reload is then the same world, and going back to the bare
+ * address is a new one. Anything that names a world -- a seed, a map file, a
+ * save -- is left alone.
+ */
+if (!params.get("seed") && !params.get("map") && !params.get("save")) {
+  seed = Math.floor(Math.random() * C.SEED_ROLL_MAX);
+  const url = new URL(location.href);
+  url.searchParams.set("seed", String(seed));
+  history.replaceState(null, "", url);
+}
+
+/**
  * `?map=<name>` plays `/maps/<name>.txt` instead of a generated world.
  *
  * That is what the discovery test runs on: a generated dump, edited by hand to

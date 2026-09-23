@@ -397,6 +397,13 @@ stacks, the feather at five to a slot, rounds up: a part-filled stack takes
 a whole slot, and `fits` is true of a full pack whose last stack has room
 in it.
 
+**Each rough ground has its own speed.** They shared one 0.4 and read as one
+obstacle drawn two ways, so underbrush is 0.5 and mud 0.3, and a tired summer
+multiplies whichever it is by `TIRED_ROUGH_MUL` rather than flattening both to
+one number. The mud pocket also keeps its vines two tiles inside the mud: a
+vine on the rim is picked from the grass beside it, and then the barrier the
+pocket is made of has cost the player nothing.
+
 **A kind can be found lying rather than growing.** `lies` in the resource
 table makes a node draw with the dropped art and finish on a press instead of
 a hold, which is one flag rather than a second kind of thing on the map: the

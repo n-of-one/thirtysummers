@@ -1,7 +1,7 @@
 /**
  * Does an edited map still hold the five-summer table?
  *
- *   npm run map:check public/maps/*.txt
+ *   npm run map:check public/maps/f.txt
  *
  * The rows themselves are `src/sim/worldgen/rows.ts`, so what a map file is
  * held to is exactly what the layout pass builds and what the tests check.

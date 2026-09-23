@@ -88,13 +88,18 @@ function hold(world: World, input: InputState, seconds: number): void {
 describe("World — rough ground", () => {
   it("moves at walking speed on grass and slower in mud", () => {
     expect(worldOn("grass").speed()).toBeCloseTo(C.WALK_SPEED, 6);
-    expect(worldOn("mud").speed()).toBeCloseTo(C.WALK_SPEED * C.DIFFICULT_SPEED_MUL, 6);
+    expect(worldOn("mud").speed()).toBeCloseTo(C.WALK_SPEED * C.MUD_SPEED_MUL, 6);
   });
 
-  it("wades through at DIFFICULT_SPEED_MUL", () => {
+  it("wades mud slower than it pushes through underbrush", () => {
+    expect(C.MUD_SPEED_MUL).toBeLessThan(C.UNDERBRUSH_SPEED_MUL);
+    expect(worldOn("underbrush").speed()).toBeCloseTo(C.WALK_SPEED * C.UNDERBRUSH_SPEED_MUL, 6);
+  });
+
+  it("wades through at MUD_SPEED_MUL", () => {
     const world = at(worldOn("grass", mudBand), 10.5);
     hold(world, east, 1);
-    expect(world.player.x).toBeCloseTo(10.5 + C.WALK_SPEED * C.DIFFICULT_SPEED_MUL, 6);
+    expect(world.player.x).toBeCloseTo(10.5 + C.WALK_SPEED * C.MUD_SPEED_MUL, 6);
   });
 
   it("never refuses a step into it", () => {

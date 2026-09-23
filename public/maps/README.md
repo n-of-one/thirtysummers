@@ -1,32 +1,28 @@
 # Maps
 
-Play one with `?map=f` (through `j`). **Do not read the map files before playing
-them.** The whole point is that the layout is unknown when you walk into it.
-This file is safe: it says where they came from, not what is in them.
+There are no map files right now, and that is on purpose. Play a seed:
+`?seed=1337` lays the table of the first three summers out from the
+generator itself, and every seed holds every row of that table.
 
-Each is a dump of one seed through the generator, which lays the table of the
-first three summers out itself: `npm run map -- <seed> > public/maps/<name>.txt`.
-The landscape is still the generator's, with its own streams and walls taken
-out; what is stamped on it is the half circle of stream round camp, the near
-ring inside it, and the fields beyond. Seeds differ in where those land and
-which way round they are, so no two of these are the same walk.
+Make a file when one is worth freezing:
 
-They are here so a playtest can be repeated and so a map can still be edited
-by hand. The file is the format, not the code: an edited dump plays exactly
-the same way.
+```
+npm run map -- 1337 > public/maps/f.txt     # a dump of that seed, playable
+npm run map:check public/maps/f.txt         # every row, and the first three winters
+```
 
-| file | seed |
-|---|---|
-| f | 1337 |
-| g | 2026 |
-| h | 31 |
-| i | 555 |
-| j | 808 |
+`?map=f` then plays it. A file is worth making for a playtest with someone
+else, so everyone walks the same map, or to keep a map that a change to
+`sim/worldgen/layout.ts` would otherwise take away: a seed means something
+new after every such change, a file does not. Nothing else needs one.
 
-`npm run map:check public/maps/*.txt` re-verifies every row of the table, and
-the economy of the first three winters, on all of them. It is the thing to run after editing one by hand. `?seed=<n>`
-plays a seed straight from the generator without a file at all.
+**A map file is played blind.** Whoever is about to walk it does not read it
+first, and nobody describes it to them. This README is the safe half: it says
+how a file is made, not what is in one. Put the seed of each file in a table
+here, so a file can always be remade.
 
 The format is one character per tile, the same dump `npm run map` writes,
-which is what makes an edited dump playable. `src/sim/mapfile.ts` is the
-reader, and its legend is in `npm run map`'s footer.
+which is what makes an edited dump playable: a map that plays badly can be
+opened in a text editor and changed, and `map:check` says whether it still
+holds the table. `src/sim/mapfile.ts` is the reader, and its legend is in
+`npm run map`'s footer.

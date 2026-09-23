@@ -33,8 +33,9 @@ player reads; `world.store` stays the code name.
    and sticks behind thin thicket, and springs on both sides; summer 2 has
    feathers only across the stream; summer 3 has shells only behind the
    copse, and the cart route that needs a cut. The rows for summers 4 and 5
-   go until M11 and M12 bring those places back. `public/maps/f` to `j` are
-   dumped again from their seeds.
+   go until M11 and M12 bring those places back. The shipped map files are
+   gone: every seed holds the table, so playtesting is on seeds and a file is
+   dumped only when a map is worth freezing.
 2. **The resource table.** Shells sell for 2, logs for 1. Ore stays in the
    table, unplaced, for M12. What comes back is split by place: inside the
    near ring everything is back every year, and outside it `returns` says
@@ -120,9 +121,8 @@ player reads; `world.store` stays the code name.
   the near ring full again, feathers across the stream back by about half,
   shells not back at all, saplings back in the third, thicket crept onto
   cut tiles that touch it and only those, one bridge tile gone in winter 2.
-- `npm run map:check public/maps/*.txt` passes, economy rows included, on
-  every regenerated map.
-- Three summers and three winters on `?map=f` over the protocol, ending with
-  the cart bought in winter 3 and owned in summer 4.
+- The layout's tests pass over their spread of seeds, economy rows included.
+- Three summers and three winters on `?seed=1337` over the protocol, ending
+  with the cart bought in winter 3 and owned in summer 4.
 - Summer 1 played by hand from a fresh load, to see whether the list steers
   without saying where to go.

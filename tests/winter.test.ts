@@ -279,9 +279,9 @@ describe("a tired summer", () => {
     // Opening the panel at camp is not work, and takes no longer.
     expect(world.holdTime("deposit")).toBe(C.TRANSFER_HOLD_TIME);
 
-    // Mud at a quarter of walking speed, grass as fast as ever.
+    // Mud slower still on a tired summer, grass as fast as ever.
     world.teleport(5.5, 9.5);
-    expect(world.speed()).toBeCloseTo(C.WALK_SPEED * C.TIRED_DIFFICULT_SPEED_MUL);
+    expect(world.speed()).toBeCloseTo(C.WALK_SPEED * C.MUD_SPEED_MUL * C.TIRED_ROUGH_MUL);
     world.teleport(5.5, 7.5);
     expect(world.speed()).toBe(C.WALK_SPEED);
 
@@ -295,7 +295,7 @@ describe("a tired summer", () => {
     expect(world.tired).toBe(false);
     expect(world.holdTime("cut")).toBe(C.CUT_TIME);
     world.teleport(5.5, 9.5);
-    expect(world.speed()).toBeCloseTo(C.WALK_SPEED * C.DIFFICULT_SPEED_MUL);
+    expect(world.speed()).toBeCloseTo(C.WALK_SPEED * C.MUD_SPEED_MUL);
   });
 });
 

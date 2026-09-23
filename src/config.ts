@@ -13,6 +13,12 @@ export const MAP_W = 168;
 export const MAP_H = 168;
 export const MAP_LAYERS = 1; // z-levels: only layer 0 is generated for now
 export const DEFAULT_SEED = 1337;
+/**
+ * A bare address rolls a seed below this and puts it in the address bar, so a
+ * playtest is a new map each time and still says which one it was. Small
+ * enough to read out loud and to type back in.
+ */
+export const SEED_ROLL_MAX = 1000;
 
 /** Size of one tile in the view, in logical pixels. */
 export const TILE = 32;
@@ -66,8 +72,15 @@ export const MAX_FRAME_SEC = 0.25;
  * since walking is now the only speed there is. Tune in play.
  */
 export const WALK_SPEED = 8;
-/** [GUESS] Speed multiplier on difficult terrain (underbrush, mud). Tuned in play. */
-export const DIFFICULT_SPEED_MUL = 0.4;
+/**
+ * [GUESS] Speed multipliers on the two kinds of rough ground. Tuned in play.
+ *
+ * They differ so the two barriers feel like different things: underbrush is
+ * pushed through, mud is waded. At one shared 0.4 they read as one obstacle
+ * drawn two ways.
+ */
+export const UNDERBRUSH_SPEED_MUL = 0.5;
+export const MUD_SPEED_MUL = 0.3;
 
 /** [GUESS] Collision radius of the player, in tiles. */
 export const PLAYER_RADIUS = 0.3;
@@ -198,8 +211,11 @@ export const BRIDGE_WEAR_EVERY = 2;
  * panel...
  */
 export const TIRED_HOLD_MUL = 1.5;
-/** ...and rough ground is walked at this share of walking speed instead of DIFFICULT_SPEED_MUL. */
-export const TIRED_DIFFICULT_SPEED_MUL = 0.25;
+/**
+ * ...and rough ground is walked at this share of its own speed, so mud stays
+ * the slower of the two in a tired summer as well.
+ */
+export const TIRED_ROUGH_MUL = 0.625;
 
 // -------------------------------------------------------------------- HUD ----
 // Purely cosmetic thresholds: when a readout turns from calm to alarming.
@@ -447,6 +463,11 @@ export const STAND_SAPLING_SHARE = 0.3;
  * mud is the whole barrier, and it only costs time.
  */
 export const MUD_POCKET_RADIUS = 8;
+/**
+ * [GUESS] Tiles of mud a vine keeps on every side of it. A vine on the rim can
+ * be taken from the grass beside it, and then the pocket has cost nothing.
+ */
+export const MUD_VINE_INSET = 2;
 
 /** The feather field across the stream, as tiles beyond the stream's radius. */
 export const FEATHER_FIELD_BEYOND = 16;

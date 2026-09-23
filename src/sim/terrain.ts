@@ -1,5 +1,5 @@
 import type { TerrainKind } from "./types.ts";
-import { DIFFICULT_SPEED_MUL } from "../config.ts";
+import { MUD_SPEED_MUL, UNDERBRUSH_SPEED_MUL } from "../config.ts";
 
 export interface TerrainDef {
   kind: TerrainKind;
@@ -18,18 +18,21 @@ const def = (
   passable: boolean,
   difficult: boolean,
   glyph: string,
+  speedMul = 1,
 ): TerrainDef => ({
   kind,
   passable,
   difficult,
-  speedMul: difficult ? DIFFICULT_SPEED_MUL : 1,
+  speedMul: difficult ? speedMul : 1,
   glyph,
 });
 
 export const TERRAIN: Record<TerrainKind, TerrainDef> = {
   grass: def("grass", true, false, "."),
-  underbrush: def("underbrush", true, true, ","),
-  mud: def("mud", true, true, "~"),
+  // The two rough grounds walk at their own speeds: pushing through is not
+  // wading.
+  underbrush: def("underbrush", true, true, ",", UNDERBRUSH_SPEED_MUL),
+  mud: def("mud", true, true, "~", MUD_SPEED_MUL),
   tree: def("tree", false, false, "T"),
   stream: def("stream", false, false, "="),
   rock: def("rock", false, false, "#"),

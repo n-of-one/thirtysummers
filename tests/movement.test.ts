@@ -141,7 +141,7 @@ describe("World.step", () => {
     const grass = worldOn(arena("grass"), { x: 4.5, y: 4.5 });
     const mud = worldOn(arena("mud"), { x: 4.5, y: 4.5 });
     expect(grass.speed()).toBeCloseTo(C.WALK_SPEED, 6);
-    expect(mud.speed()).toBeCloseTo(grass.speed() * C.DIFFICULT_SPEED_MUL, 6);
+    expect(mud.speed()).toBeCloseTo(grass.speed() * C.MUD_SPEED_MUL, 6);
   });
 
   it("reports standing still when no key is held, and when walled in", () => {

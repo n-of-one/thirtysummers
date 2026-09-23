@@ -8,14 +8,27 @@ import { formatMap, parseMap } from "../src/sim/mapfile.ts";
 import type { GeneratedWorld } from "../src/sim/worldgen.ts";
 
 /**
- * A handful of seeds rather than one: the layout is jittered and mirrored by
- * the seed, so one seed proves only that one arrangement holds.
+ * A spread of seeds rather than one: the layout is jittered and mirrored by
+ * the seed, so one seed proves only that one arrangement holds. This is the
+ * whole guarantee behind playing seeds rather than shipped map files, so it
+ * is a spread wide enough to mean something.
  */
-const SEEDS = [1337, 2026, 31, 555, 808, 7, 99];
+const SEEDS = [1337, 2026, 31, 555, 808, 7, 99, 1, 2, 3, 12, 64, 128, 404, 777, 9001, 5150, 42, 2718, 31415];
+
+/** One world per seed: every test here wants the same map, and building it is
+ *  the slow part. */
+const built = new Map<number, GeneratedWorld>();
+const mapFor = (n: number): GeneratedWorld => {
+  const had = built.get(n);
+  if (had) return had;
+  const made = layoutSummerWorld(n);
+  built.set(n, made);
+  return made;
+};
 
 describe("the five-summer layout", () => {
   it.each(SEEDS)("holds every row of the table (seed %i)", (seed) => {
-    const rows = checkRows(layoutSummerWorld(seed));
+    const rows = checkRows(mapFor(seed));
     expect(rows.filter((row) => !row.ok).map((row) => `${row.summer}: ${row.label} (${row.detail})`))
       .toEqual([]);
   });
@@ -33,14 +46,14 @@ describe("the five-summer layout", () => {
   });
 
   it.each(SEEDS)("puts every node on the ground its glyph implies (seed %i)", (seed) => {
-    const world = layoutSummerWorld(seed);
+    const world = mapFor(seed);
     for (const node of world.nodes) {
       expect(world.map.get(Math.floor(node.x), Math.floor(node.y))).toBe(RESOURCES[node.kind].ground);
     }
   });
 
   it.each(SEEDS)("gives the first summer a near ring to explore (seed %i)", (seed) => {
-    const world = layoutSummerWorld(seed);
+    const world = mapFor(seed);
     const onFoot = cutsFromCamp(world, { bridge: false, fell: false });
     let walkable = 0;
     for (let i = 0; i < onFoot.length; i++) if (onFoot[i] === 0) walkable++;
@@ -51,7 +64,7 @@ describe("the five-summer layout", () => {
   });
 
   it.each(SEEDS)("spreads the near ring's nodes out rather than clumping them (seed %i)", (seed) => {
-    const world = layoutSummerWorld(seed);
+    const world = mapFor(seed);
     const onFoot = cutsFromCamp(world, { bridge: false, fell: false });
     const inRing = world.nodes.filter(
       (n) =>
@@ -68,7 +81,7 @@ describe("the five-summer layout", () => {
   });
 
   it.each(SEEDS)("leaves the vines open to wade to, and walls the sticks (seed %i)", (seed) => {
-    const world = layoutSummerWorld(seed);
+    const world = mapFor(seed);
     const onFoot = cutsFromCamp(world, { bridge: false, fell: false });
     const cut = cutsFromCamp(world, { bridge: false, fell: false });
     const reach = (w: GeneratedWorld, cost: Float64Array, kind: string, cuts: number) =>
@@ -81,8 +94,23 @@ describe("the five-summer layout", () => {
     expect(reach(world, cut, "stick", THIN_CUTS)).toBe(C.LAYOUT_NODES.standSticks);
   });
 
+  it.each(SEEDS)("keeps every vine well inside the mud, never on its rim (seed %i)", (seed) => {
+    const world = mapFor(seed);
+    const vines = world.nodes.filter((n) => n.kind === "vine");
+    expect(vines.length).toBe(C.LAYOUT_NODES.pocketVines);
+    for (const vine of vines) {
+      const x = Math.floor(vine.x);
+      const y = Math.floor(vine.y);
+      for (let dy = -C.MUD_VINE_INSET; dy <= C.MUD_VINE_INSET; dy++) {
+        for (let dx = -C.MUD_VINE_INSET; dx <= C.MUD_VINE_INSET; dx++) {
+          expect(world.map.get(x + dx, y + dy)).toBe("mud");
+        }
+      }
+    }
+  });
+
   it.each(SEEDS)("puts every feather field node across the stream, and every shell behind the copse (seed %i)", (seed) => {
-    const world = layoutSummerWorld(seed);
+    const world = mapFor(seed);
     const at = (cost: Float64Array, kind: string) =>
       world.nodes.filter(
         (n) => n.kind === kind && cost[Math.floor(n.y) * world.map.width + Math.floor(n.x)]! <= THIN_CUTS,
@@ -100,7 +128,7 @@ describe("the five-summer layout", () => {
   });
 
   it.each(SEEDS)("measures the near ring from the map, and a bridge does not move it (seed %i)", (seed) => {
-    const generated = layoutSummerWorld(seed);
+    const generated = mapFor(seed);
     const ring = nearRing(generated.map, generated.camp);
     const home = cutsFromCamp(generated, { bridge: false, fell: false });
     const w = generated.map.width;

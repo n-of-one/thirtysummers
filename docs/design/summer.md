@@ -24,8 +24,11 @@ the cart can run.
 
 One bar, and the clock.
 
-**Time** is what a summer spends. Rough ground (mud, underbrush) is slow,
-and every improvement is a hold on a key whose length is its price, so a
+**Time** is what a summer spends. Rough ground is slow, and the two kinds
+of it are slow to different degrees: underbrush is pushed through at half
+speed, mud is waded at under a third. They are separate barriers, so they
+have to feel separate under the feet.
+Every improvement is a hold on a key whose length is its price, so a
 cut path saves next year exactly the seconds it cost this year. Nothing
 else runs down. There is no stamina: the clock already never recovers, is
 always on screen, and stops the summer, and a second budget beside it was

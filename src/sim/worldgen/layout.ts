@@ -24,8 +24,9 @@ import type { GeneratedWorld } from "../worldgen.ts";
  * two seeds are not the same walk, while every seed still holds the same
  * chain. `worldgen/rows.ts` is what says whether a given map does.
  *
- * The maps in public/maps are dumps of this pass, and can still be edited by
- * hand afterwards: the file is the format, not this code.
+ * A map file in public/maps is a dump of this pass, made when a map is worth
+ * freezing and editable by hand afterwards: the file is the format, not this
+ * code. Play is on seeds otherwise, because every seed holds the chain.
  */
 export function layoutSummerWorld(seed: number): GeneratedWorld {
   const rng = mulberry32(seed ^ 0x5a17);
@@ -135,7 +136,18 @@ export function layoutSummerWorld(seed: number): GeneratedWorld {
     [],
     (x, y) => openStand.has(y * W + x),
   );
-  nodes.spread("vine", mudPocket, C.MUD_POCKET_RADIUS - 0.5, N.pocketVines, C.FIELD_SPACING);
+  // Vines sit well inside the mud, never along its rim, so reaching one is
+  // always a wade rather than a step off the grass.
+  nodes.spread(
+    "vine",
+    mudPocket,
+    C.MUD_POCKET_RADIUS - 0.5,
+    N.pocketVines,
+    C.FIELD_SPACING,
+    undefined,
+    [],
+    (x, y) => insideMud(map, x, y, C.MUD_VINE_INSET),
+  );
   // Across the stream, and behind the copse.
   const field = C.FEATHER_FIELD_RADIUS - 1;
   nodes.spread("feather", featherField, field, N.featherFieldFeathers, C.FIELD_SPACING);
@@ -154,6 +166,22 @@ export function layoutSummerWorld(seed: number): GeneratedWorld {
     springs,
     reachable: reachableFrom(map, camp),
   };
+}
+
+/**
+ * Is this tile mud with `inset` tiles of mud on every side of it?
+ *
+ * What it keeps out is a vine on the rim, which can be picked while standing
+ * on the grass beside it: the mud is the whole barrier of that pocket, and a
+ * vine that costs no wading is a vine that is not behind it.
+ */
+function insideMud(map: TileMap, x: number, y: number, inset: number): boolean {
+  for (let dy = -inset; dy <= inset; dy++) {
+    for (let dx = -inset; dx <= inset; dx++) {
+      if (map.get(x + dx, y + dy) !== "mud") return false;
+    }
+  }
+  return true;
 }
 
 /**

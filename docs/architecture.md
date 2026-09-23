@@ -144,5 +144,7 @@ in [development.md](development.md).
 - **`scripts/`** are `npm run map` and `npm run map:check`.
 - **`tests/`** are Vitest. `stubPack.ts` is an `AssetPack` that draws
   nothing and records everything, so both layers run headless.
-- **`public/maps/`** are dumps of particular seeds, editable by hand.
+- **`public/maps/`** holds dumps of particular seeds, editable by hand, and
+  is empty but for its README: testing is on seeds, and a file is made only
+  when a map is worth freezing.
   **`public/assets/minifantasy/`** is the art, gitignored.

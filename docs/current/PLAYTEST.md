@@ -9,10 +9,16 @@ verdict came from, is
 How to run one:
 
 ```
-npm run dev        # then open with ?map=<name>
+npm run dev        # then open localhost:5173, which rolls a seed for you
 ```
 
-Play it blind. Do not open the map file, and leave the debug overlay shut
+The bare address picks a seed under 1000 and shows it in the address bar.
+`?seed=<n>` walks a particular one, and `?map=<name>` a file if one was made.
+Note the seed, or the file, with the entry, so the same walk can be repeated.
+A seed is only the same map until the generator changes; a dump of it,
+`npm run map -- <n> > public/maps/<name>.txt`, keeps it across that.
+
+Play it blind. Do not open a map file, and leave the debug overlay shut
 until the session is over. The seed box and the teleport are for building,
 not for playing.
 

@@ -4,8 +4,9 @@ What the step being built now is: the first five summers of the first life,
 on one map, with a winter between each. Milestones M10 to M12 in
 [PLAN.md](PLAN.md) build it: M10 the first three years, M11 the cart for
 summer 4, M12 planks and the well for summer 5. The generator lays the map
-out itself, per seed, and the maps in `public/maps/` are dumps of particular
-seeds that can still be edited by hand. The general rules are in
+out itself, per seed, and every seed holds the table, so testing is on seeds.
+A dump of one into `public/maps/` freezes a map when that is worth doing, for
+a playtest with someone else or across a change to the generator. The general rules are in
 [../design/](../design/README.md). This document holds only what is
 particular to these five summers.
 
@@ -95,6 +96,8 @@ Easy ground is walked as fast as ever.
 - **The near ring** is large, a minute to cross, so the first summer is
   explored rather than swept. Its fruit and feathers are spread thinly
   across it, its mud pocket is open and the vines in it are only waded to,
+  each of them at least two tiles inside the mud so none can be taken from
+  the grass,
   and a thin thicket, about three tiles, walls in the sapling stand where
   the sticks are.
 - **Across the stream** is the feather field.

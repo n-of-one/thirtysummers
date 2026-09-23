@@ -47,9 +47,13 @@ the game and the code is in `docs/`, indexed by
 - Never commit the Minifantasy art. It is a paid licence, and
   `public/assets/minifantasy/` is gitignored.
 - `public/maps/*.txt` are played blind. Do not read a map file to someone
-  who is about to play it, and do not describe its layout.
-  `public/maps/README.md` is the safe half: which seed each came from, not
-  what is in it.
+  who is about to play it, and do not describe its layout. The same holds
+  for a seed someone is about to walk. `public/maps/README.md` is the safe
+  half: how a file is made and which seed it came from, not what is in it.
+- There are no map files by default. Testing is on seeds, since every seed
+  holds the table, and a dump into `public/maps/` is made only when a map is
+  worth freezing: a playtest with someone else, or one kept across a change
+  to the generator. Do not regenerate files after every generator change.
 
 ## Running things
 
@@ -69,6 +73,12 @@ approval, so keep the work where it is visible.
   tools cost none. This holds however small the edit is -- a one-character
   change is a reason to use the editing tool, not an excuse to reach for
   `sed`. Reading is different: `cat`, `sed -n`, `grep` and `find` are fine.
+- One command per call, and nothing in it the harness cannot read literally.
+  `$?`, other shell expansions, and several commands strung together with
+  `&&` or `;` make the call unverifiable, and then it costs Erik an approval.
+  So run `npm run typecheck` and `npm run test` as two calls, and never add
+  `echo $?`: a failing command already fails the call. A pipe into `tail` or
+  `grep` to keep the output short is fine.
 - Anything long-running goes in the background with its output redirected
   into `tmp/`: the dev server, the headless browser, a summer played out
   over the protocol. A five-minute summer is a background job, not a wait.

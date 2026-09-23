@@ -12,8 +12,9 @@ npm run typecheck   # tsc --noEmit
 npm run build
 npm run map         # ASCII dump of a seed laid out to the table of the first summers
 npm run map -- 42 > public/maps/x.txt   # ...and the same dump as a playable map
+                                        # (there are no map files by default)
 npm run map -- 42 --noise               # the landscape alone, with no layout on it
-npm run map:check public/maps/*.txt     # does each map still hold the table and the economy?
+npm run map:check public/maps/x.txt     # does that map still hold the table and the economy?
 ```
 
 The last rows `map:check` prints are the economy: the perfect player of
@@ -31,8 +32,14 @@ tile. Its legend is in the dump's footer.
 
 ## URL parameters
 
-- `?map=<name>` plays `public/maps/<name>.txt` instead of a generated world.
-- `?seed=<n>` picks the generated world, laid out to the table.
+- `?map=<name>` plays `public/maps/<name>.txt` instead of a generated world,
+  for the times someone has made one. Play `?seed=<n>` otherwise.
+- `?seed=<n>` picks the generated world, laid out to the table. With no
+  parameters at all, the game rolls a seed under `SEED_ROLL_MAX` and puts it
+  in the address bar, so a playtest is a new map each time and still says
+  which one it was. A reload is then the same world; going back to the bare
+  address is another one. A seed, a map or a save in the address stops the
+  roll.
 - `?pack=placeholder` runs without the paid art.
 - `?debug=1` starts with the debug overlay open.
 - `?save=<text>`, beside the `?map=` or `?seed=` it was made on, opens a game
@@ -182,7 +189,8 @@ ones.
   no test: there is no DOM in the test run, so they are checked over the
   protocol instead, holding keys with `autoRepeat` set as a real keyboard
   does. So is how a dropped item looks, in both packs.
-- `npm run map:check public/maps/*.txt` passes on every shipped map. Run it
-  after editing one by hand.
+- `npm run map:check <file>` passes on any map file there is. There are none
+  by default: testing is on seeds, and the layout's own tests sweep a spread
+  of them. Run the checker after editing a file by hand.
 - `?pack=placeholder` still draws every terrain.
 - 60fps with headroom at 168×168.

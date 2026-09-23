@@ -910,8 +910,8 @@ export class World {
    */
   speed(): number {
     const ground = this.groundUnderPlayer();
-    if (this.tired && ground.difficult) return C.WALK_SPEED * C.TIRED_DIFFICULT_SPEED_MUL;
-    return C.WALK_SPEED * ground.speedMul;
+    const tiredMul = this.tired && ground.difficult ? C.TIRED_ROUGH_MUL : 1;
+    return C.WALK_SPEED * ground.speedMul * tiredMul;
   }
 
   /**
