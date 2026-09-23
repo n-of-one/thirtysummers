@@ -89,6 +89,12 @@ barrier run. Kinds with a use compete with their price: a stick that sells
 for one and builds a bridge is a choice in the first summer, and a log is a
 choice for years. Bulky kinds take two backpack slots. No rarity for now.
 
+**Some kinds lie there rather than grow there.** A feather is one: it is
+drawn the way a dropped item is, small and on its shadow, and a press takes
+it, with no hold and no progress. Gathering is prying a vine out of the mud;
+a feather is bent down for, and the game says so with the same art and the
+same key it uses for anything else lying on the grass.
+
 ## Tools and gear
 
 The knife is owned from the start. Every other tool is bought in winter from

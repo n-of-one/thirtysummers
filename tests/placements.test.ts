@@ -130,6 +130,19 @@ describe("placementsIn", () => {
     expect(out[0]!.art).not.toBe(pack.resource("vine"));
   });
 
+  it("draws a feather where it grows the way a dropped one is drawn", () => {
+    const map = arena(64, "grass");
+    const pack = new StubPack();
+    const out = collect(map, pack, windowAt(), NOWHERE, [
+      { id: 1, kind: "feather", x: 34.5, y: 23.5, z: 0, harvested: false },
+      { id: 2, kind: "ore", x: 35.5, y: 23.5, z: 0, harvested: false },
+    ]);
+    // A feather lies there rather than growing, so it is small and on its
+    // shadow; everything else keeps its node art.
+    expect(out[0]!.art).toBe(pack.dropped("feather"));
+    expect(out[1]!.art).toBe(pack.resource("ore"));
+  });
+
   it("leaves out anything outside the window", () => {
     const map = arena(64, "grass");
     const w = windowAt();

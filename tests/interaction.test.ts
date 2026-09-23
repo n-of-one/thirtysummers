@@ -107,6 +107,29 @@ describe("harvesting", () => {
     ]);
   });
 
+  it("takes a feather on the press, with no hold and no progress", () => {
+    const feather = node("feather", 9.5, 8.5);
+    const world = worldWith([feather]);
+
+    world.step(C.TICK_SEC, INTERACT);
+    expect(feather.harvested).toBe(true);
+    expect(world.inventory.count("feather")).toBe(1);
+    expect(world.harvestProgress).toBe(0);
+    expect(world.events).toEqual([
+      { type: "harvested", kind: "feather", at: expect.any(Number) },
+    ]);
+  });
+
+  it("needs a press each, so a held key does not sweep a feather field", () => {
+    const world = worldWith([node("feather", 9.5, 8.5), node("feather", 7.5, 8.5)]);
+    hold(world, INTERACT, C.HARVEST_TIME * 3);
+    expect(world.inventory.count("feather")).toBe(1);
+    // Only a fresh press takes the second one.
+    world.step(C.TICK_SEC, NO_INPUT);
+    tap(world, INTERACT);
+    expect(world.inventory.count("feather")).toBe(2);
+  });
+
   it("does nothing while the key is up", () => {
     const ore = node("ore", 9.5, 8.5);
     const world = worldWith([ore]);

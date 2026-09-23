@@ -39,6 +39,12 @@ export interface ResourceDef {
    * Camp takes every kind and sells none: everything is sold in winter.
    */
   use: Use;
+  /**
+   * Is it lying there rather than growing there? A feather is: it is drawn the
+   * way a dropped item is, small and on its shadow, and a press takes it,
+   * because bending down for a feather is not prying a vine out of the mud.
+   */
+  lies: boolean;
 }
 
 export type Use = "food" | "money" | "material";
@@ -52,7 +58,11 @@ const def = (
   returns: Returns,
   use: Use,
   stack = 1,
-): ResourceDef => ({ kind, glyph, ground, slots, stack, price, returns, use });
+  lies = false,
+): ResourceDef => ({ kind, glyph, ground, slots, stack, price, returns, use, lies });
+
+/** Is it picked up with a press, and drawn as something lying on the ground? */
+export const lies = (kind: ResourceKind): boolean => RESOURCES[kind].lies;
 
 /** Is it only ever sold? Then the list counts it as its price in gold. */
 export const isMoney = (kind: ResourceKind): boolean => RESOURCES[kind].use === "money";
@@ -71,7 +81,7 @@ export const isMaterial = (kind: ResourceKind): boolean => RESOURCES[kind].use =
  */
 export const RESOURCES: Record<ResourceKind, ResourceDef> = {
   fruit: def("fruit", "f", "grass", 1, 1, "slowly", "food"),
-  feather: def("feather", "p", "grass", 1, 1, "slowly", "money", 5),
+  feather: def("feather", "p", "grass", 1, 1, "slowly", "money", 5, true),
   stick: def("stick", "s", "grass", 1, 1, "yearly", "material"),
   vine: def("vine", "y", "mud", 1, 1, "yearly", "material"),
   ore: def("ore", "v", "grass", 1, 2, "never", "money"),

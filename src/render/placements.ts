@@ -1,3 +1,4 @@
+import { lies } from "../sim/resources.ts";
 import type { TileMap } from "../sim/tilemap.ts";
 import type { Dropped, ResourceNode, Spring, Vec2 } from "../sim/types.ts";
 import type { AssetPack, PropSprite } from "./packs/pack.ts";
@@ -110,7 +111,9 @@ export function* placementsIn(
     yield {
       worldX: node.x,
       worldY: node.y,
-      art: pack.resource(node.kind),
+      // A kind that lies there rather than growing is drawn the way a dropped
+      // one is, so it reads as something to bend down for.
+      art: lies(node.kind) ? pack.dropped(node.kind) : pack.resource(node.kind),
       jitter: 0,
       occludes: false,
     };

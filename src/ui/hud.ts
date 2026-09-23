@@ -2,7 +2,7 @@ import * as C from "../config.ts";
 import type { SummerSummary } from "../sim/summary.ts";
 import type { Amounts, Inventory } from "../sim/inventory.ts";
 import { fillList, type ListPart, type ListRow } from "../sim/list.ts";
-import { RESOURCE_KINDS, RESOURCES } from "../sim/resources.ts";
+import { lies, RESOURCE_KINDS, RESOURCES } from "../sim/resources.ts";
 import type { Icons } from "../render/packs/icons.ts";
 import type { BlockedReason, Build, ResourceKind, Vec2, WorldEvent } from "../sim/types.ts";
 import { BRIDGE_COST, BUILD_COST, type Action, type World } from "../sim/world.ts";
@@ -208,11 +208,17 @@ function actionPrompt(action: Action, progress: number, full: string): Prompt {
     case "harvest":
       return action.blocked
         ? { text: full, progress: 0, blocked: true }
-        : {
-            text: `Hold E to gather ${RESOURCE_NAME[action.node.kind]}`,
-            progress,
-            blocked: false,
-          };
+        : lies(action.node.kind)
+          ? {
+              text: `Press E to pick up ${RESOURCE_NAME[action.node.kind]}`,
+              progress: 0,
+              blocked: false,
+            }
+          : {
+              text: `Hold E to gather ${RESOURCE_NAME[action.node.kind]}`,
+              progress,
+              blocked: false,
+            };
     case "drink":
       return { text: "Hold E to drink", progress, blocked: false };
     case "cut":

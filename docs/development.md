@@ -55,7 +55,8 @@ gitignored. Without them the code-drawn placeholder pack draws everything.
 
 WASD or arrows to move. E or Space to gather, cut, fell and store; held beside
 a spring or a well, to drink; pressed on something lying on the ground, to
-pick it up.
+pick it up. A feather counts as lying on the ground wherever it is found, so
+it is a press each, not a hold.
 
 What camp keeps is called **camp**, not "the store": `store` is the verb for
 putting something there, and winter brings a shop. `world.store` is the code

@@ -13,7 +13,7 @@ import { FIRST_LIST, lineKey, offeredLines, type ListLine } from "./list.ts";
 import { fingerprint, SaveError, type SaveState } from "./save.ts";
 import type { SummerSummary } from "./summary.ts";
 import { TERRAIN_ORDER } from "./terrain.ts";
-import { RESOURCE_KINDS, RESOURCES } from "./resources.ts";
+import { lies, RESOURCE_KINDS, RESOURCES } from "./resources.ts";
 import { mulberry32, shuffle } from "./rng.ts";
 import { shopStock } from "./shop.ts";
 import { initialKeep, levelAt, winterModel, type WinterInput } from "./winter.ts";
@@ -119,6 +119,17 @@ const HOLD_TIME: Record<Action["type"], number> = {
  * Camp has no tile of its own here: there is one of it, and the player is
  * either at it or not.
  */
+/**
+ * Is this done with a press rather than a hold? Picking something off the
+ * ground is, and so is a kind that lies there rather than growing: a feather
+ * is bent down for, not worked at.
+ */
+export function isTap(action: Action): boolean {
+  return (
+    action.type === "pickUp" || (action.type === "harvest" && lies(action.node.kind))
+  );
+}
+
 function holdKeyFor(action: Action): string {
   switch (action.type) {
     case "harvest":
@@ -1006,11 +1017,11 @@ export class World {
 
     this.pendingTap = null;
 
-    if (action.type === "pickUp") {
+    if (isTap(action)) {
       if (!pressed) return;
       this.interactSpent = true;
       if (action.blocked) this.blocked(action.blocked);
-      else this.pickUp(action.item);
+      else this.complete(action);
       return;
     }
 
@@ -1066,6 +1077,9 @@ export class World {
   /** Carry out a hold that has run its full time. */
   private complete(action: Action): void {
     switch (action.type) {
+      case "pickUp":
+        this.pickUp(action.item);
+        return;
       case "harvest":
         action.node.harvested = true;
         this.pickedThisSummer.add(action.node.id);

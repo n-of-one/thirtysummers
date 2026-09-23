@@ -397,6 +397,13 @@ stacks, the feather at five to a slot, rounds up: a part-filled stack takes
 a whole slot, and `fits` is true of a full pack whose last stack has room
 in it.
 
+**A kind can be found lying rather than growing.** `lies` in the resource
+table makes a node draw with the dropped art and finish on a press instead of
+a hold, which is one flag rather than a second kind of thing on the map: the
+feather is still a node, so replenishment, the map format and the economy
+rows never learn about it. What it costs is that a feather field is a press
+per feather, where a held key sweeps a row of fruit.
+
 **The pack also remembers the order it was filled in.** `Inventory` keeps a
 list of the kinds it holds beside the counts, appended as a kind arrives and
 pruned as one runs out, and the strip and the drop key's cycling both read
