@@ -78,15 +78,16 @@ interact key is also ignored by the world until it has been released once
 after the panel closes, or the hold would start over.
 
 `X` throws every item of the selected kind on the ground, one to a tile, and
-`C` moves the selection on to the next kind in the pack. The pill by the
-backpack always names what `X` would drop and how much. Nothing left on the
+`C` moves the selection on to the next kind in the pack. The pack is the
+strip at the bottom of the screen, a cell per slot, and every cell of the
+kind `X` would drop has a gold outline. Nothing left on the
 ground survives a winter; camp keeps the lot.
 
 B opens the build menu: a bridge tile, and the well once it is known, with
 what each costs.
 The number keys choose, B or Esc closes, and Esc with the menu down puts the
 build away again. E never builds on its own: with something chosen, holding E
-builds it on the tile ahead, and the pill by the backpack says what is being
+builds it on the tile ahead, and the pill beside Tools says what is being
 built. The clock runs while the menu is open, and a choice does not survive
 the summer.
 
@@ -101,8 +102,8 @@ The Full screen button in the top right gives the view the whole screen.
 The end of a summer opens the winter screen: what came home and what it
 sells for, upkeep, the shop from winter 2 on, and the family, with the save
 link and the summer in numbers, closed, at the bottom. Its boxes are next
-summer's list, drawn across the top of the screen as a box per line, with a
-bar for what is collected and one for what is at camp. "Next summer" applies
+summer's list, drawn across the top of the screen as a box per line, each
+amount a row of squares: green at camp, amber carried. "Next summer" applies
 the winter and starts the next summer with a notice saying which one it is,
 gone at the first step.
 `window.__game.winter` is the screen, with `choices` and `ticked` to read

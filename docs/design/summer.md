@@ -139,6 +139,20 @@ The backpack is the limit: ten slots, bulky things taking two. It survives
 the winter as it is, so it has to have a way out that never depends on what
 is in it.
 
+Feathers are the exception: five go in one slot. They are light, and
+carrying the first summer's feathers home a pack at a time was a slog
+rather than a choice. The stack has a limit so a feather field is still a
+number of trips, just fewer of them. Shells are not light and take a slot
+each.
+
+**The pack is drawn as a strip** across the bottom of the screen, a cell
+per slot, in the order things were picked up: what went in first is on the
+left and stays there, and a kind that runs out and is found again comes
+back at the end. Each item is its own icon, at the size it is on the map,
+and a log fills two cells. The empty cells are how full the pack is, with no
+number. A stack's cell carries its count, so feathers are the one kind with
+numbers on them.
+
 **Camp takes everything, and sells nothing.** Feathers, shells, fruit and
 building material alike are stored at camp, and everything is sold in
 winter, where the haul is shown with what it makes. A summer has no gold in
@@ -166,7 +180,7 @@ as rules, which is why fruit is not named twice.
 **Dropping** is for being full in a field with nothing to spend on, and it
 is one key, not a screen. The pack always names a selected kind, falling to
 whatever takes the most slots when that kind runs out; one key drops all of
-it, another moves the selection on. A dropped item lands one to a tile,
+it, another moves the selection along the strip. A dropped item lands one to a tile,
 spilling outward onto open ground, so the scatter is honest about how much
 was carried; a drop is refused only when there is no open ground near at
 all. A full pack's prompt names the kind and the count, which is the whole

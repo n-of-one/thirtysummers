@@ -30,6 +30,27 @@ they had not seen. Discovery, enabled by terrain improvement. The discovery
 test, decided 8 Sep 2026, says that works. The next question is whether it
 keeps working across many summers, which is what the first five summers test.
 
+## Numbers
+
+The game is about exploring and building, and a number on screen pulls the
+player out of both. So the game shows things rather than counts wherever it
+can, and keeps the numbers that remain as few as it can.
+
+**Summer has few.** The player is walking and mostly needs what they can
+see. Some numbers stay, such as the ones in a task, but each one has to
+earn its place.
+
+**Winter has more.** Selling, paying and buying only make sense if the
+player can follow the sums, so winter shows numbers that summer would
+leave out. They are kept from turning winter into a spreadsheet by
+pictures the player already knows from summer. The icons of the things
+they carried, and of what happened to them, go beside the numbers, so a
+winter reads as the summer before it being paid out.
+
+The test for any number on screen: does the player need it to decide
+something, or to understand how the game works? If not, show a picture of
+it, or leave it out. If so, put it beside a picture.
+
 ## Words
 
 In-game words, not game-design words.

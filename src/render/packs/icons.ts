@@ -5,8 +5,10 @@ import {
   FEATHER_COLORS,
   FEATHER_PIXELS,
   RESOURCE_CELL,
+  RESOURCE_TURNS,
   SHEETS,
   T,
+  turnPixels,
   WELL_CELL,
   type SheetName,
 } from "./minifantasy.sheets.ts";
@@ -117,6 +119,18 @@ function draw(
   if (!sheets || !spec) return flat(FLAT[name], scale);
 
   const [sheet, x, y, w, h] = spec;
+  const turns = RESOURCE_TURNS[name as ResourceKind];
+  if (turns) {
+    // Turned at art size, then scaled, so the turn cannot land between pixels.
+    const cellCanvas = surface(T, T);
+    const cellCtx = context(cellCanvas);
+    cellCtx.drawImage(sheets[sheet], x * T, y * T, T, T, 0, 0, T, T);
+    const image = cellCtx.getImageData(0, 0, T, T);
+    cellCtx.putImageData(new ImageData(turnPixels(image.data, T, turns), T, T), 0, 0);
+    const canvas = surface(T * scale, T * scale);
+    context(canvas).drawImage(cellCanvas, 0, 0, T * scale, T * scale);
+    return canvas.toDataURL();
+  }
   const canvas = surface(w * T * scale, h * T * scale);
   const ctx = context(canvas);
   ctx.drawImage(

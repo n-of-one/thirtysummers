@@ -38,10 +38,13 @@
         <button id="fullscreen">Full screen</button>
       </div>
 
+      <!-- The pack, bottom centre: a cell per slot, filled with what is in it. -->
+      <div class="pack is-empty" id="pack">
+        <div class="pack-cells" id="pack-cells"></div>
+        <div class="pack-keys"><kbd id="pack-drop-key">X</kbd> drop<br><kbd id="pack-switch-key">C</kbd> next</div>
+      </div>
+
       <div class="hud-corner hud-bl">
-        <div class="pill">Backpack <b id="backpack-count">0</b>/<span id="backpack-cap">10</span>
-          <span class="pill-note" id="backpack-contents">empty</span>
-          <span class="pill-note" id="drop-selection" hidden></span></div>
         <div class="pill">Tools <span class="pill-note" id="tools">knife</span></div>
         <div class="pill" id="build-pill" hidden>Building <b id="build-name"></b>
           <span class="pill-note"><kbd>Esc</kbd> to stop</span></div>

@@ -109,6 +109,53 @@ html, body {
 .pill-note { color: var(--ink-dim); margin-left: 4px; }
 .pill b { color: var(--gold); font-variant-numeric: tabular-nums; }
 
+/* The pack, bottom centre: a 48px cell per slot, a log two wide, with the
+   icons at the size things are on the map. How full it is shows as the
+   empty cells, with no number. */
+.pack {
+  position: absolute;
+  left: 50%;
+  bottom: 14px;
+  transform: translateX(-50%);
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  background: var(--panel);
+  border: 1px solid var(--edge);
+  border-radius: var(--radius);
+  padding: 8px;
+}
+.pack-cells { display: flex; gap: 4px; }
+.pack-cell {
+  --span: 1;
+  position: relative;
+  /* Two cells and the gap between them, for a kind that takes two. */
+  width: calc(48px * var(--span) + 4px * (var(--span) - 1));
+  height: 48px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(242, 237, 228, 0.05);
+  border: 1px solid var(--edge);
+  border-radius: 4px;
+  color: var(--ink-dim);
+  font-size: 11px;
+}
+.pack-cell img { width: 32px; height: 32px; image-rendering: pixelated; }
+.pack-cell.is-selected { border: 2px solid var(--gold); background: rgba(233, 196, 106, 0.1); }
+.pack-cell.is-free { background: none; border: 1px dashed rgba(242, 237, 228, 0.22); }
+.pack-count {
+  position: absolute;
+  right: 3px;
+  bottom: 0;
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--gold);
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.8);
+}
+.pack-keys { font-size: 12px; color: var(--ink-dim); line-height: 1.8; padding-right: 4px; }
+.pack.is-empty .pack-keys { display: none; }
+
 /* The controls in the HUD that take the mouse. */
 #end-summer,
 #fullscreen { pointer-events: auto; }
@@ -172,8 +219,10 @@ kbd {
 .notice[hidden] { display: none; }
 
 /* The list: what this summer means to bring home, a box per line across the
-   top of the view. Amounts, never places. Two bars in each: what has been
-   collected, and what of it is back at camp. A finished line is taken away. */
+   top of the view, all the same so the player picks the order. Amounts, never
+   places. Each amount is a row of squares: green at camp, amber carried,
+   empty still to find, with a tent at the start to say green is home. A
+   finished line turns dark green and stays until its × is clicked. */
 .hud-list {
   position: absolute;
   top: 14px;
@@ -186,10 +235,14 @@ kbd {
   gap: 10px;
 }
 .hud-list[hidden] { display: none; }
+.hud-list {
+  --sq-carried: #b8862a;
+  --sq-home: #5f9a34;
+  --done-edge: #3f6b22;
+  --done-ink: #8fb86a;
+}
 .list-box {
-  /* As wide as its want line, and never narrower than the others. */
   width: max-content;
-  min-width: 230px;
   box-sizing: border-box;
   padding: 8px 10px 9px;
   background: var(--panel);
@@ -197,36 +250,58 @@ kbd {
   border-radius: var(--radius);
   display: flex;
   flex-direction: column;
-  gap: 4px;
+  gap: 5px;
 }
-.list-title { font-size: 16px; letter-spacing: 0.04em; }
-.list-want { color: var(--gold); font-variant-numeric: tabular-nums; margin-bottom: 2px; white-space: nowrap; }
-.list-bar {
+.list-title {
   display: flex;
   justify-content: space-between;
-  gap: 8px;
-  padding: 2px 6px;
-  border-radius: 3px;
+  align-items: baseline;
+  gap: 14px;
+  font-size: 16px;
+  letter-spacing: 0.04em;
   white-space: nowrap;
-  font-variant-numeric: tabular-nums;
-  background: linear-gradient(to right, var(--bar) var(--through), rgba(255, 255, 255, 0.06) var(--through));
 }
-.list-bar.is-collected { --bar: rgba(232, 180, 60, 0.35); }
-.list-bar.is-home { --bar: rgba(111, 164, 48, 0.55); }
-.list-numbers { color: var(--ink); }
+.list-wants { font-size: 13px; letter-spacing: 0; color: var(--gold); }
+/* Food's words, in the first summer: what to find is plain, what to bring
+   home is in the carried squares' amber. */
+.list-hint { font-size: 13px; letter-spacing: 0; color: #e0b25a; }
+.list-hint-find { color: var(--ink); }
+.list-row { display: flex; align-items: center; gap: 8px; white-space: nowrap; }
+.list-unit { width: 64px; }
+.list-tent { display: block; color: #7fb24e; line-height: 0; }
+.list-tent svg { display: block; }
+.list-squares { display: flex; gap: 3px; }
+.sq {
+  width: 12px;
+  height: 12px;
+  border-radius: 2px;
+  border: 1px solid rgba(242, 237, 228, 0.35);
+}
+.sq.is-carried { background: var(--sq-carried); border-color: var(--sq-carried); }
+.sq.is-home { background: var(--sq-home); border-color: var(--sq-home); }
+/* Past the squares' limit: one bar, green over amber over empty. */
+.list-bar {
+  min-width: 170px;
+  padding: 0 7px;
+  border-radius: 3px;
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.8);
+  background:
+    linear-gradient(to right, var(--sq-home) var(--home), transparent var(--home)),
+    linear-gradient(to right, var(--sq-carried) var(--carried), rgba(255, 255, 255, 0.06) var(--carried));
+}
 
 /* A finished line, kept until it is closed: a dark green edge, and the rest
    stepped back, so it reads as done without pulling the eye from the field. */
 .list-box.is-done {
-  border: 2px solid #3f6b22;
+  border: 2px solid var(--done-edge);
   padding: 7px 9px 8px;
   color: var(--ink-dim);
 }
-.list-box.is-done .list-title { color: #8fb86a; }
-.list-box.is-done .list-want { color: var(--ink-dim); }
-.list-box.is-done .list-numbers { color: var(--ink-dim); }
-.list-box.is-done .list-bar { --bar: rgba(63, 107, 34, 0.45); }
-.list-title { display: flex; justify-content: space-between; align-items: center; }
+.list-box.is-done .list-title { color: var(--done-ink); }
+.list-box.is-done .list-wants { color: var(--ink-dim); }
+.list-box.is-done .list-tent { color: #6f8f55; }
 .list-close {
   pointer-events: auto;
   font: inherit;
@@ -234,7 +309,7 @@ kbd {
   line-height: 1;
   color: var(--ink-dim);
   background: transparent;
-  border: 1px solid #3f6b22;
+  border: 1px solid var(--done-edge);
   border-radius: 3px;
   padding: 0 6px 2px;
   cursor: pointer;

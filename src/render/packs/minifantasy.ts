@@ -14,6 +14,7 @@ import {
   FEATHER_PIXELS,
   REGIONS,
   RESOURCE_CELL,
+  RESOURCE_TURNS,
   SAPLING_COLORS,
   SAPLING_PIXELS,
   SHEETS,
@@ -22,6 +23,7 @@ import {
   SYNTH_NARROW,
   T,
   THICKET_TINT,
+  turnPixels,
   WALK_ROWS,
   type NarrowTile,
   type SheetName,
@@ -277,11 +279,7 @@ class MinifantasyPack implements AssetPack {
     this.sapling = this.drawn(SAPLING_PIXELS, SAPLING_COLORS);
 
     this.resources = Object.fromEntries(
-      RESOURCE_KINDS.map((kind) => {
-        if (kind === "feather") return [kind, this.drawn(FEATHER_PIXELS, FEATHER_COLORS)];
-        const [sheet, tx, ty] = RESOURCE_CELL[kind];
-        return [kind, this.prop24(sheet, tx, ty, 1, 1)];
-      }),
+      RESOURCE_KINDS.map((kind) => [kind, this.spriteFrom(this.resourceCanvas(kind))]),
     ) as Record<ResourceKind, PropSprite>;
     this.droppedArt = Object.fromEntries(
       RESOURCE_KINDS.map((kind) => [
@@ -402,6 +400,11 @@ class MinifantasyPack implements AssetPack {
     }
     const [sheet, tx, ty] = RESOURCE_CELL[kind];
     ctx.drawImage(this.sheets[sheet].pixels.canvas, tx * T, ty * T, T, T, 0, 0, T, T);
+    const turns = RESOURCE_TURNS[kind];
+    if (turns) {
+      const image = ctx.getImageData(0, 0, T, T);
+      ctx.putImageData(new ImageData(turnPixels(image.data, T, turns), T, T), 0, 0);
+    }
     return canvas;
   }
 

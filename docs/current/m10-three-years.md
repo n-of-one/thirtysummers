@@ -69,15 +69,18 @@ player reads; `world.store` stays the code name.
 7. **The list.** Every upkeep line, every shop item, frosted ones included,
    and the family's next level have a box on the winter screen, ticked by
    default. In winter 1, what level 1 opens has its box in the family panel,
-   so the axe is on summer 2's list. The ticked lines become the list, drawn across the top of the
-   screen all summer as a box per line, filled from the top: food in fruit,
-   rent, then each item, its gold from what is left and its material in
-   kind, then the gold toward the next level. Gold counts feathers and
-   shells at their winter price, never building material, and a gold amount
-   says what it is in feathers. Each box has a bar for what is collected and
-   one for what is at camp, and goes once it is all at camp. Summer 1's list
-   is food, rent and level 1. The list replaces the "fruit stored" readout
-   and the gold count.
+   so the axe is on summer 2's list. The ticked lines become the list,
+   drawn across the top of the screen all summer as a box per line, filled
+   from the top: food in fruit, rent, then each item, its gold from what is
+   left and its material in kind, then the gold toward the next level. Gold
+   counts feathers and shells at their winter price, never building
+   material. Each amount is a row of squares with a tent, green at camp and
+   amber carried, counting gold in feathers, and a bar past fifteen. In
+   summer 1 alone, food says what to do in words. A finished box turns dark
+   green and stays until its × is clicked. The family's line reads
+   "Increase family wealth". Summer 1's list is food, rent and the family's
+   first level. The list replaces the "fruit stored" readout and the gold
+   count.
 8. **Between summers**, in `world.nextSummer`, all seeded so a map and a
    year always come out the same:
    - replenishment, as step 2 says;

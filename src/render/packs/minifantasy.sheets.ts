@@ -251,6 +251,41 @@ export const RESOURCE_CELL = {
 } as const satisfies Record<Exclude<ResourceKind, "feather">, readonly [SheetName, number, number]>;
 
 /**
+ * Quarter turns clockwise a kind's cell is drawn at, wherever it is drawn: on
+ * the map, dropped, and in the HUD. A quarter turn keeps every art pixel on
+ * the grid, which is why it is the only rotation there is.
+ *
+ * Three for the log, so it lies on its side with the dark bark underneath and
+ * reads as long, which is what its two slots in the pack say it is.
+ */
+export const RESOURCE_TURNS: Partial<Record<ResourceKind, 1 | 2 | 3>> = {
+  log: 3,
+};
+
+/**
+ * The RGBA pixels of a square cell `size` across, turned `turns` quarter turns
+ * clockwise. Pixel for pixel, so nothing is resampled.
+ */
+export function turnPixels(
+  from: Uint8ClampedArray,
+  size: number,
+  turns: number,
+): Uint8ClampedArray<ArrayBuffer> {
+  const out = new Uint8ClampedArray(from.length);
+  for (let y = 0; y < size; y++) {
+    for (let x = 0; x < size; x++) {
+      let tx = x;
+      let ty = y;
+      // One clockwise quarter turn sends (x, y) to (size - 1 - y, x).
+      for (let i = 0; i < turns; i++) [tx, ty] = [size - 1 - ty, tx];
+      const at = (y * size + x) * 4;
+      out.set(from.subarray(at, at + 4), (ty * size + tx) * 4);
+    }
+  }
+  return out;
+}
+
+/**
  * The feather, drawn here because no pack has one: a white quill with the
  * packs' black outline, slanted like the stick. One character per pixel of an
  * 8x8 cell: `.` clear, `k` outline, `w` vane, `g` its shade, `b` the shaft.

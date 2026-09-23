@@ -64,6 +64,61 @@ describe("slots", () => {
     expect(bag.full).toBe(false);
   });
 
+  it("puts five feathers in a slot, and a part-filled stack still takes one", () => {
+    expect(RESOURCES.feather.stack).toBe(5);
+    const bag = new Inventory();
+    bag.add("feather", 5);
+    expect(bag.carried).toBe(1);
+    bag.add("feather", 1);
+    expect(bag.carried).toBe(2);
+    expect(bag.items).toBe(6);
+  });
+
+  it("fills the started stack before it needs another slot", () => {
+    const bag = new Inventory();
+    bag.add("feather", 6);
+    bag.add("fruit", 8);
+    // Nine slots used: two of feathers, eight of fruit is ten. One slot free.
+    expect(bag.carried).toBe(10);
+    expect(bag.full).toBe(true);
+    // Four more go in the part-filled stack, and the fifth has nowhere to go.
+    expect(bag.fits("feather")).toBe(true);
+    expect(bag.add("feather", 5)).toBe(4);
+    expect(bag.count("feather")).toBe(10);
+    expect(bag.fits("feather")).toBe(false);
+  });
+
+  it("takes a pack's worth of feathers and leaves the rest", () => {
+    const bag = new Inventory();
+    expect(bag.add("feather", 100)).toBe(50);
+    expect(bag.carried).toBe(10);
+  });
+
+  it("keeps the kinds in the order they were picked up", () => {
+    const bag = new Inventory();
+    bag.add("feather", 2);
+    bag.add("fruit", 1);
+    bag.add("stick", 1);
+    expect([...bag.kinds]).toEqual(["feather", "fruit", "stick"]);
+    // More of a kind already held stays where it is.
+    bag.add("feather", 1);
+    expect([...bag.kinds]).toEqual(["feather", "fruit", "stick"]);
+    // A kind that runs out leaves, and comes back at the end.
+    bag.remove("feather", 3);
+    expect([...bag.kinds]).toEqual(["fruit", "stick"]);
+    bag.add("feather", 1);
+    expect([...bag.kinds]).toEqual(["fruit", "stick", "feather"]);
+    bag.clear();
+    expect([...bag.kinds]).toEqual([]);
+  });
+
+  it("needs a free slot to start a stack", () => {
+    const bag = new Inventory();
+    bag.add("fruit", 10);
+    expect(bag.fits("feather")).toBe(false);
+    expect(bag.add("feather", 3)).toBe(0);
+  });
+
   it("moves what fits into a smaller container and leaves the rest", () => {
     const cache = new Inventory(Infinity);
     cache.add("log", 4);

@@ -9,9 +9,9 @@ export type Amounts = Partial<Record<ResourceKind, number>>;
  * A container of resources.
  *
  * The capacity is in slots, across every kind: the doc gives one number, ten,
- * and a bulky kind such as a log takes two of them. Camp is the same class
- * with no capacity. There is no gold in a summer: everything is sold in
- * winter.
+ * and a bulky kind such as a log takes two of them. A kind that stacks puts
+ * several in one slot. Camp is the same class with no capacity.
+ * There is no gold in a summer: everything is sold in winter.
  */
 export class Inventory {
   private readonly counts = Object.fromEntries(RESOURCE_KINDS.map((k) => [k, 0])) as Record<
@@ -19,16 +19,49 @@ export class Inventory {
     number
   >;
 
+  /**
+   * The kinds held, in the order they were picked up: what went in first is
+   * first, and a kind that runs out and is picked up again goes to the back.
+   *
+   * The pack strip is drawn from this, because a slot that shuffles while the
+   * player is looking at it is the one thing a row of slots must not do.
+   */
+  private readonly order: ResourceKind[] = [];
+
   constructor(readonly capacity: number = C.BACKPACK_CAPACITY) {}
 
   count(kind: ResourceKind): number {
     return this.counts[kind];
   }
 
+  /** The kinds held, in the order they arrived. */
+  get kinds(): readonly ResourceKind[] {
+    return this.order;
+  }
+
+  /**
+   * Bring {@link order} back in step with the counts, after any change to
+   * them: a kind that is gone leaves, and a new one joins at the back.
+   */
+  private track(): void {
+    for (let i = this.order.length - 1; i >= 0; i--) {
+      if (this.counts[this.order[i]!] === 0) this.order.splice(i, 1);
+    }
+    for (const kind of RESOURCE_KINDS) {
+      if (this.counts[kind] > 0 && !this.order.includes(kind)) this.order.push(kind);
+    }
+  }
+
+  /** Slots one kind takes up here: a part-filled stack still takes a whole one. */
+  slotsOf(kind: ResourceKind): number {
+    const { slots, stack } = RESOURCES[kind];
+    return Math.ceil(this.counts[kind] / stack) * slots;
+  }
+
   /** Slots in use, all kinds together. */
   get carried(): number {
     let total = 0;
-    for (const kind of RESOURCE_KINDS) total += this.counts[kind] * RESOURCES[kind].slots;
+    for (const kind of RESOURCE_KINDS) total += this.slotsOf(kind);
     return total;
   }
 
@@ -47,9 +80,20 @@ export class Inventory {
     return this.free <= 0;
   }
 
-  /** Is there room for one more of `kind`? */
+  /** Is there room for one more of `kind`? A part-filled stack always has. */
   fits(kind: ResourceKind): boolean {
-    return this.free >= RESOURCES[kind].slots;
+    return this.room(kind) > 0;
+  }
+
+  /**
+   * How many more of `kind` fit: the room left in a part-filled stack, plus a
+   * stack for every slot still free.
+   */
+  private room(kind: ResourceKind): number {
+    const { slots, stack } = RESOURCES[kind];
+    const inPart = this.counts[kind] % stack;
+    const started = inPart > 0 ? stack - inPart : 0;
+    return started + Math.floor(this.free / slots) * stack;
   }
 
   /**
@@ -58,9 +102,10 @@ export class Inventory {
    * rather than silently destroying it.
    */
   add(kind: ResourceKind, n = 1): number {
-    const taken = Math.min(n, Math.floor(this.free / RESOURCES[kind].slots));
+    const taken = Math.min(n, this.room(kind));
     if (taken <= 0) return 0;
     this.counts[kind] += taken;
+    this.track();
     return taken;
   }
 
@@ -68,6 +113,7 @@ export class Inventory {
   remove(kind: ResourceKind, n = 1): boolean {
     if (this.counts[kind] < n) return false;
     this.counts[kind] -= n;
+    this.track();
     return true;
   }
 
@@ -87,29 +133,29 @@ export class Inventory {
   pay(cost: Amounts): boolean {
     if (!this.has(cost)) return false;
     for (const kind of RESOURCE_KINDS) this.counts[kind] -= cost[kind] ?? 0;
+    this.track();
     return true;
   }
 
   /** Empty it, or, given a kind, empty just that one. */
   clear(kind?: ResourceKind): void {
-    if (kind) {
-      this.counts[kind] = 0;
-      return;
-    }
-    for (const k of RESOURCE_KINDS) this.counts[k] = 0;
+    if (kind) this.counts[kind] = 0;
+    else for (const k of RESOURCE_KINDS) this.counts[k] = 0;
+    this.track();
   }
 
   /**
-   * Move as much of everything as fits into `into`, in table order, and return
-   * how many items that was. What does not fit stays here.
+   * Move as much of everything as fits into `into`, in the order it was picked
+   * up, and return how many items that was. What does not fit stays here.
    */
   moveAllTo(into: Inventory): number {
     let moved = 0;
-    for (const kind of RESOURCE_KINDS) {
+    for (const kind of [...this.order]) {
       const taken = into.add(kind, this.counts[kind]);
       this.counts[kind] -= taken;
       moved += taken;
     }
+    this.track();
     return moved;
   }
 }

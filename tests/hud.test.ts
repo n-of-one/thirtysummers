@@ -6,12 +6,12 @@ import { TileMap } from "../src/sim/tilemap.ts";
 import { World } from "../src/sim/world.ts";
 import {
   anchorPosition,
-  backpackText,
   edgeArrow,
   fogRadiusPx,
   formatClock,
   hudModel,
   duskAlpha,
+  packCells,
   fogGradient,
   toastFor,
 } from "../src/ui/hud.ts";
@@ -63,10 +63,9 @@ describe("hudModel", () => {
       hydration: 100,
       hydrationWarn: false,
       carried: 0,
-      contents: "empty",
-      dropSelection: "",
       capacity: C.BACKPACK_CAPACITY,
-      list: ["Food", "Rent", "Family level 1"],
+      pack: [],
+      list: ["Food", "Rent", "Increase family wealth"],
       startNotice: "Summer 1, 5:00 long",
       tools: "knife",
       building: null,
@@ -92,7 +91,7 @@ describe("hudModel", () => {
     expect(fogRadiusPx(10)).toBeLessThan(WIDEST);
   });
 
-  it("shows the first summer's list: what is collected, what is at camp, and gold in feathers", () => {
+  it("shows the first summer's list: a row per amount, collected and at camp, gold in feathers", () => {
     const w = world();
     w.store.add("fruit", 7);
     w.store.add("feather", 11);
@@ -100,15 +99,32 @@ describe("hudModel", () => {
     w.inventory.add("fruit", 2);
     const boxes = hudModel(w).list;
     // Rent takes the first ten feathers at camp, so it is done and stays on
-    // the list as done; the level gets the one left at camp and the four in
+    // the list as done; the family gets the one left at camp and the four in
     // the pack.
-    expect(boxes.map((b) => [b.title, b.want, b.collected.text, b.atCamp.text, b.done])).toEqual([
-      ["Food", "12 fruit", "9/12", "7/12", false],
-      ["Rent", "10 gold (10 feathers)", "10/10", "10/10", true],
-      ["Family level 1", "10 gold (10 feathers)", "5/10", "1/10", false],
+    expect(boxes.map((b) => [b.title, b.wants, b.done, b.rows])).toEqual([
+      ["Food", null, false, [{ unit: "fruit", need: 12, collected: 9, atCamp: 7 }]],
+      ["Rent", "10 gold", true, [{ unit: "feathers", need: 10, collected: 10, atCamp: 10 }]],
+      ["Increase family wealth", "10 gold", false, [{ unit: "feathers", need: 10, collected: 5, atCamp: 1 }]],
     ]);
-    expect(boxes[2]!.collected.share).toBeCloseTo(0.5);
-    expect(boxes[2]!.atCamp.share).toBeCloseTo(0.1);
+  });
+
+  it("says what food wants done in words, in the first summer only", () => {
+    const w = world();
+    w.store.add("fruit", 5);
+    w.inventory.add("fruit", 4);
+    expect(hudModel(w).list.map((b) => b.hint)).toEqual([
+      { find: "find 3", bring: "bring 4 to camp" },
+      null,
+      null,
+    ]);
+    w.inventory.clear();
+    expect(hudModel(w).list[0]!.hint).toEqual({ find: "find 7", bring: null });
+    w.store.add("fruit", 7);
+    // Done, so nothing left to say.
+    expect(hudModel(w).list[0]!.hint).toBeNull();
+    w.store.clear();
+    w.year = 2;
+    expect(hudModel(w).list[0]!.hint).toBeNull();
   });
 
   it("says which summer it is until the player moves", () => {
@@ -127,7 +143,7 @@ describe("hudModel", () => {
     w.elapsedSec = C.SUMMER_LENGTH_SEC - 30;
     const model = hudModel(w);
     expect(model.carried).toBe(4);
-    expect(model.contents).toBe("fruit 1, ore 3");
+    expect(model.pack.map((c) => c.kind)).toEqual(["ore", "ore", "ore", "fruit"]);
     expect(model.secondsLeft).toBe(30);
     expect(model.homeward).toBe(true);
     expect(formatClock(model.secondsLeft)).toBe("0:30");
@@ -245,15 +261,37 @@ describe("the action prompt", () => {
     });
   });
 
-  it("names the selected kind beside the pack whether or not it is full", () => {
+  it("marks every cell of the kind the drop key would throw", () => {
     const w = world();
-    expect(hudModel(w).dropSelection).toBe("");
     w.inventory.add("vine", 3);
-    expect(hudModel(w).dropSelection).toBe("X: drop 3 vine · C: switch");
     // A log takes two slots, so two logs outweigh three vines.
     w.inventory.add("log", 2);
-    w.inventory.remove("vine", 3);
-    expect(hudModel(w).dropSelection).toBe("X: drop 2 log · C: switch");
+    const selected = hudModel(w).pack.filter((c) => c.selected).map((c) => c.kind);
+    expect(selected).toEqual(["log", "log"]);
+  });
+});
+
+describe("packCells", () => {
+  it("is a cell per item in the order it was picked up, a log two wide", () => {
+    const bag = new Inventory();
+    bag.add("log", 1);
+    bag.add("fruit", 2);
+    expect(packCells(bag, null)).toEqual([
+      { kind: "log", span: 2, count: null, selected: false },
+      { kind: "fruit", span: 1, count: null, selected: false },
+      { kind: "fruit", span: 1, count: null, selected: false },
+    ]);
+  });
+
+  it("gives feathers a cell per stack of five, the last part filled", () => {
+    const bag = new Inventory();
+    bag.add("fruit", 1);
+    bag.add("feather", 7);
+    expect(packCells(bag, "feather")).toEqual([
+      { kind: "fruit", span: 1, count: null, selected: false },
+      { kind: "feather", span: 1, count: 5, selected: true },
+      { kind: "feather", span: 1, count: 2, selected: true },
+    ]);
   });
 });
 
@@ -353,29 +391,6 @@ describe("anchorPosition", () => {
   it("centres a stack too wide to fit rather than pinning it to one side", () => {
     const at = anchorPosition({ x: 20, y: 300 }, { width: 1200, height: 40 }, view);
     expect(at.x).toBe(view.width / 2);
-  });
-});
-
-describe("backpackText", () => {
-  it("says empty rather than nothing at all", () => {
-    expect(backpackText(new Inventory())).toBe("empty");
-  });
-
-  it("lists only what is in the pack, in a fixed order", () => {
-    const bag = new Inventory();
-    bag.add("ore", 5);
-    bag.add("fruit", 2);
-    expect(backpackText(bag)).toBe("fruit 2, ore 5");
-    bag.add("vine", 1);
-    expect(backpackText(bag)).toBe("fruit 2, vine 1, ore 5");
-  });
-
-  it("drops a kind again once the last of it is used", () => {
-    const bag = new Inventory();
-    bag.add("vine", 1);
-    bag.add("ore", 1);
-    bag.remove("vine");
-    expect(backpackText(bag)).toBe("ore 1");
   });
 });
 

@@ -111,7 +111,10 @@ function applyViewport(): void {
 applyViewport();
 
 const keyboard = new Keyboard();
-const hud = new Hud(document, view.size);
+// The map's own sprites, cut out of the sheets for the pack strip and the
+// winter screen's rows. Without the licensed art each kind is a flat chip.
+const icons = await loadIcons();
+const hud = new Hud(document, view.size, icons);
 const pause = new Pause(
   document.querySelector<HTMLDivElement>("#paused")!,
   window,
@@ -133,9 +136,7 @@ buildMenu.onChoose = (build) => {
 // Opened by the world, in the log, because the hold that opens it is the same
 // key the tap uses and only the simulation can tell the two apart.
 const transfer = new TransferPanel();
-// The map's own sprites, cut out of the sheets for the winter screen's rows.
-// Without the licensed art each kind is drawn as a flat chip instead.
-const winter = new WinterScreen(await loadIcons());
+const winter = new WinterScreen(icons);
 // The same from the keyboard, on the same terms as the button: only at camp,
 // and not while paused, when the button is under the card.
 addEventListener("keydown", (e) => {

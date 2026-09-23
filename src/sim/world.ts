@@ -478,7 +478,7 @@ export class World {
     let best: ResourceKind | null = null;
     let bestSlots = 0;
     for (const kind of RESOURCE_KINDS) {
-      const slots = this.inventory.count(kind) * RESOURCES[kind].slots;
+      const slots = this.inventory.slotsOf(kind);
       if (slots > bestSlots) {
         best = kind;
         bestSlots = slots;
@@ -488,9 +488,12 @@ export class World {
     return best;
   }
 
-  /** Move the selection on to the next kind the pack holds, wrapping round. */
+  /**
+   * Move the selection on to the next kind the pack holds, wrapping round.
+   * Left to right along the strip, which is the order it was picked up in.
+   */
   cycleDropKind(): void {
-    const kinds = RESOURCE_KINDS.filter((kind) => this.inventory.count(kind) > 0);
+    const kinds = this.inventory.kinds;
     if (kinds.length === 0) return;
     const at = kinds.indexOf(this.dropKind!);
     this.selected = kinds[(at + 1) % kinds.length]!;

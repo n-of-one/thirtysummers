@@ -100,9 +100,15 @@ sell them for, and a gold amount says what it is in feathers: rent is 10
 gold, which is 10 feathers. Selling building material does not tick
 anything: it is not meant to be the way to earn.
 
-Every line is measured twice: what has been collected, in the pack or at
-camp, and what of it is back at camp. A line whose every amount is at camp
-is done, and its box goes.
+Every box looks the same, so the player picks the order. Each amount is a
+row of squares, one per item: green at camp, amber carried, empty still to
+find, with a small tent at the start to say that green is home. Gold is
+counted in feathers. The family's line is called "Increase family wealth"
+and names only the gold: what its level opens is not in the shop until the
+winter after, so the box does not promise it. In the first summer alone,
+food says in words what to do, "find 3, bring 4 to camp": that is where the
+player learns that a thing counts once it is at camp. A line whose every
+amount is at camp turns dark green and stays until the player closes it.
 
 The first summer's list is the same thing with no shop: food, rent, and the
 family's first level. It is the one piece of steering a new player gets, and

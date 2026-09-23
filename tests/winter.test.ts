@@ -212,7 +212,7 @@ describe("the list", () => {
       ["Food", ["12/12 fruit"], true],
       ["Rent", ["10/10 gold"], true],
       ["Axe", ["4/8 gold", "3/3 stick"], false],
-      ["Family level 2", ["0/5 gold"], false],
+      ["Increase family wealth", ["0/5 gold"], false],
     ]);
   });
 

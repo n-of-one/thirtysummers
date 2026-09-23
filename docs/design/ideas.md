@@ -46,6 +46,15 @@ one up means refining it into a design document first. Rejected ideas are in
   current and washes up on a bank further down. The half circle round camp
   would carry felled logs home without a cart: logistics made of the map
   itself, and a reason to fell upstream.
+- **Banking you can see.** When a load is stored at camp, a square flies
+  from the player to the list and turns green where it lands, so bringing it
+  home is watched rather than read.
+- **A tired icon**, a status-effect icon shown beside the tired sentence in
+  winter and kept on screen through the tired summer, so the two read as
+  one thing.
+- **Icons on the winter panels** for what each stands for, such as a market
+  stall where the haul is sold and a house for the family, so the screen
+  reads as places rather than tables.
 - **Rarity**, once respawning is designed.
 - **Hazards** in the far regions. A still crocodile that bites when walked
   over is the cheapest first one. Monsters, and fighting or recruiting them,

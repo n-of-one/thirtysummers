@@ -19,6 +19,15 @@ export interface ResourceDef {
   ground: TerrainKind;
   /** Backpack slots one takes. Bulky kinds take two. */
   slots: number;
+  /**
+   * How many go in one slot. One for everything that does not stack.
+   *
+   * The feather takes five, because it is light: carrying the first summer's
+   * feathers home a pack at a time was a slog, not a choice. It is a limit and
+   * not "as many as you like", so a feather field is still a number of trips.
+   * [GUESS] the five.
+   */
+  stack: number;
   /** Gold one sells for in winter. */
   price: number;
   returns: Returns;
@@ -42,7 +51,8 @@ const def = (
   price: number,
   returns: Returns,
   use: Use,
-): ResourceDef => ({ kind, glyph, ground, slots, price, returns, use });
+  stack = 1,
+): ResourceDef => ({ kind, glyph, ground, slots, stack, price, returns, use });
 
 /** Is it only ever sold? Then the list counts it as its price in gold. */
 export const isMoney = (kind: ResourceKind): boolean => RESOURCES[kind].use === "money";
@@ -52,7 +62,7 @@ export const isMaterial = (kind: ResourceKind): boolean => RESOURCES[kind].use =
 /**
  * Every kind that is gathered, in the order the HUD lists them: the near ring
  * first, then out along the ladder. [DOC] the kinds, where they grow, which
- * come back, the prices and the log's two slots, from
+ * come back, the prices, the log's two slots and the feather's stack, from
  * docs/current/five-summers.md and docs/design/. [GUESS] ore's price: it is
  * placed nowhere until M12.
  *
@@ -61,7 +71,7 @@ export const isMaterial = (kind: ResourceKind): boolean => RESOURCES[kind].use =
  */
 export const RESOURCES: Record<ResourceKind, ResourceDef> = {
   fruit: def("fruit", "f", "grass", 1, 1, "slowly", "food"),
-  feather: def("feather", "p", "grass", 1, 1, "slowly", "money"),
+  feather: def("feather", "p", "grass", 1, 1, "slowly", "money", 5),
   stick: def("stick", "s", "grass", 1, 1, "yearly", "material"),
   vine: def("vine", "y", "mud", 1, 1, "yearly", "material"),
   ore: def("ore", "v", "grass", 1, 2, "never", "money"),

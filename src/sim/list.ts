@@ -151,7 +151,10 @@ function allocate(
         return { label: item.name, parts };
       }
       case "level":
-        return { label: `Family level ${line.level}`, parts: [gold(line.gold)] };
+        // Named for what the gold does, not for what the level opens: that is
+        // not in the shop until the winter after, and the box does not
+        // promise it.
+        return { label: "Increase family wealth", parts: [gold(line.gold)] };
     }
   });
 }

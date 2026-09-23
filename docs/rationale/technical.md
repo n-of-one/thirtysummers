@@ -392,7 +392,22 @@ so adding a kind is one row.
 the design's one bulky kind, so `carried` is a sum over the table and `fits`
 asks whether there is room for one more of a particular kind rather than
 whether the pack is full. Felling with nine slots used is refused for that
-reason, and the refusal names the pack rather than the axe.
+reason, and the refusal names the pack rather than the axe. A kind that
+stacks, the feather at five to a slot, rounds up: a part-filled stack takes
+a whole slot, and `fits` is true of a full pack whose last stack has room
+in it.
+
+**The pack also remembers the order it was filled in.** `Inventory` keeps a
+list of the kinds it holds beside the counts, appended as a kind arrives and
+pruned as one runs out, and the strip and the drop key's cycling both read
+it. Drawing the strip from the resource table instead let a kind picked up
+later jump in front of one already on screen, which no game with slots does.
+
+**A turn is the one transform art gets besides fewer pixels.** The log is
+drawn a quarter turn round everywhere, on the map, dropped and in the HUD,
+from one `RESOURCE_TURNS` entry that both the pack and the HUD icons read.
+The turn is done on the 8px cell, pixel for pixel, before anything is
+scaled, so it cannot land between art pixels.
 
 **What the year hands over is a table in config.** The axe, the cart and the
 well arrive at the start of summers 2, 3 and 4 so the map can be played through

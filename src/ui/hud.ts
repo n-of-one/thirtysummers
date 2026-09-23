@@ -3,6 +3,7 @@ import type { SummerSummary } from "../sim/summary.ts";
 import type { Amounts, Inventory } from "../sim/inventory.ts";
 import { fillList, type ListPart, type ListRow } from "../sim/list.ts";
 import { RESOURCE_KINDS, RESOURCES } from "../sim/resources.ts";
+import type { Icons } from "../render/packs/icons.ts";
 import type { BlockedReason, Build, ResourceKind, Vec2, WorldEvent } from "../sim/types.ts";
 import { BRIDGE_COST, BUILD_COST, type Action, type World } from "../sim/world.ts";
 
@@ -19,15 +20,13 @@ export interface HudModel {
   /** Dry enough for the fog to be closing in, and for the thirst notice to stay up. */
   hydrationWarn: boolean;
   carried: number;
-  /** What is in the pack, spelled out: "fruit 3, ore 5". */
-  contents: string;
-  /**
-   * The selected kind and the keys that act on it: "X: drop 6 vine · C:
-   * switch". Empty with an empty pack. Always shown, not only when the pack is
-   * full, so the full-pack prompt is a reminder of keys that already exist.
-   */
-  dropSelection: string;
   capacity: number;
+  /**
+   * The pack as the strip draws it: a cell per item, in table order, and a
+   * stack in one cell. The cells left over are empty ones, so how full the pack
+   * is shows without a number.
+   */
+  pack: PackCell[];
   /** The list ticked in winter: its unfinished lines, one box each. */
   list: ListBox[];
   /**
@@ -75,12 +74,34 @@ const RESOURCE_NAME: Record<ResourceKind, string> = {
   shell: "shell",
 };
 
-/** The pack's contents in words, listing only what is actually in it. */
-export function backpackText(inventory: Inventory): string {
-  const parts = RESOURCE_KINDS.filter((kind) => inventory.count(kind) > 0).map(
-    (kind) => `${RESOURCE_NAME[kind]} ${inventory.count(kind)}`,
-  );
-  return parts.length > 0 ? parts.join(", ") : "empty";
+/** One cell of the pack strip, or one cell wide per slot it takes. */
+export interface PackCell {
+  kind: ResourceKind;
+  /** Slots, so a log is a cell two wide. */
+  span: number;
+  /** How many a stack holds; null for a single item, which needs no number. */
+  count: number | null;
+  /** Of the kind the drop key throws, so every cell it would empty is marked. */
+  selected: boolean;
+}
+
+/**
+ * The pack's cells, in table order: one per item, or one per stack, the last
+ * of them part filled. Empty cells are not listed; they are the capacity less
+ * the spans.
+ */
+export function packCells(inventory: Inventory, selected: ResourceKind | null): PackCell[] {
+  const cells: PackCell[] = [];
+  for (const kind of inventory.kinds) {
+    let left = inventory.count(kind);
+    const { slots, stack } = RESOURCES[kind];
+    while (left > 0) {
+      const inCell = Math.min(left, stack);
+      cells.push({ kind, span: slots, count: stack > 1 ? inCell : null, selected: kind === selected });
+      left -= inCell;
+    }
+  }
+  return cells;
 }
 
 const BLOCKED_TEXT: Record<BlockedReason, string> = {
@@ -233,14 +254,6 @@ export function fullPackText(kind: ResourceKind | null, n: number): string {
   return `${BLOCKED_TEXT.backpackFull} - ${drop}: drop ${n} ${RESOURCE_NAME[kind]}. ${switchTo}: switch`;
 }
 
-/** The same line as a standing readout, for the pack pill. */
-export function dropSelectionText(kind: ResourceKind | null, n: number): string {
-  if (!kind) return "";
-  const drop = C.DROP_KEY.toUpperCase();
-  const switchTo = C.DROP_SWITCH_KEY.toUpperCase();
-  return `${drop}: drop ${n} ${RESOURCE_NAME[kind]} · ${switchTo}: switch`;
-}
-
 /**
  * The line under the player: what the interact key would do here, or, with
  * nothing in reach and nothing chosen to build, the one hint about building.
@@ -316,49 +329,76 @@ export interface ListBox {
   title: string;
   /** Everything on it is at camp. */
   done: boolean;
-  /** What it wants, in words: "10 gold (10 feathers)", "8 gold (8 feathers), 3 sticks". */
-  want: string;
-  collected: Progress;
-  atCamp: Progress;
-}
-
-export interface Progress {
-  /** "7/10", or "5/8 · 3/3" when there is more than one amount, in the want line's order. */
-  text: string;
-  /** How far, from 0 to 1, over every amount on the line together. */
-  share: number;
+  /**
+   * What it asks for beside the title, when that is not plain from its rows:
+   * "10 gold", "8 gold, 3 sticks". Null for food, whose row says it.
+   */
+  wants: string | null;
+  /** The next steps in words, on food in the first summer only; otherwise null. */
+  hint: FoodHint | null;
+  /** One per amount: fruit, the feathers for the gold, the sticks. */
+  rows: ListBoxRow[];
 }
 
 /**
- * What an amount of gold is in feathers, the one thing a first summer can
- * earn it with: rent is ten gold, and ten gold is ten feathers.
+ * One amount in a box, drawn as a square per item: at camp, carried, or still
+ * to find. Past {@link MAX_SQUARES} it is a bar with the same three parts.
  */
-function goldText(gold: number): string {
-  const feathers = Math.ceil(gold / RESOURCES.feather.price);
-  return `${gold} gold (${feathers} ${plural("feather", feathers)})`;
+export interface ListBoxRow {
+  /** What is counted, in the plural: "fruit", "feathers", "sticks". */
+  unit: string;
+  need: number;
+  collected: number;
+  atCamp: number;
 }
 
-/** The list's lines, as boxes, finished ones included. */
-export function listBoxes(rows: readonly ListRow[]): ListBox[] {
-  return rows.map((row) => ({
-    key: row.line.kind === "item" ? `item:${row.line.id}` : row.line.kind,
-    title: row.label,
-    done: row.done,
-    want: row.parts
-      .map((p) => (p.unit === "gold" ? goldText(p.need) : `${p.need} ${plural(p.unit, p.need)}`))
-      .join(", "),
-    collected: progress(row.parts, (p) => p.collected),
-    atCamp: progress(row.parts, (p) => p.atCamp),
-  }));
+/**
+ * [GUESS] Most squares a row draws before it becomes a bar: the first
+ * summers ask for 3 to 12 of a thing, and the family's later levels for tens.
+ */
+export const MAX_SQUARES = 15;
+
+/**
+ * The list's lines, as boxes, finished ones included. Gold is counted in
+ * feathers, the one thing a first summer can earn it with, so its row says
+ * feathers; a shell fills two of them.
+ */
+export function listBoxes(rows: readonly ListRow[], year: number): ListBox[] {
+  return rows.map((row) => {
+    const unit = (p: ListPart) => (p.unit === "gold" ? "feathers" : plural(p.unit, 2));
+    const isFood = row.line.kind === "food";
+    return {
+      key: row.line.kind === "item" ? `item:${row.line.id}` : row.line.kind,
+      title: row.label,
+      done: row.done,
+      wants: isFood
+        ? null
+        : row.parts.map((p) => `${p.need} ${p.unit === "gold" ? "gold" : plural(p.unit, p.need)}`).join(", "),
+      hint: isFood && year === 1 && !row.done ? foodHint(row.parts[0]!) : null,
+      rows: row.parts.map((p) => ({ unit: unit(p), need: p.need, collected: p.collected, atCamp: p.atCamp })),
+    };
+  });
 }
 
-function progress(parts: readonly ListPart[], have: (p: ListPart) => number): Progress {
-  const need = parts.reduce((s, p) => s + p.need, 0);
-  const got = parts.reduce((s, p) => s + Math.min(have(p), p.need), 0);
-  // The want line above names the units, in the same order, so the bar only
-  // needs the numbers.
-  const text = parts.map((p) => `${have(p)}/${p.need}`).join(" · ");
-  return { text, share: need > 0 ? got / need : 1 };
+/**
+ * What food says to do, in the first summer: what is still out there, and
+ * what is carried and not yet home. It is where the player learns that a
+ * thing counts once it is at camp; from the second summer the squares say it.
+ */
+export function foodHint(part: ListPart): FoodHint | null {
+  const find = part.need - part.collected;
+  const bring = part.collected - part.atCamp;
+  if (find <= 0 && bring <= 0) return null;
+  return { find: find > 0 ? `find ${find}` : null, bring: bring > 0 ? `bring ${bring} to camp` : null };
+}
+
+/**
+ * Food's two steps, kept apart so each can be drawn in its own colour: what
+ * to find in plain ink, what to bring home in the carried squares' amber.
+ */
+export interface FoodHint {
+  find: string | null;
+  bring: string | null;
 }
 
 /** A kind's name for `n` of it. Fruit and ore are the same either way. */
@@ -387,15 +427,14 @@ export function hudModel(world: World, viewWidth: number = C.VIEW_W): HudModel {
   const atCamp = world.atCamp;
   const dropKind = world.dropKind;
   return {
-    dropSelection: dropSelectionText(dropKind, dropKind ? inventory.count(dropKind) : 0),
     hydration: stats.hydration,
     // The fog's own threshold, so the bar turns at the moment the view starts
     // to close rather than at a number picked to look about right.
     hydrationWarn: stats.hydration < C.HYDRATION_FOG_THRESHOLD,
     carried: inventory.carried,
-    contents: backpackText(inventory),
     capacity: inventory.capacity,
-    list: listBoxes(fillList(world.list, amountsOf(inventory), amountsOf(world.store))),
+    pack: packCells(inventory, dropKind),
+    list: listBoxes(fillList(world.list, amountsOf(inventory), amountsOf(world.store)), world.year),
     startNotice: startNoticeText(world),
     tools: [...world.tools, ...world.recipes].join(", "),
     building: world.buildMode ? BUILD_NAME[world.buildMode] : null,
@@ -592,9 +631,10 @@ export class Hud {
   private readonly clock: HTMLElement;
   private readonly clockTime: HTMLElement;
   private readonly year: HTMLElement;
-  private readonly backpack: HTMLElement;
-  private readonly backpackContents: HTMLElement;
-  private readonly dropSelection: HTMLElement;
+  private readonly pack: HTMLElement;
+  private readonly packCells: HTMLElement;
+  /** What the strip was last drawn from, so an unchanged frame writes nothing. */
+  private packDrawn = "";
   private readonly list: HTMLElement;
   private readonly startNotice: HTMLElement;
   /** What the list was last drawn from, so an unchanged frame writes nothing. */
@@ -638,13 +678,17 @@ export class Hud {
   private duskOpacity = "";
   private arrowTransform = "";
 
-  /** `view` is the logical view the HUD is laid out in. */
+  /**
+   * `view` is the logical view the HUD is laid out in. `icons` is the map's
+   * own art for the pack strip; without it each cell names its kind instead.
+   */
   constructor(
     root: ParentNode = document,
     private readonly view: { width: number; height: number } = {
       width: C.VIEW_W,
       height: C.VIEW_H,
     },
+    private readonly icons: Icons | null = null,
   ) {
     this.hydrationBar = need(root, "#bar-hydration");
     this.hydrationFill = need(this.hydrationBar, ".bar-fill");
@@ -652,9 +696,10 @@ export class Hud {
     this.clock = need(root, ".clock");
     this.clockTime = need(root, "#clock-time");
     this.year = need(root, "#year-count");
-    this.backpack = need(root, "#backpack-count");
-    this.backpackContents = need(root, "#backpack-contents");
-    this.dropSelection = need(root, "#drop-selection");
+    this.pack = need(root, "#pack");
+    this.packCells = need(root, "#pack-cells");
+    setText(need(root, "#pack-drop-key"), C.DROP_KEY.toUpperCase());
+    setText(need(root, "#pack-switch-key"), C.DROP_SWITCH_KEY.toUpperCase());
     this.list = need(root, "#hud-list");
     this.startNotice = need(root, "#start-notice");
     this.tools = need(root, "#tools");
@@ -671,8 +716,6 @@ export class Hud {
     this.dusk = need(root, "#dusk");
     this.dusk.style.backgroundColor = `#${C.DUSK_COLOR.toString(16).padStart(6, "0")}`;
     this.endSummer = need(root, "#end-summer");
-
-    setText(need(root, "#backpack-cap"), String(C.BACKPACK_CAPACITY));
   }
 
   /**
@@ -706,10 +749,7 @@ export class Hud {
     this.clock.classList.toggle("is-urgent", model.homeward);
     setText(this.year, String(model.year));
 
-    setText(this.backpack, String(model.carried));
-    setText(this.backpackContents, model.contents);
-    this.dropSelection.hidden = model.dropSelection === "";
-    setText(this.dropSelection, model.dropSelection);
+    this.drawPack(model.pack, model.capacity - model.carried);
     this.drawList(model.list);
     this.startNotice.hidden = model.startNotice === null;
     if (model.startNotice) setText(this.startNotice, model.startNotice);
@@ -807,12 +847,56 @@ export class Hud {
    * finished, and stays until its × is clicked. Rebuilt only when a number on
    * it changes, which is a few times a summer.
    */
+  /**
+   * The pack strip: a cell per item at the size it is on the map, a count only
+   * on a stack, and the free slots as empty cells. The keys show only when
+   * there is something for them to act on.
+   */
+  private drawPack(cells: readonly PackCell[], free: number): void {
+    const drawn = `${cells.map((c) => `${c.kind}:${c.count}:${c.selected}`).join(",")}|${free}`;
+    if (drawn === this.packDrawn) return;
+    this.packDrawn = drawn;
+    this.pack.classList.toggle("is-empty", cells.length === 0);
+    const empty = Array.from({ length: Math.max(0, free) }, () => {
+      const div = document.createElement("div");
+      div.className = "pack-cell is-free";
+      return div;
+    });
+    this.packCells.replaceChildren(
+      ...cells.map((cell) => {
+        const div = document.createElement("div");
+        div.className = "pack-cell";
+        div.classList.toggle("is-selected", cell.selected);
+        div.style.setProperty("--span", String(cell.span));
+        div.dataset.kind = cell.kind;
+        if (this.icons) {
+          const img = document.createElement("img");
+          img.src = this.icons.url(cell.kind);
+          img.alt = RESOURCE_NAME[cell.kind];
+          div.append(img);
+        } else {
+          div.append(RESOURCE_NAME[cell.kind]);
+        }
+        if (cell.count !== null) {
+          const count = document.createElement("span");
+          count.className = "pack-count";
+          count.textContent = String(cell.count);
+          div.append(count);
+        }
+        return div;
+      }),
+      ...empty,
+    );
+  }
+
   private drawList(all: readonly ListBox[]): void {
     // A closed box stays closed only while it is done: a line undone again,
     // by taking fruit back out of camp, is back on the list.
     const boxes = all.filter((b) => !(b.done && this.listClosed.has(b.key)));
     const drawn = boxes
-      .map((b) => `${b.key}:${b.collected.text}:${b.atCamp.text}:${b.done}`)
+      .map((b) =>
+        `${b.key}:${b.wants}:${b.rows.map((r) => `${r.collected}/${r.atCamp}/${r.need}`).join(",")}:${b.done}`,
+      )
       .join("|");
     if (drawn === this.listDrawn) return;
     this.listDrawn = drawn;
@@ -829,7 +913,29 @@ export class Hud {
         li.dataset.line = box.key;
         const title = document.createElement("div");
         title.className = "list-title";
-        title.textContent = box.done ? `✓ ${box.title}` : box.title;
+        const name = document.createElement("span");
+        name.textContent = box.done ? `✓ ${box.title}` : box.title;
+        if (box.wants) {
+          const wants = document.createElement("small");
+          wants.className = "list-wants";
+          wants.textContent = box.wants;
+          name.append(" ", wants);
+        }
+        title.append(name);
+        if (box.hint) {
+          const hint = document.createElement("span");
+          hint.className = "list-hint";
+          const parts: (string | Node)[] = [];
+          if (box.hint.find) {
+            const find = document.createElement("span");
+            find.className = "list-hint-find";
+            find.textContent = box.hint.find;
+            parts.push(find);
+          }
+          if (box.hint.bring) parts.push(parts.length ? `, ${box.hint.bring}` : box.hint.bring);
+          hint.append(...parts);
+          title.append(hint);
+        }
         if (box.done) {
           const close = document.createElement("button");
           close.className = "list-close";
@@ -842,15 +948,7 @@ export class Hud {
           };
           title.append(close);
         }
-        const want = document.createElement("div");
-        want.className = "list-want";
-        want.textContent = box.want;
-        li.append(
-          title,
-          want,
-          progressBar("Collected", box.collected, "is-collected"),
-          progressBar("At camp", box.atCamp, "is-home"),
-        );
+        li.append(title, ...box.rows.map(listRow));
         return li;
       }),
     );
@@ -929,17 +1027,71 @@ export class Hud {
 }
 
 /** One of a list box's two bars: a label, how far, and the numbers. */
-function progressBar(label: string, progress: Progress, cls: string): HTMLElement {
+/**
+ * One amount in a list box: what it counts, the tent that says green is camp,
+ * and a square per item -- green at camp, amber carried, empty still to find.
+ * Past {@link MAX_SQUARES} the squares become one bar in the same colours,
+ * with the count at camp written on it.
+ */
+function listRow(r: ListBoxRow): HTMLElement {
   const row = document.createElement("div");
-  row.className = `list-bar ${cls}`;
-  row.style.setProperty("--through", `${Math.round(progress.share * 100)}%`);
-  const name = document.createElement("span");
-  name.textContent = label;
-  const numbers = document.createElement("span");
-  numbers.className = "list-numbers";
-  numbers.textContent = progress.text;
-  row.append(name, numbers);
+  row.className = "list-row";
+  row.classList.toggle("is-home", r.atCamp >= r.need);
+  const unit = document.createElement("span");
+  unit.className = "list-unit";
+  unit.textContent = r.unit;
+  row.append(unit, tentMark());
+  if (r.need <= MAX_SQUARES) {
+    const squares = document.createElement("span");
+    squares.className = "list-squares";
+    for (let i = 0; i < r.need; i++) {
+      const sq = document.createElement("i");
+      sq.className = i < r.atCamp ? "sq is-home" : i < r.collected ? "sq is-carried" : "sq";
+      squares.append(sq);
+    }
+    row.append(squares);
+  } else {
+    const bar = document.createElement("span");
+    bar.className = "list-bar";
+    bar.style.setProperty("--carried", `${Math.round((Math.min(r.collected, r.need) / r.need) * 100)}%`);
+    bar.style.setProperty("--home", `${Math.round((Math.min(r.atCamp, r.need) / r.need) * 100)}%`);
+    bar.textContent = `${r.atCamp}/${r.need}`;
+    row.append(bar);
+  }
   return row;
+}
+
+/**
+ * The camp, as a mark at the start of every row: a small tent in art pixels.
+ * Drawn here rather than cut from a sheet, since the art has no tent yet;
+ * the HUD is not world art, so it is free to be its own drawing.
+ */
+const TENT = [
+  ".....#.....",
+  "....###....",
+  "...##o##...",
+  "..###o###..",
+  ".####o####.",
+  "#####o#####",
+  "####...####",
+  "###.....###",
+  "===========",
+];
+const TENT_SVG = (() => {
+  const fill: Record<string, string> = { "#": "currentColor", o: "#2a3a18", "=": "#5a4a2a" };
+  const rects = TENT.flatMap((line, y) =>
+    [...line].flatMap((ch, x) =>
+      ch === "." ? [] : [`<rect x="${x}" y="${y}" width="1" height="1" fill="${fill[ch]}"/>`],
+    ),
+  ).join("");
+  return `<svg viewBox="0 0 11 9" width="22" height="18" shape-rendering="crispEdges" aria-hidden="true">${rects}</svg>`;
+})();
+
+function tentMark(): HTMLElement {
+  const el = document.createElement("span");
+  el.className = "list-tent";
+  el.innerHTML = TENT_SVG;
+  return el;
 }
 
 /** The summer in numbers, as label, value and whether the value is gold. */

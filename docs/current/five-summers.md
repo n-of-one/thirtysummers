@@ -118,10 +118,10 @@ sell at all is for the log.
 | Where | What | Comes back | Price | Slots |
 |---|---|---|---|---|
 | near ring | 14 fruit | every year | 1 | 1 |
-| near ring | 10 feathers | every year | 1 | 1 |
+| near ring | 10 feathers | every year | 1 | 5 to a slot |
 | sapling stand, behind thin thicket | 6 sticks | every year | 1, not on the list | 1 |
 | mud pocket | 6 vines | every year | 1, not on the list | 1 |
-| across the stream | 30 feathers, 4 fruit | half of what was picked, each winter | 1 | 1 |
+| across the stream | 30 feathers, 4 fruit | half of what was picked, each winter | 1 | 5 feathers to a slot, 1 a fruit |
 | the copse | saplings, felled for logs | after 3 winters | 1, not on the list | 2 |
 | behind the copse | 30 shells | never | 2 | 1 |
 
@@ -193,8 +193,10 @@ line, filled top to bottom:
 3. each ticked item, its gold from what is left and its material in kind;
 4. the gold the family still needs for its next level.
 
-Each box has two bars, what has been collected, in the pack or at camp, and
-what of it is at camp. A box goes once everything on it is at camp.
+Each amount in a box is a row of squares, green at camp and amber carried.
+In summer 1, food also says what to do in words. A box turns green once
+everything on it is at camp. The family's line reads "Increase family
+wealth".
 
 Summer 1's list is the same thing with no shop: food, rent, level 1.
 
