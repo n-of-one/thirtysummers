@@ -5,7 +5,7 @@ import type { TileMap } from "../tilemap.ts";
 import type { ResourceKind, ResourceNode, TerrainKind, Vec2 } from "../types.ts";
 import { reachableFrom } from "./reachability.ts";
 import { placeSprings } from "./springs.ts";
-import { paintTerrain } from "./terrain.ts";
+import { keepStagesOnUnderbrush, paintTerrain } from "./terrain.ts";
 import { thickenStream } from "./water.ts";
 import type { GeneratedWorld } from "../worldgen.ts";
 
@@ -34,16 +34,11 @@ export function layoutSummerWorld(seed: number): GeneratedWorld {
   const H = C.LAYOUT_H;
   const jitter = (n: number) => Math.round((rng() * 2 - 1) * n);
 
-  // The generator's landscape, with its own water and walls taken out: this
-  // map's water is the one stream the table asks for, and its only walls are
-  // the ones placed below.
-  const map = paintTerrain(seed, mulberry32(seed), W, H, C.LAYOUT_BORDER);
-  for (let y = 0; y < H; y++) {
-    for (let x = 0; x < W; x++) {
-      const kind = map.get(x, y);
-      if (kind === "stream" || kind === "bridge" || kind === "thicket") map.set(x, y, "underbrush");
-    }
-  }
+  // The generator's landscape without its own stream: this map's water is the
+  // one stream the table asks for, and its only walls are the ones placed
+  // below. The noise paints no walls of its own.
+  const underbrushStages = new Uint8Array(W * H);
+  const map = paintTerrain(seed, mulberry32(seed), W, H, C.LAYOUT_BORDER, underbrushStages, false);
 
   const stamp = new Stamp(map, W, H);
   const camp: Vec2 = { x: Math.floor(W / 2) + jitter(6) + 0.5, y: H - C.CAMP_FROM_BOTTOM + 0.5 };
@@ -171,6 +166,9 @@ export function layoutSummerWorld(seed: number): GeneratedWorld {
   // a dump of this world and the world itself have the same drinking spots:
   // the file carries no springs, and reading it back places them again.
   const springs = placeSprings(map, camp, nodes.placed, C.MAP_SPRING_SEED);
+  // The noise's stages, less wherever the layout stamped something else.
+  // Underbrush the layout stamps itself, the band round the copse, is full.
+  keepStagesOnUnderbrush(map, underbrushStages);
   return {
     seed,
     map,
@@ -178,6 +176,7 @@ export function layoutSummerWorld(seed: number): GeneratedWorld {
     nodes: nodes.placed,
     springs,
     reachable: reachableFrom(map, camp),
+    underbrushStages,
   };
 }
 

@@ -179,7 +179,7 @@ describe("a trail worn by walking", () => {
     expect(thicket.wornAt(4, 2)).toBe(0);
   });
 
-  it("wears a path cut through thicket like any other undergrowth", () => {
+  it("wears a path cut through thicket like any other underbrush", () => {
     const world = cutThrough();
     for (const x of CUT) expect(world.map.get(x, 2)).toBe("underbrush");
     // Cut and walked through once on the way in.

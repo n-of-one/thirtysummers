@@ -141,7 +141,7 @@ bigger backpack that adds slots but slows the walk.
 Improvements are made in place, in summer, with a hold on the interact key on
 the tile ahead.
 
-- **Cut** a thicket tile with the knife. It leaves undergrowth, which walking
+- **Cut** a thicket tile with the knife. It leaves underbrush, which walking
   wears into a path like any other.
 - **Fell** a sapling with the axe, for a log.
 - **Bridge** a stream tile, with a stick and a vine.
@@ -161,7 +161,7 @@ walk over a tile already treads it:
 it looks trodden and is a little easier to push through, so the player sees
 their own line behind them on the first trip and can choose to walk it again.
 Each walk after that wears it flatter and faster, until it is flat and
-walked at full speed. Flat is still undergrowth, pressed down, and never
+walked at full speed. Flat is still underbrush, pressed down, and never
 grass: the paths the player made stay paths, rather than the ring turning to
 lawn. It is underbrush only. Mud is not trodden into anything, because mud is what
 planks are for, and a thicket is a wall, so the knife keeps its job.

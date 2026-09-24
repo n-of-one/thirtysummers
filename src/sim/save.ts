@@ -38,7 +38,11 @@ export interface SaveState {
   felled: [number, number][];
   /** Tile indices cut, which thicket can creep back onto. */
   cut: number[];
-  /** Tile index and wear, for every tile walked over: a trail is nothing but its wear. */
+  /**
+   * Tile index and wear, for every tile whose wear is not what the map came
+   * with: a trail is nothing but its wear, and the thin underbrush the map
+   * starts with comes from the same seed again.
+   */
   worn: [number, number][];
   wells: [number, number][];
   dropped: [ResourceKind, number, number][];

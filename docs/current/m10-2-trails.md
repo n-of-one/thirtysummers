@@ -32,7 +32,7 @@ mechanism is built and M11 only adds the pusher.
    lawn and a path could no longer be told from open ground.
 3. **Still underbrush.** A trail is not a terrain. The tile stays underbrush
    in the grid at every stage, and the speed lookup and the renderer read the
-   wear beside it. So a flat tile still looks like undergrowth pressed down,
+   wear beside it. So a flat tile still looks like underbrush pressed down,
    and the paths the player made stay visible as paths. A flat tile is not
    rough ground: a tired summer does not slow it.
 4. **Underbrush only.** Mud is not trodden into anything, because mud is what
@@ -40,14 +40,14 @@ mechanism is built and M11 only adds the pusher.
    grows back over a worn tile yet; regrowth is for after this has been played.
    The thicket creep of `world.nextSummer` does not touch trails, except
    through a cut, below.
-5. **A cut leaves undergrowth.** Cutting a thicket tile leaves underbrush, not
+5. **A cut leaves underbrush.** Cutting a thicket tile leaves underbrush, not
    grass (`CUT_LEAVES`), so the knife opens the wall and the feet make the
    path, and a cut path gets faster by being walked like any other. Thicket
    creep still takes back a cut tile next to thicket, walked or not, as it
    did before, and a trail through it goes with it: grown over, its wear is
    gone.
 6. **Art**, in both packs: one tile per stage, each plainly further from
-   underbrush than the last, with flat still reading as undergrowth and not as
+   underbrush than the last, with flat still reading as underbrush and not as
    grass, on the grid and at one art pixel to a size as
    [../architecture.md](../architecture.md) requires. Minifantasy paints the
    brush stencil with a lighter, warmer tint per stage, so the ragged outline
@@ -60,7 +60,16 @@ mechanism is built and M11 only adds the pusher.
    feather field; that walk is worn by the player's feet like any other. The
    row that held a cart route to needing a cut went with it, since carts are
    being rethought.
-9. **The path trace.** `src/sim/trace.ts` and its test live only on
+9. **Underbrush in stages from the noise**, being played as an experiment.
+   The forest noise that decides grass or underbrush also decides how thick
+   the underbrush starts: `UNDERBRUSH_THRESHOLDS` gives a noise value per trail
+   stage, so underbrush is thin where the noise has only just crossed into it
+   and full further in, and the edges form themselves. Tuning the map is
+   tuning those values. The layout's own stamped underbrush, the band round
+   the copse, is full, and so is all underbrush in a map read from a file,
+   which does not carry the noise. The save keeps only wear that differs from
+   what the map started with.
+10. **The path trace.** `src/sim/trace.ts` and its test live only on
    `itch-publish-1`. Not brought back: the wear itself is read over the
    protocol, and that was enough to measure with.
 

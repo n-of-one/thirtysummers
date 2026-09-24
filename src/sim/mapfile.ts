@@ -124,6 +124,8 @@ export function parseMap(text: string, seed = 0): GeneratedWorld {
   // own pass, on a fixed seed, so the same file gets the same springs every
   // load. Wells are not on a bank, so the file has to say where they are.
   const springs = [...placeSprings(map, camp, nodes, C.MAP_SPRING_SEED), ...wells];
+  // The file carries no underbrush stages: the noise that made them is not in
+  // it, so a map read from a file has full underbrush everywhere.
   return { seed, map, camp, nodes, springs, reachable: reachableFrom(map, camp) };
 }
 

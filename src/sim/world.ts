@@ -297,13 +297,18 @@ export class World {
     this.springs = generated.springs;
     this.player = createPlayer(generated.camp);
     this.ring = nearRing(this.map, this.camp);
-    this.wear = new Uint8Array(this.map.width * this.map.height);
+    // Underbrush starts as thin as the map made it, which is the same scale a
+    // trail wears on.
+    this.startWear = generated.underbrushStages?.slice() ?? new Uint8Array(this.map.width * this.map.height);
+    this.wear = this.startWear.slice();
     this.original = this.map.clone();
     this.fingerprint = fingerprint(this.map, this.nodes, this.camp);
   }
 
   /** The map as it came, which a save is written against. */
   private readonly original: TileMap;
+  /** The wear the map came with, its thin underbrush, which the save's `worn` is written against. */
+  private readonly startWear: Uint8Array;
   /** A hash of that map, so a save is only ever read onto the map it was made on. */
   readonly fingerprint: string;
 
@@ -319,7 +324,9 @@ export class World {
     const terrain: [number, number][] = [];
     for (let i = 0; i < now.length; i++) if (now[i] !== was[i]) terrain.push([i, now[i]!]);
     const worn: [number, number][] = [];
-    for (let i = 0; i < this.wear.length; i++) if (this.wear[i]! > 0) worn.push([i, this.wear[i]!]);
+    for (let i = 0; i < this.wear.length; i++) {
+      if (this.wear[i] !== this.startWear[i]) worn.push([i, this.wear[i]!]);
+    }
     return {
       v: 3,
       fingerprint: this.fingerprint,
@@ -376,7 +383,7 @@ export class World {
     for (const [i, year] of state.felled) this.felledIn.set(i, year);
     this.cutTiles.clear();
     for (const i of state.cut) this.cutTiles.add(i);
-    this.wear.fill(0);
+    this.wear.set(this.startWear);
     for (const [i, count] of state.worn) this.wear[i] = count;
     this.year = state.year;
     this.elapsedSec = state.elapsedSec;
@@ -736,7 +743,7 @@ export class World {
       this.map.set(x, (idx - x) / w, "thicket", z);
       this.cutTiles.delete(idx);
       // Grown over: a trail worn through the cut is gone with it, and cut
-      // again it is fresh undergrowth.
+      // again it is fresh underbrush.
       this.wear[idx] = 0;
     }
 

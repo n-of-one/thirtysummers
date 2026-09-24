@@ -216,7 +216,7 @@ class MinifantasyPack implements AssetPack {
   private readonly brush: Texture[][];
   /** The same blocks again, painted darker: the wall version of undergrowth. */
   private readonly thicket: Texture[][];
-  /** And painted lighter, per trail stage: undergrowth worn by walking. */
+  /** And painted lighter, per trail stage: underbrush worn by walking. */
   private readonly troddenBrush: Texture[][][];
   private readonly dirt: Texture[];
   private readonly stone: Texture[];
@@ -257,7 +257,7 @@ class MinifantasyPack implements AssetPack {
       this.brushBlock(v, THICKET_TINT),
     );
     // A trail being worn: the same growth, lighter at each stage, and the same
-    // shapes, so it meets the undergrowth around it without a seam.
+    // shapes, so it meets the underbrush around it without a seam.
     this.troddenBrush = TRODDEN_TINTS.map((tint) =>
       Array.from({ length: BLOCK_TILES }, (_, v) => this.brushBlock(v, tint)),
     );

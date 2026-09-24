@@ -30,6 +30,15 @@ export function fbm(noise: Noise2D, x: number, y: number, octaves: number): numb
  * `rng` supplies the derived seeds for the noise fields, so the same master
  * stream produces the same landscape. `seed` scatters the trees, which is a
  * spatial hash rather than a stream because it has to answer per tile.
+ *
+ * `stages`, if given, is filled with the trail stage each underbrush tile
+ * starts at, read off the same noise by `UNDERBRUSH_THRESHOLDS`, so
+ * underbrush is thin where the noise has only just crossed into it.
+ *
+ * `streams` false leaves the winding stream out, and paints what the forest
+ * and moisture noise say there instead. A layout that lays its own water asks
+ * for that: erasing the stream afterwards left a scar the shape of it, a band
+ * of one ground drawn straight through whatever the noise had around it.
  */
 export function paintTerrain(
   seed: number,
@@ -37,6 +46,8 @@ export function paintTerrain(
   width = C.MAP_W,
   height = C.MAP_H,
   border = C.BORDER_THICKNESS,
+  stages?: Uint8Array,
+  streams = true,
 ): TileMap {
   // Independent noise fields, each with its own derived seed.
   const forestNoise = createNoise2D(mulberry32(randInt(rng, 0, 2 ** 31)));
@@ -54,8 +65,10 @@ export function paintTerrain(
       }
 
       // A narrow band around zero of a low-frequency field carves a winding river.
+      // The stream's noise is still made without streams, so the forest and
+      // moisture fields keep the seeds they have always had.
       const stream = fbm(streamNoise, x / C.STREAM_SCALE, y / C.STREAM_SCALE, 1);
-      if (Math.abs(stream) < C.STREAM_WIDTH) {
+      if (streams && Math.abs(stream) < C.STREAM_WIDTH) {
         map.set(x, y, "stream");
         continue;
       }
@@ -75,8 +88,10 @@ export function paintTerrain(
         );
         const density = C.TREE_DENSITY_EDGE + (C.TREE_DENSITY_CORE - C.TREE_DENSITY_EDGE) * depth;
         kind = hash2d(seed, x, y) < density ? "tree" : "underbrush";
-      } else if (forest >= C.UNDERBRUSH_THRESHOLD) kind = "underbrush";
-      else {
+      } else if (forest >= C.UNDERBRUSH_THRESHOLD) {
+        kind = "underbrush";
+        if (stages) stages[y * width + x] = underbrushStage(forest);
+      } else {
         const moisture = fbm(moistureNoise, x / C.MOISTURE_SCALE, y / C.MOISTURE_SCALE, 3);
         kind = moisture >= C.MUD_THRESHOLD ? "mud" : "grass";
       }
@@ -85,6 +100,26 @@ export function paintTerrain(
   }
 
   return map;
+}
+
+/** The trail stage underbrush starts at for a forest noise value: the last threshold it reaches. */
+export function underbrushStage(forest: number): number {
+  let stage = 0;
+  for (const band of C.UNDERBRUSH_THRESHOLDS) if (forest >= band.from) stage = band.stage;
+  return stage;
+}
+
+/**
+ * Clear the stage of every tile that is no longer underbrush, after a layout
+ * has stamped over the landscape: a stage belongs to the underbrush the noise
+ * painted, and grass or a wall stamped over it keeps none.
+ */
+export function keepStagesOnUnderbrush(map: TileMap, stages: Uint8Array): void {
+  for (let y = 0; y < map.height; y++) {
+    for (let x = 0; x < map.width; x++) {
+      if (map.get(x, y) !== "underbrush") stages[y * map.width + x] = 0;
+    }
+  }
 }
 
 /** Nearest passable tile to the map centre with all 8 neighbours passable too. */

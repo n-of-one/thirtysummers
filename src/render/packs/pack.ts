@@ -74,7 +74,7 @@ export interface AssetPack {
   /**
    * Underbrush worn by walking, at `stage` 1 to `TRAIL_STAGES`: each flatter
    * than the last, so a line forming behind the player is seen on the first
-   * walk, and the last, flat, still reads as undergrowth rather than grass so
+   * walk, and the last, flat, still reads as underbrush rather than grass so
    * a path stays a path. Autotiled as underbrush, with the same mask and
    * variant.
    */

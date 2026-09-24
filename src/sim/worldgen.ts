@@ -5,15 +5,14 @@ import type { ResourceNode, Spring, Vec2 } from "./types.ts";
 import { reachableFrom } from "./worldgen/reachability.ts";
 import { placeResources } from "./worldgen/resources.ts";
 import { placeSprings } from "./worldgen/springs.ts";
-import { findCamp, paintTerrain } from "./worldgen/terrain.ts";
+import { findCamp, keepStagesOnUnderbrush, paintTerrain } from "./worldgen/terrain.ts";
 import { connectAcrossWater, thickenStream } from "./worldgen/water.ts";
 
 export { reachableFrom } from "./worldgen/reachability.ts";
 export { carveFords, streamMask, thickenStream } from "./worldgen/water.ts";
-export { fbm, findCamp, paintTerrain } from "./worldgen/terrain.ts";
+export { fbm, findCamp, paintTerrain, underbrushStage } from "./worldgen/terrain.ts";
 export { placeResources } from "./worldgen/resources.ts";
-export { placeSprings } from "./worldgen/springs.ts";
-export { layoutSummerWorld } from "./worldgen/layout.ts";
+export { placeSprings } from "./worldgen/springs.ts";export { layoutSummerWorld } from "./worldgen/layout.ts";
 export { Grid, NEIGHBOURS_4 } from "./worldgen/grid.ts";
 
 export interface GeneratedWorld {
@@ -26,6 +25,13 @@ export interface GeneratedWorld {
   springs: Spring[];
   /** Mask of tiles walkable from the camp, indexed y * width + x. */
   reachable: Uint8Array;
+  /**
+   * The trail stage each underbrush tile starts at, indexed like `reachable`:
+   * thin where the forest noise has only just crossed into underbrush. Absent
+   * is full underbrush everywhere, which is what a hand-built world and a map
+   * file get.
+   */
+  underbrushStages?: Uint8Array;
 }
 
 /**
@@ -44,7 +50,8 @@ export interface GeneratedWorld {
 export function generateWorld(seed: number = C.DEFAULT_SEED): GeneratedWorld {
   const master = mulberry32(seed);
 
-  const map = paintTerrain(seed, master);
+  const underbrushStages = new Uint8Array(C.MAP_W * C.MAP_H);
+  const map = paintTerrain(seed, master, C.MAP_W, C.MAP_H, C.BORDER_THICKNESS, underbrushStages);
   thickenStream(map);
 
   const camp = findCamp(map);
@@ -54,5 +61,6 @@ export function generateWorld(seed: number = C.DEFAULT_SEED): GeneratedWorld {
   const nodes = placeResources(map, reachable, camp, master);
   const springs = placeSprings(map, camp, nodes, seed);
 
-  return { seed, map, camp, nodes, springs, reachable };
+  keepStagesOnUnderbrush(map, underbrushStages);
+  return { seed, map, camp, nodes, springs, reachable, underbrushStages };
 }

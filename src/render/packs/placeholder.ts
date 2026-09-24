@@ -302,7 +302,7 @@ function drawTerrain(g: Graphics, kind: TerrainKind, rng: Rng): void {
  * Underbrush worn by walking, one look per stage: the colour further from the
  * brush each time, fewer clumps standing and more bare earth showing where the
  * feet went. Flat keeps flecks of the brush's own dark green, so it still
- * reads as undergrowth pressed down rather than as grass.
+ * reads as underbrush pressed down rather than as grass.
  */
 const TRODDEN_LOOK = [
   { fill: 0x437234, clumps: 2, earth: 6 },

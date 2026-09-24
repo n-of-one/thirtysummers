@@ -138,7 +138,7 @@ export const THICKET_TINT = [0x52, 0x66, 0x44] as const;
  * from `BRUSH_STENCIL.tint`, so each walk shows as much as the last. A first
  * stage further out made the first walk the only one that showed. The
  * stencil's rim is shaded whatever the tint, so even flat keeps the ragged
- * outline of undergrowth and does not become grass. [GUESS]
+ * outline of underbrush and does not become grass. [GUESS]
  */
 export const TRODDEN_TINTS = [
   [0xba, 0xcb, 0x9b],

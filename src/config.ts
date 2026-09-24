@@ -381,8 +381,27 @@ export const FOREST_SCALE = 34;
 export const MOISTURE_SCALE = 22;
 export const STREAM_SCALE = 90;
 
-/** Noise value above which grass becomes underbrush. */
-export const UNDERBRUSH_THRESHOLD = 0.10;
+/**
+ * [GUESS] Underbrush by the forest noise, from its thinnest to full: from each
+ * noise value up, underbrush starts at that trail stage (1 trodden, 2 trodden
+ * again, 3 flat, 0 full). Below the first it is grass. The thin stages are
+ * the same ones a trail wears, so thin underbrush looks and walks like a
+ * trodden tile, and walking it wears it further. Because they follow the
+ * noise, the underbrush thickens into a wood the way the noise rises, and the
+ * edges form themselves. Inside a wood, past `TREE_THRESHOLD`, it is full.
+ */
+export const UNDERBRUSH_THRESHOLDS = [
+  { from: -0.3, stage: 3 },
+  { from: -0.2, stage: 2 },
+  { from: -0.1, stage: 1 },
+  { from: 0, stage: 0 },
+  // { from: 0.07, stage: 3 },
+  // { from: 0.1, stage: 2 },
+  // { from: 0.13, stage: 1 },
+  // { from: 0.16, stage: 0 },
+] as const;
+/** Noise value above which grass becomes underbrush, at its thinnest. */
+export const UNDERBRUSH_THRESHOLD = UNDERBRUSH_THRESHOLDS[0].from;
 /**
  * Noise value above which a tile counts as forest. Forest floor is underbrush;
  * trees are then scattered across it at a density that follows the same noise,
