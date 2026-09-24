@@ -4,10 +4,14 @@ Summer 4 of [five-summers.md](five-summers.md): the cart, the field it is
 for, and the trail its route wears into. The question it asks: does making a
 road so a cart can run feel like play, or like hauling?
 
+**Being rethought.** Trails wear the road by walking now, so M10.2 took out
+the grass the layout laid from camp to the feather field and the row that held
+a cart route to needing a cut. This file is what the cart was before that, and
+is to be rewritten before it is built.
+
 **Depends on** M10: the cart bought in the shop at family level 2, the shell
-field behind the copse, the cart route the layout already lays and holds to
-needing a cut, and shells that do not come back, so summer 4 needs a field
-further out.
+field behind the copse, and shells that do not come back, so summer 4 needs a
+field further out.
 
 ## Steps
 

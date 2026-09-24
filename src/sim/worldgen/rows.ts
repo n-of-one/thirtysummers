@@ -187,30 +187,6 @@ export function checkRows(world: GeneratedWorld): Row[] {
   const across = minus(within(world, bridged, THIN_CUTS), nearRing);
   const farField = minus(within(world, felled, THIN_CUTS), within(world, bridged, THIN_CUTS));
 
-  // The cart route, for M11. The cart runs on grass and bridge, so a route is
-  // grass the whole way once the stream is bridged, the copse felled and the
-  // thicket cut -- and it has to need the cutting, or there is no work in it.
-  const campIdx = tileOf(world, world.camp);
-  const cartGround = (cut: boolean) => (x: number, y: number) => {
-    const kind = map.get(x, y);
-    return (
-      kind === "grass" ||
-      kind === "bridge" ||
-      kind === "stream" ||
-      kind === "sapling" ||
-      (cut && kind === "thicket")
-    );
-  };
-  const cartCut = fill(map, [campIdx], cartGround(true));
-  const cartUncut = fill(map, [campIdx], cartGround(false));
-  const cartReaches = farField.filter((n) => cartCut[tileOf(world, n)]! >= 0);
-  const cartWithoutCut = farField.filter((n) => cartUncut[tileOf(world, n)]! >= 0);
-  const walk = fill(map, [campIdx], (x, y) => {
-    const kind = map.get(x, y);
-    return map.isPassable(x, y) || kind === "stream" || kind === "sapling" || kind === "thicket";
-  });
-  const farWalk = farField.map((n) => walk[tileOf(world, n)]!).sort((a, b) => a - b);
-
   // Every node reachable, and no wall thicker than a thin one: the thick wall
   // is parked, and a node behind one would be a node nobody can have.
   const beyond = world.nodes.filter((n) => felled[tileOf(world, n)]! > THIN_CUTS);
@@ -252,15 +228,6 @@ export function checkRows(world: GeneratedWorld): Row[] {
       label: "shells only behind the copse",
       ok: count(farField, "shell") > 0 && count(nearRing, "shell") === 0 && count(across, "shell") === 0,
       detail: `shells ${describe(world, farField.filter((n) => n.kind === "shell"), steps)}`,
-    },
-    {
-      summer: 3,
-      label: "a cart route to them that needs cutting",
-      ok: farField.length > 0 && cartReaches.length === farField.length && cartWithoutCut.length === 0,
-      detail:
-        `cart reaches ${cartReaches.length} of ${farField.length} once cut, ` +
-        `${cartWithoutCut.length} uncut; ${farWalk[0] ?? "-"}-${farWalk[farWalk.length - 1] ?? "-"} ` +
-        `steps from camp`,
     },
     {
       summer: 0,

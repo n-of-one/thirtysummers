@@ -22,7 +22,7 @@ and trails in it.
    `worldgen/layout.ts`: a pond, a rock outcrop, a stand of grown trees, a
    hollow of grass ringed by underbrush, and a waterfall where the stream
    bends. One of each a map, positions drawn from the seed, never over a field,
-   a pocket, the cart route or camp. None of them is a barrier the table
+   a pocket, the way in to the shell field or camp. None of them is a barrier the table
    depends on, so `worldgen/rows.ts` keeps passing whatever the seed does with
    them.
 2. **The island.** A patch in the stream, reachable with two bridge tiles

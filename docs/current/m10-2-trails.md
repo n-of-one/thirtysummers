@@ -56,7 +56,11 @@ mechanism is built and M11 only adds the pusher.
    index and count. That is all a trail is, so without it a game picked up at
    its winter would lose every path. Version 3. M10.1's partial nodes are not
    in it.
-8. **The path trace.** `src/sim/trace.ts` and its test live only on
+8. **No path laid north.** The layout no longer lays grass from camp to the
+   feather field; that walk is worn by the player's feet like any other. The
+   row that held a cart route to needing a cut went with it, since carts are
+   being rethought.
+9. **The path trace.** `src/sim/trace.ts` and its test live only on
    `itch-publish-1`. Not brought back: the wear itself is read over the
    protocol, and that was enough to measure with.
 

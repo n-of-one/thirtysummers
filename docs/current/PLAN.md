@@ -58,7 +58,7 @@ sweeping the ring. M10.2 is next.
 | [M10.4: the shape of the ring](m10-4-terrain.md) | landmarks, the island, underbrush in patches | not started |
 | [M10.5: camp that moves](m10-5-camp.md) | a camp pitched on ground the family has walked, granted by a family level | not started |
 | [M10.6: upkeep by level](m10-6-upkeep.md) | a winter asked in fruit when poor and in rent when not | not started |
-| [M11: the cart](m11-cart.md) | summer 4: the logistics experiment, and its road | not started |
+| [M11: the cart](m11-cart.md) | summer 4: the logistics experiment, and its road | being rethought |
 | [M12: planks and the well](m12-planks-well.md) | summer 5: planks on mud, the well, the dry pocket | not started |
 | [M13: fruit](m13-fruit.md) | eating a fruit for a burst of speed, in place of meals | not started |
 

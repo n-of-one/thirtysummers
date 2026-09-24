@@ -84,12 +84,12 @@ export function layoutSummerWorld(seed: number): GeneratedWorld {
   stamp.disc(stand, C.STAND_RADIUS + 0.5, C.STAND_RADIUS + C.STAND_WALL + 0.5, "thicket");
   stamp.disc(mudPocket, 0, C.MUD_POCKET_RADIUS, "mud");
 
-  // The route the cart will run, from M11: camp, through the feather field, to
-  // the shell field. Grass all the way except where it crosses the stream,
-  // which is what the bridge is for, and it is drawn after the stream so the
-  // banks cannot wipe it.
+  // The way in to the shell field: from the feather field, bending round to
+  // the copse, grass the whole way, and the one gap the underbrush round the
+  // copse leaves. It is drawn after the stream so the banks cannot wipe it.
+  // Nothing is laid from camp to the feather field: that walk is whatever the
+  // player's feet wear into the ground.
   const bend = towards(shellField, featherField, C.ROUTE_BEND_FROM_FIELD);
-  stamp.line(camp, { x: featherField.x, y: featherField.y }, 1, "grass");
   stamp.line(featherField, bend, 1, "grass");
   stamp.line(bend, shellField, 1, "grass");
 

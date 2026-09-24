@@ -694,7 +694,7 @@ apart by the depth of the cut rather than by their coordinates, which is what
 lets the same check hold a generated map and an edited one to the same table.
 Each row of the table is one entry: fruit and feathers on foot, vines waded to
 and sticks behind thin thicket, springs on both banks, ore only across the
-water, a field behind the copse, a cart route that has to be cut, shells too far
+water, a field behind the copse, shells too far
 from water to work without a well, and a pocket behind twelve tiles of thicket
 with nothing in between. It also re-runs stream thickening on a copy, which must
 change nothing: a stream pinched to one tile across is a wall with a hole in it.
@@ -746,7 +746,9 @@ enough to touch that band, so grass ran round the hedge. The fields are now far
 enough apart that their discs cannot meet, and the route crosses the band once,
 dead straight, with the hedge on it. The row check reported this as "cart
 reaches 36 of 36 uncut", which is the kind of failure that is invisible in a
-screenshot.
+screenshot. That row is gone since M10.2: trails wear the road by walking, the
+grass from camp to the feather field went with it, and carts are being
+rethought. The band and the hedge stay, as the way in to the shell field.
 
 **A fruit tree is four things agreeing, and none of them is a data type.** The
 simulation has no such object: a tree tile is terrain, the fruit under it are

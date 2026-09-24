@@ -128,8 +128,11 @@ Easy ground is walked as fast as ever.
 - **Across the stream** is the feather field, dense enough that its 30
   feathers are gathered rather than swept.
 - **The copse**, a ring of saplings the axe fells, hides the shell field.
-- **The cart route** runs from camp through the feather field to the copse.
-  It is laid now, for M11, and held to needing a cut.
+- **The way in to the shell field** is grass from the feather field round to
+  the copse, the one gap in the underbrush that rings it. Nothing is laid
+  from camp to the feather field: that walk is worn by the player's feet. It
+  was laid as the cart route and held to needing a cut, and that row is gone
+  with M10.2, because carts are being rethought.
 
 The dry pocket and the last pocket behind twelve tiles of thicket are out
 of the layout until they are needed: the dry pocket comes back with M12,
