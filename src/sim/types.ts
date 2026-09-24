@@ -112,9 +112,10 @@ export type WorldEventPayload =
   | { type: "felled"; x: number; y: number }
   /**
    * The player's centre walked over underbrush at (x, y) and left it, which
-   * wore it to `stage`: 1 for trodden, up to `TRAIL_STAGES` for flat.
+   * wore it to `stage`: 1 for trodden, up to `TRAIL_STAGES` for flat. `grass`
+   * when it was flat already and is grass now.
    */
-  | { type: "trodden"; x: number; y: number; stage: number }
+  | { type: "trodden"; x: number; y: number; stage: number; grass: boolean }
   /** A well dug on (x, y), which is a spring from now on. */
   | { type: "dug"; x: number; y: number }
   /** The transfer panel was opened at camp, on (x, y). */

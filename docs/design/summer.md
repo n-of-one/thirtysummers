@@ -161,9 +161,9 @@ walk over a tile already treads it:
 it looks trodden and is a little easier to push through, so the player sees
 their own line behind them on the first trip and can choose to walk it again.
 Each walk after that wears it flatter and faster, until it is flat and
-walked at full speed. Flat is still underbrush, pressed down, and never
-grass: the paths the player made stay paths, rather than the ring turning to
-lawn. It is underbrush only. Mud is not trodden into anything, because mud is what
+walked at full speed. Flat is still underbrush, pressed down, so the paths
+the player made read as paths. Walked over once more, a flat tile is grass:
+no faster, but the path is finished. It is underbrush only. Mud is not trodden into anything, because mud is what
 planks are for, and a thicket is a wall, so the knife keeps its job.
 
 The same wear is what the cart's road is made of over the winters, and what

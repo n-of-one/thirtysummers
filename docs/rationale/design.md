@@ -111,12 +111,13 @@ makes it a little faster. With wear that only showed after several crossings,
 the player would have to walk the same tiles again by luck before learning
 that walking changes the ground, and the lesson would come too late to plan
 with. Seen on the first trip, the line is something to aim for on the way
-back. Then it wears in stages to flat, and flat is still underbrush, not
-grass. The first build turned a tile to grass on the second walk. That felt
-good to play, but it made open ground of every route, so the ring was on its
-way to a lawn and a path could no longer be told apart from a field. Stages
-keep the paths the player made visible as paths, and give the walks after the
-second something to show for themselves.
+back. Then it wears in stages to flat, and flat is still underbrush, and
+only the walk after flat makes grass. The first build turned a tile to grass
+on the second walk. That felt good to play, but it made open ground of every
+route, so the ring was on its way to a lawn and a path could no longer be told
+apart from a field. Stages keep the paths the player made visible as paths,
+and give the walks after the second something to show for themselves; grass
+at the end is kept for the routes walked most.
 
 **The map in the corner.** Nothing recorded what the player had seen, so
 nothing could feel uncovered even when it was. Dimming unseen ground in the

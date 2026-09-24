@@ -964,15 +964,21 @@ export class World {
 
   /**
    * The player's centre has walked over an underbrush tile and left it: one
-   * stage further, until it is flat. The tile stays underbrush in the grid, so
-   * the wear is all there is of a trail, and it is what the save keeps.
+   * stage further. Up to flat the tile stays underbrush in the grid and the
+   * wear is all there is of a trail; walked over once flat, it is grass,
+   * through the same `map.set` as a cut, so the terrain diff carries it.
    */
   private tread(x: number, y: number): void {
     const idx = y * this.map.width + x;
-    if (this.wear[idx]! >= C.TRAIL_STAGES) return;
+    if (this.wear[idx]! >= C.TRAIL_STAGES) {
+      this.map.set(x, y, "grass");
+      this.wear[idx] = 0;
+      this.record({ type: "trodden", x, y, stage: 0, grass: true });
+      return;
+    }
     const stage = this.wear[idx]! + 1;
     this.wear[idx] = stage;
-    this.record({ type: "trodden", x, y, stage });
+    this.record({ type: "trodden", x, y, stage, grass: false });
   }
 
   /**

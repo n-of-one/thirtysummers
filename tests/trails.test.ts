@@ -118,11 +118,10 @@ describe("a trail worn by walking", () => {
     expect(world.speed()).toBeCloseTo(C.WALK_SPEED * C.UNDERBRUSH_SPEED_MUL);
   });
 
-  it("wears a stage a walk, each faster, until it is flat, and stays underbrush", () => {
+  it("wears a stage a walk, each faster, until it is flat, still underbrush", () => {
     const world = field();
-    for (let walk = 1; walk <= C.TRAIL_STAGES + 2; walk++) {
+    for (let stage = 1; stage <= C.TRAIL_STAGES; stage++) {
       pass(world);
-      const stage = Math.min(walk, C.TRAIL_STAGES);
       for (const x of TRAIL) {
         expect(world.trailStage(x, 2)).toBe(stage);
         expect(world.map.get(x, 2)).toBe("underbrush");
@@ -130,10 +129,26 @@ describe("a trail worn by walking", () => {
       world.teleport(10.5, 2.5);
       expect(world.speed()).toBeCloseTo(C.WALK_SPEED * C.TRAIL_SPEED_MULS[stage - 1]!);
     }
-    // Flat is the end: walking it more wears nothing and says nothing.
-    const events = world.events.filter((e) => e.type === "trodden");
-    expect(events.length).toBe(TRAIL.length * C.TRAIL_STAGES);
-    for (const x of TRAIL) expect(world.wornAt(x, 2)).toBe(C.TRAIL_STAGES);
+  });
+
+  it("turns flat underbrush to grass on the walk after, and then wears no more", () => {
+    const world = field();
+    for (let i = 0; i < C.TRAIL_STAGES; i++) pass(world);
+    pass(world);
+    for (const x of TRAIL) {
+      expect(world.map.get(x, 2)).toBe("grass");
+      expect(world.trailStage(x, 2)).toBe(0);
+    }
+    // The rows beside it and the tile the walks stop on are untouched.
+    for (const x of TRAIL) expect(world.map.get(x, 1)).toBe("underbrush");
+    expect(world.map.get(16, 2)).toBe("underbrush");
+    const grassed = world.events.filter((e) => e.type === "trodden" && e.grass);
+    expect(grassed).toHaveLength(TRAIL.length);
+
+    // Grass is not worn: walking it again changes nothing and says nothing.
+    const before = world.events.length;
+    pass(world);
+    expect(world.events.filter((e, i) => i >= before && e.type === "trodden")).toHaveLength(0);
   });
 
   it("is quicker on each walk, at each stage's speed", () => {

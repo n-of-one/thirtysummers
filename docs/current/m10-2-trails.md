@@ -26,13 +26,15 @@ mechanism is built and M11 only adds the pusher.
 2. **Stages.** Each walk over a tile wears it one stage, and each stage has
    its own speed, `TRAIL_SPEED_MULS`: trodden at 0.7, trodden again at 0.85,
    then flat at 1.0, against underbrush's 0.5. `[GUESS]` all three. The first
-   walk already leaves a line and already pays a little. The count stops at
-   flat. Being played as an experiment: an earlier version turned the tile to
+   walk already leaves a line and already pays a little. A flat tile walked
+   over once more is grass, being played as an experiment: it is no faster,
+   but the path is finished, and a path walked that often reads as a road. Being played as an experiment: an earlier version turned the tile to
    grass at the second walk, and it worked, but the ring was on its way to a
    lawn and a path could no longer be told from open ground.
-3. **Still underbrush.** A trail is not a terrain. The tile stays underbrush
-   in the grid at every stage, and the speed lookup and the renderer read the
-   wear beside it. So a flat tile still looks like underbrush pressed down,
+3. **Still underbrush, until grass.** A trail is not a terrain. The tile stays
+   underbrush in the grid at every stage up to flat, and the speed lookup and
+   the renderer read the wear beside it; only the walk after flat changes the
+   terrain. So a flat tile still looks like underbrush pressed down,
    and the paths the player made stay visible as paths. A flat tile is not
    rough ground: a tired summer does not slow it.
 4. **Underbrush only.** Mud is not trodden into anything, because mud is what
