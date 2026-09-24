@@ -120,14 +120,25 @@ describe("harvesting", () => {
     ]);
   });
 
-  it("needs a press each, so a held key does not sweep a feather field", () => {
+  it("sweeps a feather field on a held key, taking each as it comes in reach", () => {
     const world = worldWith([node("feather", 9.5, 8.5), node("feather", 7.5, 8.5)]);
-    hold(world, INTERACT, C.HARVEST_TIME * 3);
-    expect(world.inventory.count("feather")).toBe(1);
-    // Only a fresh press takes the second one.
-    world.step(C.TICK_SEC, NO_INPUT);
-    tap(world, INTERACT);
+    hold(world, INTERACT, C.TICK_SEC * 3);
     expect(world.inventory.count("feather")).toBe(2);
+
+    // And walking on with the key still down takes the next ones on the way.
+    const field = worldWith([10, 11, 12, 13].map((x) => node("feather", x + 0.5, 8.5)));
+    const east: InputState = { ...INTERACT, moveX: 1 };
+    hold(field, east, 1);
+    expect(field.inventory.count("feather")).toBe(4);
+    expect(field.events.filter((e) => e.type === "harvested")).toHaveLength(4);
+  });
+
+  it("says a held key into a full pack cannot take a feather once, on the press", () => {
+    const world = worldWith([node("feather", 9.5, 8.5)]);
+    world.inventory.add("fruit", C.BACKPACK_CAPACITY);
+    hold(world, INTERACT, 1);
+    expect(world.inventory.count("feather")).toBe(0);
+    expect(types(world)).toEqual(["blocked"]);
   });
 
   it("does nothing while the key is up", () => {
@@ -511,6 +522,20 @@ describe("dropping", () => {
     hold(world, INTERACT, C.HARVEST_TIME * 1.1);
     expect(fruit.harvested).toBe(true);
     expect(world.inventory.count("fruit")).toBe(1);
+  });
+
+  it("does not put what was dropped back in the pack on a key held for the fruit beside it", () => {
+    const fruit = node("fruit", 8.5, 8.5);
+    const world = worldWith([fruit]);
+    world.inventory.add("vine", C.BACKPACK_CAPACITY);
+    world.step(C.TICK_SEC, DROP);
+    world.step(C.TICK_SEC, NO_INPUT);
+    const lying = world.dropped.length;
+
+    hold(world, INTERACT, C.HARVEST_TIME * 3);
+    expect(fruit.harvested).toBe(true);
+    expect(world.dropped).toHaveLength(lying);
+    expect(world.inventory.count("vine")).toBe(0);
   });
 
   it("will not pick one up into a full pack", () => {

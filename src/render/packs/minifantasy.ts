@@ -23,7 +23,7 @@ import {
   SYNTH_NARROW,
   T,
   THICKET_TINT,
-  TRODDEN_TINT,
+  TRODDEN_TINTS,
   turnPixels,
   WALK_ROWS,
   type NarrowTile,
@@ -216,8 +216,8 @@ class MinifantasyPack implements AssetPack {
   private readonly brush: Texture[][];
   /** The same blocks again, painted darker: the wall version of undergrowth. */
   private readonly thicket: Texture[][];
-  /** And painted lighter: undergrowth walked over and not yet worn through. */
-  private readonly troddenBrush: Texture[][];
+  /** And painted lighter, per trail stage: undergrowth worn by walking. */
+  private readonly troddenBrush: Texture[][][];
   private readonly dirt: Texture[];
   private readonly stone: Texture[];
   private readonly water: Texture[][];
@@ -256,10 +256,10 @@ class MinifantasyPack implements AssetPack {
     this.thicket = Array.from({ length: BLOCK_TILES }, (_, v) =>
       this.brushBlock(v, THICKET_TINT),
     );
-    // A trail being worn: the same growth, lighter, and the same shapes, so it
-    // meets the undergrowth around it without a seam.
-    this.troddenBrush = Array.from({ length: BLOCK_TILES }, (_, v) =>
-      this.brushBlock(v, TRODDEN_TINT),
+    // A trail being worn: the same growth, lighter at each stage, and the same
+    // shapes, so it meets the undergrowth around it without a seam.
+    this.troddenBrush = TRODDEN_TINTS.map((tint) =>
+      Array.from({ length: BLOCK_TILES }, (_, v) => this.brushBlock(v, tint)),
     );
     this.dirt = this.block("tiles", ...BLOCK.dirt, this.narrow("tiles", DIRT_NARROW));
     this.stone = this.block("tiles", ...BLOCK.stone, this.synth("tiles", ...BLOCK.stone));
@@ -598,8 +598,9 @@ class MinifantasyPack implements AssetPack {
     }
   }
 
-  trodden(mask: number, variant: number): Texture {
-    return this.troddenBrush[variant % BLOCK_TILES]![autotileIndex(mask)]!;
+  trodden(stage: number, mask: number, variant: number): Texture {
+    const blocks = this.troddenBrush[Math.min(stage, this.troddenBrush.length) - 1]!;
+    return blocks[variant % BLOCK_TILES]![autotileIndex(mask)]!;
   }
 
   prop(kind: TerrainKind, variant: number): PropSprite | null {

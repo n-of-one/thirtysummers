@@ -1,4 +1,5 @@
 import { Container, Graphics, Rectangle, type Renderer, type Texture } from "pixi.js";
+import { TRAIL_STAGES } from "../../config.ts";
 import { mulberry32, type Rng } from "../../sim/rng.ts";
 import { RESOURCE_KINDS } from "../../sim/resources.ts";
 import { TERRAIN_ORDER } from "../../sim/terrain.ts";
@@ -32,7 +33,8 @@ class PlaceholderPack implements AssetPack {
 
   private readonly made: Texture[] = [];
   private readonly terrains = new Map<TerrainKind, Texture[]>();
-  private readonly troddenTiles: Texture[];
+  /** Per trail stage, from trodden to flat, its variants. */
+  private readonly troddenTiles: Texture[][];
   private readonly resources = new Map<ResourceKind, Texture>();
   private readonly droppedArt = new Map<ResourceKind, PropSprite>();
   private readonly walks = new Map<Facing, Texture[]>();
@@ -58,10 +60,10 @@ class PlaceholderPack implements AssetPack {
         Array.from({ length: VARIANTS }, () => this.bake((g) => drawTerrain(g, kind, rng))),
       );
     }
-    const troddenRng = mulberry32(hashString("trodden"));
-    this.troddenTiles = Array.from({ length: VARIANTS }, () =>
-      this.bake((g) => drawTrodden(g, troddenRng)),
-    );
+    this.troddenTiles = Array.from({ length: TRAIL_STAGES }, (_, i) => {
+      const rng = mulberry32(hashString(`trodden${i + 1}`));
+      return Array.from({ length: VARIANTS }, () => this.bake((g) => drawTrodden(g, rng, i + 1)));
+    });
     for (const kind of RESOURCE_KINDS) {
       this.resources.set(kind, this.bake((g) => drawResource(g, kind)));
       this.droppedArt.set(kind, this.bakeDropped(kind));
@@ -141,8 +143,9 @@ class PlaceholderPack implements AssetPack {
     const variants = this.terrains.get(kind)!;
     return variants[variant % variants.length]!;
   }
-  trodden(_mask: number, variant: number): Texture {
-    return this.troddenTiles[variant % this.troddenTiles.length]!;
+  trodden(stage: number, _mask: number, variant: number): Texture {
+    const variants = this.troddenTiles[Math.min(stage, TRAIL_STAGES) - 1]!;
+    return variants[variant % variants.length]!;
   }
   /** Each terrain is already drawn in its own colour. */
   groundTint(_kind: TerrainKind): number {
@@ -296,14 +299,23 @@ function drawTerrain(g: Graphics, kind: TerrainKind, rng: Rng): void {
 }
 
 /**
- * Underbrush walked over once: the colour halfway to grass, most of the clumps
- * pressed flat, and bare earth showing where the feet went.
+ * Underbrush worn by walking, one look per stage: the colour further from the
+ * brush each time, fewer clumps standing and more bare earth showing where the
+ * feet went. Flat keeps flecks of the brush's own dark green, so it still
+ * reads as undergrowth pressed down rather than as grass.
  */
-function drawTrodden(g: Graphics, rng: Rng): void {
-  g.rect(0, 0, S, S).fill(0x437234);
+const TRODDEN_LOOK = [
+  { fill: 0x437234, clumps: 2, earth: 6 },
+  { fill: 0x4a7636, clumps: 1, earth: 9 },
+  { fill: 0x547838, clumps: 0, earth: 12 },
+] as const;
+
+function drawTrodden(g: Graphics, rng: Rng, stage: number): void {
+  const look = TRODDEN_LOOK[Math.min(stage, TRODDEN_LOOK.length) - 1]!;
+  g.rect(0, 0, S, S).fill(look.fill);
   speckle(g, rng, 8, [0x5c8f45, 0x2b5322]);
-  speckle(g, rng, 6, [0x6a5a3a], 2);
-  for (let i = 0; i < 2; i++) {
+  speckle(g, rng, look.earth, [0x6a5a3a], 2);
+  for (let i = 0; i < look.clumps; i++) {
     const x = Math.floor(rng() * (S - 3));
     const y = 1 + Math.floor(rng() * (S - 4));
     g.rect(x, y, 3, 2).fill(0x2b5322);

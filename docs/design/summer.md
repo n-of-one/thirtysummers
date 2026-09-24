@@ -119,10 +119,14 @@ rather than a sweep of the whole ring. A tree picked bare inside the near ring
 bears again next summer.
 
 **Some kinds lie there rather than grow there.** A feather is one: it is
-drawn the way a dropped item is, small and on its shadow, and a press takes
-it, with no hold and no progress. Gathering is prying a vine out of the mud;
-a feather is bent down for, and the game says so with the same art and the
-same key it uses for anything else lying on the grass.
+drawn the way a dropped item is, small and on its shadow, and it is taken the
+moment it is in reach, with no hold and no progress. Gathering is prying a
+vine out of the mud; a feather is bent down for, and the game says so with the
+same art and the same key it uses for anything else lying on the grass. A held
+key takes every feather that comes in reach, so a feather field is walked
+through with the key down, the way a row of fruit is worked through. What the
+player dropped is the exception: a press each, because it was dropped to make
+room.
 
 ## Tools and gear
 
@@ -137,7 +141,8 @@ bigger backpack that adds slots but slows the walk.
 Improvements are made in place, in summer, with a hold on the interact key on
 the tile ahead.
 
-- **Cut** a thicket tile with the knife.
+- **Cut** a thicket tile with the knife. It leaves undergrowth, which walking
+  wears into a path like any other.
 - **Fell** a sapling with the axe, for a log.
 - **Bridge** a stream tile, with a stick and a vine.
 - **Well**, dug where there is no water, from logs and sticks. It is a spring
@@ -145,8 +150,9 @@ the tile ahead.
 - **Planks** laid on mud, one a tile, which the cart can cross. The town
   saws them from logs.
 
-**A trail is worn, not built.** Underbrush walked over is trodden down and
-then gone, one tile at a time, on exactly the tiles the feet crossed. It is
+**A trail is worn, not built.** Underbrush walked over is trodden down a
+stage at a time until it is flat, one tile at a time, on exactly the tiles the
+feet crossed. It is
 the one improvement with no key and no cost: the route the player already
 takes becomes the route that is fast, so the trip that felt like repetition is
 the trip that paid for the road. A tile is walked over once the feet have
@@ -154,7 +160,10 @@ left it, so fresh underbrush is always crossed at its own pace. The first
 walk over a tile already treads it:
 it looks trodden and is a little easier to push through, so the player sees
 their own line behind them on the first trip and can choose to walk it again.
-Walked once more, it gives way to grass. It is underbrush only. Mud is not trodden into anything, because mud is what
+Each walk after that wears it flatter and faster, until it is flat and
+walked at full speed. Flat is still undergrowth, pressed down, and never
+grass: the paths the player made stay paths, rather than the ring turning to
+lawn. It is underbrush only. Mud is not trodden into anything, because mud is what
 planks are for, and a thicket is a wall, so the knife keeps its job.
 
 The same wear is what the cart's road is made of over the winters, and what

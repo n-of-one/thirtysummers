@@ -72,11 +72,13 @@ export interface AssetPack {
   ground(kind: TerrainKind, mask: number, variant: number, frame: number): Texture;
 
   /**
-   * Underbrush walked over and not yet worn through: plainly between underbrush
-   * and grass, so a line forming behind the player is seen on the first walk.
-   * Autotiled as underbrush, with the same mask and variant.
+   * Underbrush worn by walking, at `stage` 1 to `TRAIL_STAGES`: each flatter
+   * than the last, so a line forming behind the player is seen on the first
+   * walk, and the last, flat, still reads as undergrowth rather than grass so
+   * a path stays a path. Autotiled as underbrush, with the same mask and
+   * variant.
    */
-  trodden(mask: number, variant: number): Texture;
+  trodden(stage: number, mask: number, variant: number): Texture;
 
   /** Multiplied into the ground tile; 0xffffff leaves it untouched. */
   groundTint(kind: TerrainKind): number;

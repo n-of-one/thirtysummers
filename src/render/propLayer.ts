@@ -8,7 +8,7 @@ import type { Camera } from "./camera.ts";
 import { placementsIn, type Placement } from "./placements.ts";
 import { ScrollWindow } from "./scrollWindow.ts";
 import { Silhouette } from "./silhouette.ts";
-import type { TroddenAt } from "./tileLayer.ts";
+import type { TrailStageAt } from "./tileLayer.ts";
 
 /**
  * Depth key for a thing standing at a world position.
@@ -132,7 +132,7 @@ export class PropLayer {
     private readonly pack: AssetPack,
     renderer: Renderer,
     private readonly z = 0,
-    private readonly trodden: TroddenAt = () => false,
+    private readonly trail: TrailStageAt = () => 0,
   ) {
     this.scale = TILE / pack.tileSize;
     this.container.sortableChildren = true;
@@ -272,7 +272,7 @@ export class PropLayer {
       springs,
       dropped,
       this.z,
-      this.trodden,
+      this.trail,
     )) {
       this.draw(placement);
     }

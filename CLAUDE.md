@@ -63,6 +63,15 @@ approval, so keep the work where it is visible.
 - `tmp/` is the scratch space, and it is gitignored. Driver scripts, logs,
   screenshots and the headless browser profile go there, never in `/tmp` or
   a scratch directory outside the project. Nothing in `tmp/` is precious.
+- Images Erik is meant to look at -- mockups, screenshots to judge, side by
+  side comparisons -- go in `tmp/mockups/`, always, and the reply names the
+  file. Screenshots a driver takes only to check something stay in `tmp/`.
+  `tmp/mockups/` is under `tmp/` on purpose: these images are made from the
+  Minifantasy art and must never be committed.
+- Clean up `tmp/` at the start of every new milestone, `tmp/mockups/`
+  included: the last milestone's drivers, logs and images go. Keep only what
+  is in use: `tmp/chrome/` while the headless browser runs, the logs of
+  running processes, and `tmp/cdp.mjs`, the helper the drivers share.
 - Write commands whose paths are plainly in-project: relative paths as
   arguments, and no `cd` prefix, since the working directory is already the
   project root.

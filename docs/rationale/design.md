@@ -107,11 +107,16 @@ puts the answer in the first summer and costs nothing to learn: the repetition
 is what makes the road. It is held to underbrush so the knife keeps the
 thicket and planks keep the mud, and to the tiles actually walked, so a route
 is a decision and not a radius. The first crossing already marks a tile and
-makes it a little faster, and the second turns it to grass. With wear that
-only showed after several crossings, the player would have to walk the same
-tiles again by luck before learning that walking changes the ground, and the
-lesson would come too late to plan with. Seen on the first trip, the line is
-something to aim for on the way back.
+makes it a little faster. With wear that only showed after several crossings,
+the player would have to walk the same tiles again by luck before learning
+that walking changes the ground, and the lesson would come too late to plan
+with. Seen on the first trip, the line is something to aim for on the way
+back. Then it wears in stages to flat, and flat is still undergrowth, not
+grass. The first build turned a tile to grass on the second walk. That felt
+good to play, but it made open ground of every route, so the ring was on its
+way to a lawn and a path could no longer be told apart from a field. Stages
+keep the paths the player made visible as paths, and give the walks after the
+second something to show for themselves.
 
 **The map in the corner.** Nothing recorded what the player had seen, so
 nothing could feel uncovered even when it was. Dimming unseen ground in the

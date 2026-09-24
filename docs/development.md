@@ -65,8 +65,10 @@ gitignored. Without them the code-drawn placeholder pack draws everything.
 
 WASD or arrows to move. E or Space to gather, cut, fell and store; held beside
 a spring or a well, to drink; pressed on something lying on the ground, to
-pick it up. A feather counts as lying on the ground wherever it is found, so
-it is a press each, not a hold.
+pick it up. A feather lies on the ground wherever it is found, so it takes no
+hold: a press takes it, and a held key takes every feather that comes in reach
+while walking. What the player dropped is a press each, so a key held on the
+fruit beside it does not put it straight back in the pack.
 
 What camp keeps is called **camp**, not "the store": `store` is the verb for
 putting something there, and winter brings a shop. `world.store` is the code

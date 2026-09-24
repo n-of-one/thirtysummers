@@ -408,8 +408,12 @@ pocket is made of has cost the player nothing.
 table makes a node draw with the dropped art and finish on a press instead of
 a hold, which is one flag rather than a second kind of thing on the map: the
 feather is still a node, so replenishment, the map format and the economy
-rows never learn about it. What it costs is that a feather field is a press
-per feather, where a held key sweeps a row of fruit.
+rows never learn about it. A held key takes a lying kind the moment it comes
+in reach, so a feather field is swept on one hold, as a row of fruit is. It
+was a press per feather at first, and the field across the stream was a
+chore of presses. A dropped item stays a press each and spends the key: with
+a held key sweeping those too, holding E on the fruit beside a pile dropped
+to make room put the pile straight back in the pack.
 
 **The pack also remembers the order it was filled in.** `Inventory` keeps a
 list of the kinds it holds beside the counts, appended as a kind arrives and

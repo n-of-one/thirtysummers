@@ -205,9 +205,8 @@ export class World {
   private readonly cutTiles = new Set<number>();
   /**
    * How often the player's centre has walked over each underbrush tile, by
-   * tile index. At `TRAIL_WEAR_SHOW` the tile is trodden, at `TRAIL_WEAR_STEPS`
-   * it is grass. Kept across winters: nothing grows back over a trail. The
-   * array is never replaced, so the renderer can hold on to it.
+   * tile index, up to `TRAIL_STAGES`, which is flat. Kept across winters:
+   * nothing grows back over a trail. The array is never replaced.
    */
   readonly wear: Uint8Array;
   /**
@@ -736,6 +735,9 @@ export class World {
       const x = idx % w;
       this.map.set(x, (idx - x) / w, "thicket", z);
       this.cutTiles.delete(idx);
+      // Grown over: a trail worn through the cut is gone with it, and cut
+      // again it is fresh undergrowth.
+      this.wear[idx] = 0;
     }
 
     if (this.year % C.BRIDGE_WEAR_EVERY === 0) {
@@ -929,36 +931,41 @@ export class World {
    */
   speed(): number {
     const ground = this.groundUnderPlayer();
-    const trodden = this.trodden(Math.floor(this.player.x), Math.floor(this.player.y), this.player.z);
-    const groundMul = trodden ? C.TRAIL_SPEED_MUL : ground.speedMul;
-    const tiredMul = this.tired && ground.difficult ? C.TIRED_ROUGH_MUL : 1;
+    const stage = this.trailStage(Math.floor(this.player.x), Math.floor(this.player.y), this.player.z);
+    const groundMul = stage > 0 ? C.TRAIL_SPEED_MULS[stage - 1]! : ground.speedMul;
+    // A flat trail is walked like open ground, tired or not.
+    const rough = ground.difficult && stage < C.TRAIL_STAGES;
+    const tiredMul = this.tired && rough ? C.TIRED_ROUGH_MUL : 1;
     return C.WALK_SPEED * groundMul * tiredMul;
   }
 
-  /** How worn a tile is: how often the player has walked onto it while it was underbrush. */
+  /** How worn a tile is: how often the player has walked over it while it was underbrush, up to flat. */
   wornAt(x: number, y: number): number {
     if (x < 0 || y < 0 || x >= this.map.width || y >= this.map.height) return 0;
     return this.wear[y * this.map.width + x]!;
   }
 
-  /** Underbrush worn enough to show: drawn trodden and pushed through faster. */
-  trodden(x: number, y: number, z = 0): boolean {
-    return z === 0 && this.map.get(x, y, z) === "underbrush" && this.wornAt(x, y) >= C.TRAIL_WEAR_SHOW;
+  /**
+   * How far a trail has worn this tile: 0 for untouched ground or anything
+   * that is not underbrush, up to `TRAIL_STAGES` for flat. Each stage is drawn
+   * flatter and walked faster.
+   */
+  trailStage(x: number, y: number, z = 0): number {
+    if (z !== 0 || this.map.get(x, y, z) !== "underbrush") return 0;
+    return Math.min(this.wornAt(x, y), C.TRAIL_STAGES);
   }
 
   /**
    * The player's centre has walked over an underbrush tile and left it: one
-   * more crossing.
-   * Enough of them and it is grass, through the same `map.set` as a cut, so it
-   * lands in the save's terrain diff and stays through the winter.
+   * stage further, until it is flat. The tile stays underbrush in the grid, so
+   * the wear is all there is of a trail, and it is what the save keeps.
    */
   private tread(x: number, y: number): void {
     const idx = y * this.map.width + x;
-    const wear = Math.min(this.wear[idx]! + 1, 255);
-    this.wear[idx] = wear;
-    const grass = wear >= C.TRAIL_WEAR_STEPS;
-    if (grass) this.map.set(x, y, "grass");
-    this.record({ type: "trodden", x, y, wear, grass });
+    if (this.wear[idx]! >= C.TRAIL_STAGES) return;
+    const stage = this.wear[idx]! + 1;
+    this.wear[idx] = stage;
+    this.record({ type: "trodden", x, y, stage });
   }
 
   /**
@@ -1065,10 +1072,26 @@ export class World {
     this.pendingTap = null;
 
     if (isTap(action)) {
-      if (!pressed) return;
-      this.interactSpent = true;
-      if (action.blocked) this.blocked(action.blocked);
-      else this.complete(action);
+      this.stopHarvesting();
+      // What the player dropped is a press each, and spends it: it was
+      // dropped to make room, and a key held on the fruit beside it must not
+      // put it straight back in the pack.
+      if (action.type === "pickUp") {
+        if (!pressed) return;
+        this.interactSpent = true;
+        if (action.blocked) this.blocked(action.blocked);
+        else this.complete(action);
+        return;
+      }
+      // A kind that lies there is taken the moment it is in reach, on the
+      // press or while the key is held, so a held key sweeps a feather field
+      // the way it works through a row of fruit. Why it cannot be taken is
+      // said once, on the press.
+      if (!action.blocked) this.complete(action);
+      else if (pressed) {
+        this.interactSpent = true;
+        this.blocked(action.blocked);
+      }
       return;
     }
 

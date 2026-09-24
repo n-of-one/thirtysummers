@@ -38,7 +38,7 @@ export interface SaveState {
   felled: [number, number][];
   /** Tile indices cut, which thicket can creep back onto. */
   cut: number[];
-  /** Tile index and wear, for every tile walked over, so a half-worn trail survives. */
+  /** Tile index and wear, for every tile walked over: a trail is nothing but its wear. */
   worn: [number, number][];
   wells: [number, number][];
   dropped: [ResourceKind, number, number][];

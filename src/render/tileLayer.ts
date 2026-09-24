@@ -26,8 +26,8 @@ export function surfaceOf(kind: TerrainKind): TerrainKind {
   return kind;
 }
 
-/** Whether the tile at (x, y, z) is underbrush trodden enough to draw as a trail. */
-export type TroddenAt = (x: number, y: number, z: number) => boolean;
+/** How far a trail has worn the tile at (x, y, z): 0 for not at all. */
+export type TrailStageAt = (x: number, y: number, z: number) => number;
 
 /**
  * Draws one z-layer of the map with a pool of sprites just large enough to
@@ -49,14 +49,14 @@ export class TileLayer {
   private dirty = true;
 
   /**
-   * @param trodden  whether a tile draws as trodden underbrush. The world
-   *                 answers it; the layer only reads.
+   * @param trail  how far a trail has worn each tile. The world answers it;
+   *               the layer only reads.
    */
   constructor(
     private readonly map: TileMap,
     private readonly pack: AssetPack,
     private readonly z = 0,
-    private readonly trodden: TroddenAt = () => false,
+    private readonly trail: TrailStageAt = () => 0,
   ) {
     this.container.isRenderGroup = true;
   }
@@ -146,9 +146,11 @@ export class TileLayer {
         const kind = this.map.get(tileX, tileY, this.z);
         const sprite = this.sprites[row * cols + col]!;
         const mask = this.mask(tileX, tileY, kind);
-        sprite.texture = this.trodden(tileX, tileY, this.z)
-          ? this.pack.trodden(mask, tileHash(tileX, tileY))
-          : this.pack.ground(kind, mask, tileHash(tileX, tileY), this.frame);
+        const stage = this.trail(tileX, tileY, this.z);
+        sprite.texture =
+          stage > 0
+            ? this.pack.trodden(stage, mask, tileHash(tileX, tileY))
+            : this.pack.ground(kind, mask, tileHash(tileX, tileY), this.frame);
         sprite.tint = this.pack.groundTint(kind);
       }
     }

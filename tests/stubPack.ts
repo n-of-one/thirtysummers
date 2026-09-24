@@ -81,10 +81,10 @@ export class StubPack implements AssetPack {
 
   /** The one trodden texture, and every call for it, like the ground's. */
   readonly troddenTexture = stubTexture();
-  readonly troddenCalls: { mask: number; variant: number }[] = [];
+  readonly troddenCalls: { stage: number; mask: number; variant: number }[] = [];
 
-  trodden(mask: number, variant: number): Texture {
-    this.troddenCalls.push({ mask, variant });
+  trodden(stage: number, mask: number, variant: number): Texture {
+    this.troddenCalls.push({ stage, mask, variant });
     return this.troddenTexture;
   }
 

@@ -84,14 +84,17 @@ export const MUD_SPEED_MUL = 0.3;
 
 /**
  * [GUESS] Trails. Each time the player's centre walks over an underbrush tile
- * and leaves it adds one to its wear. At `TRAIL_WEAR_SHOW` it draws as trodden and is pushed
- * through at `TRAIL_SPEED_MUL`, so the first walk leaves a line that already
- * pays; at `TRAIL_WEAR_STEPS` it is grass. Low on purpose: the player has to
- * see what walking does on the first trip, not find out by luck.
+ * and leaves it wears it one stage further, and each stage is drawn flatter and
+ * walked faster: trodden, trodden again, then flat at full speed. The first
+ * walk already leaves a line that pays, because the player has to see what
+ * walking does on the first trip, not find out by luck. A flat tile is still
+ * underbrush, so the paths stay paths and the ring does not turn to lawn.
+ *
+ * One multiplier per stage, in order; the last is flat.
  */
-export const TRAIL_WEAR_SHOW = 1;
-export const TRAIL_WEAR_STEPS = 2;
-export const TRAIL_SPEED_MUL = 0.7;
+export const TRAIL_SPEED_MULS = [0.7, 0.85, 1] as const;
+/** How many stages a trail has, and the wear at which a tile is flat. */
+export const TRAIL_STAGES = TRAIL_SPEED_MULS.length;
 
 /** [GUESS] Collision radius of the player, in tiles. */
 export const PLAYER_RADIUS = 0.3;
@@ -308,11 +311,12 @@ export const BUILD_TIME = 2;
 export const DRINK_TIME = 0.8;
 
 /**
- * What a cut thicket tile turns into. Grass, so a cut path is also a fast path
- * and the second trip through is visibly cheaper than the first. `underbrush`
- * is the other candidate: it would leave the cut readable but still slow.
+ * What a cut thicket tile turns into. Underbrush, now that trails wear it: the
+ * knife opens the wall and the feet make the path, so a cut path through
+ * thicket gets faster by being walked, like any other. It was grass before
+ * trails, when nothing else would have made the second trip cheaper.
  */
-export const CUT_LEAVES = "grass" as const;
+export const CUT_LEAVES = "underbrush" as const;
 
 /** [DOC] Sticks and vines one bridge tile costs. */
 export const BRIDGE_STICKS = 1;
