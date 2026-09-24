@@ -23,6 +23,7 @@ import {
   SYNTH_NARROW,
   T,
   THICKET_TINT,
+  DENSE_TINT,
   TRODDEN_TINTS,
   turnPixels,
   WALK_ROWS,
@@ -216,6 +217,8 @@ class MinifantasyPack implements AssetPack {
   private readonly brush: Texture[][];
   /** The same blocks again, painted darker: the wall version of undergrowth. */
   private readonly thicket: Texture[][];
+  /** And painted a little darker: dense underbrush, which walking does not wear. */
+  private readonly dense: Texture[][];
   /** And painted lighter, per trail stage: underbrush worn by walking. */
   private readonly troddenBrush: Texture[][][];
   private readonly dirt: Texture[];
@@ -256,6 +259,8 @@ class MinifantasyPack implements AssetPack {
     this.thicket = Array.from({ length: BLOCK_TILES }, (_, v) =>
       this.brushBlock(v, THICKET_TINT),
     );
+    // Dense underbrush: the same growth and shapes, between full and thicket.
+    this.dense = Array.from({ length: BLOCK_TILES }, (_, v) => this.brushBlock(v, DENSE_TINT));
     // A trail being worn: the same growth, lighter at each stage, and the same
     // shapes, so it meets the underbrush around it without a seam.
     this.troddenBrush = TRODDEN_TINTS.map((tint) =>
@@ -577,8 +582,11 @@ class MinifantasyPack implements AssetPack {
       // it is the same undergrowth, grown too dense to walk through, and a wall
       // of it should meet the wood around it without a seam.
       case "underbrush":
-      case "tree":
         return this.brush[variant % BLOCK_TILES]![autotileIndex(mask)]!;
+      // A tree stands on the floor of a wood, which is dense underbrush.
+      case "denseUnderbrush":
+      case "tree":
+        return this.dense[variant % BLOCK_TILES]![autotileIndex(mask)]!;
       case "thicket":
         return this.thicket[variant % BLOCK_TILES]![autotileIndex(mask)]!;
       case "mud":
@@ -610,7 +618,7 @@ class MinifantasyPack implements AssetPack {
     // is exactly what makes underbrush read as something you can walk through,
     // so a thicket has to be the version without it.
     if (kind === "thicket") return this.bushes[variant % this.bushes.length]!;
-    if (kind === "underbrush") {
+    if (kind === "underbrush" || kind === "denseUnderbrush") {
       // A shrub on every single tile reads as a hedge and costs a lot of
       // overdraw; the darker ground tint carries the terrain, the shrubs just
       // break it up.

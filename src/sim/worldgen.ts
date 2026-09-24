@@ -10,7 +10,7 @@ import { connectAcrossWater, thickenStream } from "./worldgen/water.ts";
 
 export { reachableFrom } from "./worldgen/reachability.ts";
 export { carveFords, streamMask, thickenStream } from "./worldgen/water.ts";
-export { fbm, findCamp, paintTerrain, underbrushStage } from "./worldgen/terrain.ts";
+export { fbm, findCamp, groundBand, paintTerrain, underbrushStage } from "./worldgen/terrain.ts";
 export { placeResources } from "./worldgen/resources.ts";
 export { placeSprings } from "./worldgen/springs.ts";export { layoutSummerWorld } from "./worldgen/layout.ts";
 export { Grid, NEIGHBOURS_4 } from "./worldgen/grid.ts";

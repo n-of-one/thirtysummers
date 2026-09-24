@@ -131,6 +131,13 @@ export const DIRT_NARROW: readonly NarrowTile[] = [
 export const THICKET_TINT = [0x52, 0x66, 0x44] as const;
 
 /**
+ * The multiply for dense underbrush: darker than full underbrush and well
+ * short of thicket, so it reads as the same growth grown older and matted,
+ * slow but not a wall. [GUESS]
+ */
+export const DENSE_TINT = [0x7c, 0x98, 0x68] as const;
+
+/**
  * The multiply for underbrush worn by walking, one per trail stage from
  * trodden to flat. Flat is towards none at all, and a little warm, so the
  * growth reads as pressed into the earth rather than as a lighter kind of

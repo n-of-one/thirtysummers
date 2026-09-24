@@ -381,33 +381,49 @@ export const FOREST_SCALE = 34;
 export const MOISTURE_SCALE = 22;
 export const STREAM_SCALE = 90;
 
+/** What a band of the forest noise grows. */
+export type ForestGround = "underbrush" | "denseUnderbrush" | "trees";
+/** One row of `FOREST_THRESHOLDS`. */
+export interface ForestBand {
+  /** The forest noise value this band starts at. It runs up to the next row. */
+  from: number;
+  ground: ForestGround;
+  /** For underbrush: the trail stage it starts at, 1 trodden, 2 trodden again, 3 flat, 0 or absent full. */
+  stage?: number;
+}
+
 /**
- * [GUESS] Underbrush by the forest noise, from its thinnest to full: from each
- * noise value up, underbrush starts at that trail stage (1 trodden, 2 trodden
- * again, 3 flat, 0 full). Below the first it is grass. The thin stages are
- * the same ones a trail wears, so thin underbrush looks and walks like a
- * trodden tile, and walking it wears it further. Because they follow the
- * noise, the underbrush thickens into a wood the way the noise rises, and the
- * edges form themselves. Inside a wood, past `TREE_THRESHOLD`, it is full.
+ * [GUESS] The forest noise, band by band, from open ground to the middle of a
+ * wood. The noise runs from about -0.8 to 0.8 round 0, and `tmp/noise.mjs`
+ * prints what share of a seed lies below any value. Below the first row it is
+ * grass, or mud where the moisture noise is high.
+ *
+ * - `underbrush`, at a trail stage. The thin stages are the same ones a trail
+ *   wears, so thin underbrush looks and walks like a trodden tile, and walking
+ *   it wears it further. Following the noise, the underbrush thickens the way
+ *   the noise rises, and the edges form themselves.
+ * - `denseUnderbrush`: as slow as full underbrush, but walking never wears it
+ *   and the knife has nothing to cut.
+ * - `trees`: from here up is a wood. Trees are scattered over it, thinly at
+ *   this row and thicker towards `FOREST_NOISE_MAX`, and the floor between
+ *   them is the row before this one.
  */
-export const UNDERBRUSH_THRESHOLDS = [
-  { from: -0.3, stage: 3 },
-  { from: -0.2, stage: 2 },
-  { from: -0.1, stage: 1 },
-  { from: 0, stage: 0 },
-  // { from: 0.07, stage: 3 },
-  // { from: 0.1, stage: 2 },
-  // { from: 0.13, stage: 1 },
-  // { from: 0.16, stage: 0 },
-] as const;
-/** Noise value above which grass becomes underbrush, at its thinnest. */
-export const UNDERBRUSH_THRESHOLD = UNDERBRUSH_THRESHOLDS[0].from;
-/**
- * Noise value above which a tile counts as forest. Forest floor is underbrush;
- * trees are then scattered across it at a density that follows the same noise,
- * so a wood thins out towards its edges instead of ending at a hard line.
- */
-export const TREE_THRESHOLD = 0.20;
+export const FOREST_THRESHOLDS: readonly ForestBand[] = [
+  { from: -0.3, ground: "underbrush", stage: 3 },
+  { from: -0.2, ground: "underbrush", stage: 2 },
+  { from: -0.1, ground: "underbrush", stage: 1 },
+  { from: 0, ground: "underbrush", stage: 0 },
+  { from: 0.12, ground: "denseUnderbrush" },
+  { from: 0.2, ground: "trees" },
+  // { from: 0.07, ground: "underbrush", stage: 3 },
+  // { from: 0.1, ground: "underbrush", stage: 2 },
+  // { from: 0.13, ground: "underbrush", stage: 1 },
+  // { from: 0.16, ground: "underbrush", stage: 0 },
+];
+/** Noise value above which grass becomes underbrush, at its thinnest: the first row. */
+export const UNDERBRUSH_THRESHOLD = FOREST_THRESHOLDS[0]!.from;
+/** Noise value above which trees stand: the `trees` row, or never without one. */
+export const TREE_THRESHOLD = FOREST_THRESHOLDS.find((b) => b.ground === "trees")?.from ?? Infinity;
 
 /** Share of forest tiles that become trees at the thinnest fringe... */
 export const TREE_DENSITY_EDGE = 0.06;

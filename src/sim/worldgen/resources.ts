@@ -41,10 +41,11 @@ export function placeResources(
       if (!reachable[idx]) continue;
       if (x === campX && y === campY) continue;
       const kind = map.get(x, y);
-      if (kind !== "grass" && kind !== "underbrush" && kind !== "mud") continue;
+      const brush = kind === "underbrush" || kind === "denseUnderbrush";
+      if (kind !== "grass" && !brush && kind !== "mud") continue;
 
       if (touches(map, x, y, "tree")) nearTrees.push(idx);
-      if (kind === "grass" || kind === "underbrush") open.push(idx);
+      if (kind === "grass" || brush) open.push(idx);
     }
   }
 

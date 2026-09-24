@@ -2,17 +2,21 @@ import { describe, expect, it } from "vitest";
 import * as C from "../src/config.ts";
 import { decodeSave, encodeSave } from "../src/sim/save.ts";
 import { summarise } from "../src/sim/summary.ts";
-import { layoutSummerWorld, underbrushStage } from "../src/sim/worldgen.ts";
+import { groundBand, layoutSummerWorld, underbrushStage } from "../src/sim/worldgen.ts";
 import { World } from "../src/sim/world.ts";
 
 describe("underbrush in stages from the noise", () => {
-  it("reads each band of the forest noise as its stage", () => {
-    const bands = C.UNDERBRUSH_THRESHOLDS;
+  it("reads each band of the forest noise as its ground, and a wood's floor as the row below the trees", () => {
+    const bands = C.FOREST_THRESHOLDS;
+    const trees = bands.findIndex((b) => b.ground === "trees");
     bands.forEach((band, i) => {
       const next = bands[i + 1]?.from ?? band.from + 0.05;
-      expect(underbrushStage((band.from + next) / 2)).toBe(band.stage);
+      const mid = (band.from + next) / 2;
+      // Among the trees, the floor is the row before them.
+      const expected = band.ground === "trees" ? bands[trees - 1]! : band;
+      expect(groundBand(mid)).toBe(expected);
+      if (expected.ground === "underbrush") expect(underbrushStage(mid)).toBe(expected.stage ?? 0);
     });
-    expect(underbrushStage(C.TREE_THRESHOLD)).toBe(bands.at(-1)!.stage);
   });
 
   it("gives a seed thin underbrush, and a stage only to underbrush", () => {
@@ -46,6 +50,34 @@ describe("underbrush in stages from the noise", () => {
       }
     }
     expect(touches.thin / touches.thinAll).toBeGreaterThan((2 * touches.full) / touches.fullAll);
+  });
+});
+
+describe("dense underbrush from the noise", () => {
+  it("covers the band the table gives it and the floor among the trees", () => {
+    const world = layoutSummerWorld(1337);
+    const { map } = world;
+    let dense = 0;
+    let treesInDense = 0;
+    let treesInOther = 0;
+    for (let y = 1; y < map.height - 1; y++) {
+      for (let x = 1; x < map.width - 1; x++) {
+        const kind = map.get(x, y);
+        if (kind === "denseUnderbrush") dense++;
+        if (kind !== "tree") continue;
+        const around = [[1, 0], [-1, 0], [0, 1], [0, -1]].map(([dx, dy]) => map.get(x + dx!, y + dy!));
+        if (around.includes("denseUnderbrush")) treesInDense++;
+        else if (around.includes("underbrush")) treesInOther++;
+      }
+    }
+    expect(dense).toBeGreaterThan(0);
+    // Trees stand in dense underbrush, not in the wearable kind.
+    expect(treesInDense).toBeGreaterThan(treesInOther * 4);
+    // Dense underbrush never carries a trail stage.
+    const stages = world.underbrushStages!;
+    for (let i = 0; i < stages.length; i++) {
+      if (map.get(i % map.width, Math.floor(i / map.width)) === "denseUnderbrush") expect(stages[i]).toBe(0);
+    }
   });
 });
 

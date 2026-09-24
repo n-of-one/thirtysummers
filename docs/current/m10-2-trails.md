@@ -64,14 +64,24 @@ mechanism is built and M11 only adds the pusher.
    being rethought.
 9. **Underbrush in stages from the noise**, being played as an experiment.
    The forest noise that decides grass or underbrush also decides how thick
-   the underbrush starts: `UNDERBRUSH_THRESHOLDS` gives a noise value per trail
+   the underbrush starts: `FOREST_THRESHOLDS` gives a noise value per trail
    stage, so underbrush is thin where the noise has only just crossed into it
-   and full further in, and the edges form themselves. Tuning the map is
-   tuning those values. The layout's own stamped underbrush, the band round
+   and full further in, and the edges form themselves. Dense underbrush and
+   trees are rows in the same table, so the whole forest, from open ground to
+   the middle of a wood, is tuned in one place. The layout's own stamped underbrush, the band round
    the copse, is full, and so is all underbrush in a map read from a file,
    which does not carry the noise. The save keeps only wear that differs from
    what the map started with.
-10. **The path trace.** `src/sim/trace.ts` and its test live only on
+10. **Dense underbrush**, a terrain of its own, `denseUnderbrush`: exactly as
+   slow as full underbrush, never worn by walking, and not a wall, so the
+   knife has nothing to cut. It sits in the highest band of underbrush, near
+   the trees, and is the floor of a wood, where trees stand on the row before
+   theirs in `FOREST_THRESHOLDS`. Thicket creep only takes back tiles that were
+   thicket, so it does not touch dense underbrush. Drawn as the brush stencil
+   in a tint between full underbrush and thicket (`DENSE_TINT`), with shrubs
+   like full underbrush; the placeholder draws it a shade darker and fuller.
+   Regrowth is the next iteration.
+11. **The path trace.** `src/sim/trace.ts` and its test live only on
    `itch-publish-1`. Not brought back: the wear itself is read over the
    protocol, and that was enough to measure with.
 

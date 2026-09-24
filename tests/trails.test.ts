@@ -221,6 +221,24 @@ describe("a trail worn by walking", () => {
     expect(crept).toBeGreaterThan(0);
   });
 
+  it("never wears dense underbrush, which is as slow as full and the knife cannot cut", () => {
+    const dense = field("denseUnderbrush");
+    for (let i = 0; i < C.TRAIL_STAGES + 2; i++) pass(dense);
+    for (const x of TRAIL) {
+      expect(dense.map.get(x, 2)).toBe("denseUnderbrush");
+      expect(dense.wornAt(x, 2)).toBe(0);
+    }
+    expect(dense.events.some((e) => e.type === "trodden")).toBe(false);
+    dense.teleport(10.5, 2.5);
+    expect(dense.speed()).toBeCloseTo(C.WALK_SPEED * C.UNDERBRUSH_SPEED_MUL);
+
+    // Facing it, the knife has nothing to do.
+    dense.teleport(START, 2.5);
+    dense.step(C.TICK_SEC, EAST);
+    dense.step(C.TICK_SEC, NO_INPUT);
+    expect(dense.availableAction()?.type).not.toBe("cut");
+  });
+
   it("does not wear from a teleport", () => {
     const world = field();
     for (const x of TRAIL) world.teleport(x + 0.5, 2.5);

@@ -213,6 +213,18 @@ function drawTerrain(g: Graphics, kind: TerrainKind, rng: Rng): void {
       }
       break;
 
+    case "denseUnderbrush":
+      // Underbrush a shade darker and fuller, short of thicket's near-black.
+      g.rect(0, 0, S, S).fill(0x2f5a25);
+      speckle(g, rng, 14, [0x234419], 2);
+      for (let i = 0; i < 10; i++) {
+        const x = Math.floor(rng() * (S - 3));
+        const y = Math.floor(rng() * (S - 3));
+        g.rect(x, y, 3, 2).fill(0x234419);
+        g.rect(x + 1, y - 1, 1, 1).fill(0x55883c);
+      }
+      break;
+
     case "mud":
       g.rect(0, 0, S, S).fill(0x6a5336);
       for (let i = 0; i < 5; i++) {

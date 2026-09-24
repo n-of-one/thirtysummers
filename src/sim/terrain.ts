@@ -45,6 +45,10 @@ export const TERRAIN: Record<TerrainKind, TerrainDef> = {
   // A copse of young trees. A wall like a grown tree, but the axe fells it,
   // leaving grass and a log.
   sapling: def("sapling", false, false, "t"),
+  // Underbrush grown too old and matted for feet to wear down: as slow as full
+  // underbrush, and it never becomes a trail. Not a wall either, so the knife
+  // has nothing to cut. It is what the ground is near trees.
+  denseUnderbrush: def("denseUnderbrush", true, true, ";", UNDERBRUSH_SPEED_MUL),
 };
 
 /** Stable id order -- the tile grid stores these indices, so do not reorder. */
@@ -58,6 +62,7 @@ export const TERRAIN_ORDER: readonly TerrainKind[] = [
   "thicket",
   "bridge",
   "sapling",
+  "denseUnderbrush",
 ];
 
 export const TERRAIN_ID: Record<TerrainKind, number> = Object.fromEntries(

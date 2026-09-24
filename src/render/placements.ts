@@ -59,7 +59,13 @@ export function* placementsIn(
       // Thicket stands here too: its ground is the same undergrowth, and what
       // separates the wall from the walkable version of it is that the wall
       // has growth on every tile with no gaps to step through.
-      if (kind !== "tree" && kind !== "underbrush" && kind !== "thicket" && kind !== "sapling") {
+      if (
+        kind !== "tree" &&
+        kind !== "underbrush" &&
+        kind !== "denseUnderbrush" &&
+        kind !== "thicket" &&
+        kind !== "sapling"
+      ) {
         continue;
       }
       // A bush standing on a trail would say the trail is not there.

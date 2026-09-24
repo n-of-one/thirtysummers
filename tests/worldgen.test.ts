@@ -83,7 +83,7 @@ describe("generateWorld", () => {
     expect(share(hist.grass)).toBeGreaterThan(0.3);
     expect(share(hist.grass)).toBeLessThan(0.75);
     expect(share(hist.tree)).toBeGreaterThan(0.02);
-    expect(share(hist.underbrush)).toBeGreaterThan(0.05);
+    expect(share(hist.underbrush + hist.denseUnderbrush)).toBeGreaterThan(0.05);
     expect(share(hist.stream)).toBeGreaterThan(0.005);
 
     const passable = Object.entries(hist)
@@ -255,8 +255,10 @@ describe("forest shape", () => {
       }
     }
     const total = Object.values(around).reduce((a, b) => a + b, 0);
-    // The doc calls for trees surrounded by underbrush; most neighbours are.
-    expect((around.underbrush ?? 0) / total).toBeGreaterThan(0.7);
+    // The doc calls for trees surrounded by underbrush; most neighbours are,
+    // of either kind: the floor of a wood is dense.
+    const brush = (around.underbrush ?? 0) + (around.denseUnderbrush ?? 0);
+    expect(brush / total).toBeGreaterThan(0.7);
   });
 });
 

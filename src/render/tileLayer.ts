@@ -20,7 +20,7 @@ import { ScrollWindow } from "./scrollWindow.ts";
  * autotiles with what.
  */
 export function surfaceOf(kind: TerrainKind): TerrainKind {
-  if (kind === "tree" || kind === "thicket") return "underbrush";
+  if (kind === "tree" || kind === "thicket" || kind === "denseUnderbrush") return "underbrush";
   // A sapling stands on open grass, which is what felling it leaves.
   if (kind === "sapling") return "grass";
   return kind;
