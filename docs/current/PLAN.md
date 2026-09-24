@@ -113,14 +113,7 @@ a `[GUESS]` in `config.ts` unless five-summers.md gives it.
 1. Everything in [../development.md](../development.md) under "What must
    keep passing" passes.
 2. The milestone file's own verification, measured over the protocol.
-3. A summer played by hand on `npm run dev`. Walk, wade through mud, stay
-   out until the fog closes in and drink at a spring, fill the backpack,
-   drop a kind and pick it back up, store the load at camp, hold the key
-   there to take something back out, and watch the clock run out to the
-   summary, and on through the winter screen into the next summer.
-4. With `?debug=1`, a summer run out at 10x in 30 seconds, the grid
-   toggled, a teleport across the map, the bars frozen.
-5. Stop for review. Once accepted, delete the milestone file and mark it
+3. Stop for review. Once accepted, delete the milestone file and mark it
    done in the table. What was learned building it goes into
    [../rationale/technical.md](../rationale/technical.md).
 
