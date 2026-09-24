@@ -11,7 +11,7 @@ being built now takes from this, and the numbers it uses, is in
 | Document | Aspect |
 |---|---|
 | [map-arc.md](map-arc.md) | One map from the first summer to the road out: lives, domains, structures, the town, generations. |
-| [summer.md](summer.md) | One summer: the two bars, barriers and their keys, the resource ladder, tools, improvements, getting it home. |
+| [summer.md](summer.md) | One summer: the clock and hydration, barriers and their keys, what is gathered and what a slot is worth, the map you have walked, tools, improvements, getting it home. |
 | [winter.md](winter.md) | Between summers: what comes back and what wears, the winter screen, upkeep, the shop, the family, the list. |
 | [ideas.md](ideas.md) | Open questions, parked ideas, and the first notes on spirits. Nothing there is decided. |
 

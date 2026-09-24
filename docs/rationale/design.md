@@ -58,6 +58,71 @@ gold had nothing to buy. The fruit cooldown and the small refill were the one
 real irritation. Sprint was fun and probably too strong. Most of what
 follows answers those four lines.
 
+## The first three years, and what they changed
+
+M10 built the first three years and they were played, on 23 Sep 2026. The
+verdict was that they are not fun yet, and the log is specific about where.
+Year 1 is close: the ring is explored rather than swept, and working out how
+to build the bridge is the good part, with a little too much fruit. Year 2 is
+where it breaks. The walk from camp to the bridge is long, carrying fruit back
+is a chore within a few trips, nothing about the map says what has already
+been seen, and the money does not add up: the axe and the family's next level
+together need more than the field holds, so the balance comes from selling
+sticks and vines, which is not what the fields are for. Year 3 is the same
+again with more upkeep on top.
+
+Six answers, in the order they are built. Each is one thing, so each can be
+played and judged on its own.
+
+**Fruit on a tree.** Twelve fruit spread across a ring 58 tiles in radius is
+an errand that crosses the whole ring, every summer, before anything else
+happens. The same fruit on four trees is four stops, each of them a place
+rather than a scatter, and the ring's food stops being a sweep. The tree is an
+ordinary tree; what marks it is the four fruit under it. It also makes the
+ring's food a place worth remembering, which is the same problem as the map.
+
+**What a slot is worth.** Under *Summer*, below. The shell field went from
+30 shells at 2 to 10 at 6 for the same reason: 30 shells is 3 pack loads,
+about 150 seconds of a 300 second summer spent walking a route already known,
+and the gold per slot was less than half what the near ring's feathers make.
+Ten shells is one load, worth 60 gold, and the trip out is the best-paid trip
+on the map.
+
+**Trails worn by walking.** The slog is the same ground crossed repeatedly,
+and the design's answer to it, the cart and the trails it wears, arrives in
+summers 4 and 5, two summers after the problem. Underbrush worn down by feet
+puts the answer in the first summer and costs nothing to learn: the repetition
+is what makes the road. It is held to underbrush so the knife keeps the
+thicket and planks keep the mud, and to the tiles actually walked, so a route
+is a decision and not a radius.
+
+**The map in the corner.** Nothing recorded what the player had seen, so
+nothing could feel uncovered even when it was. Dimming unseen ground in the
+play view was the other option and was dropped: the game is played by looking
+at the ground ahead, and darkening it to make a point about memory takes more
+than it gives. A small map that fills in leaves the view alone. It shows
+terrain and built things and not what there is to pick, because the field the
+player remembers is the reward for having gone there.
+
+**Camp that moves.** The walk from camp to the far bank is paid twice, once on
+ground swept the summer before. Moving camp cancels it. It is earned from the
+family rather than built from sticks, because the family's levels had nothing
+to open but shop rows, and it costs material, which now has no other buyer.
+The near ring is measured from camp, which makes the move a trade: the far
+bank starts coming back every summer and the old ring drops to half returns.
+That was a consequence of how the ring is computed, and it is kept because it
+turns a shortcut into a decision.
+
+**Upkeep that changes shape with the family.** 12 fruit and 10 gold out of a
+five minute summer is most of what the summer had to spend. Upkeep that rises
+with a family level is in the archive and stays there. What changes here is
+what upkeep is asked in: a poor family eats what it picks, a family with
+standing buys food and owes rent, the total falls in slots as it goes, and the
+rent at the higher levels is more than the ring's feathers make. So the winter
+itself pushes the family outward, which is where everything else already
+points. A missed winter asks for the level below next year, so the tired
+summer cannot start a spiral.
+
 ## Summer
 
 **One bar.** Hydration answers where. Time answers what to spend on, and
@@ -148,13 +213,34 @@ release, because that is the only moment the two can be told apart.
 life, and it must not be a refill. What it gives is open again now that
 max stamina is gone.
 
-**A rung on the ladder is distance behind barriers.** Near camp sells for
-nothing or one, each barrier out roughly doubles it. That ties the economy
-to the map: the way to earn more is to open more. Kinds with a use compete
-with their price, so selling a stick is a decision. Pure sellables are
-ordinary things, feathers and shells, because they need not be exotic to
-pull the player outward. Rarity is left out to keep it simple until
-respawning is designed.
+**What a slot is worth is the number that rises outward, and prices are
+flat.** The first version of the economy doubled a kind's price with every
+barrier out, which tied earning to the map before anything else did. Depletion
+does that job now: a worked field is gone, the ordinary kinds come back by
+half, and the near ring covers the upkeep and nothing beyond it, so every gold
+above surviving is already further out and the prices need not repeat the
+point. What is left for the prices to do is answer the question the player
+actually asks, which is what to carry when the pack is nearly full. So the
+number that has to rise with distance is gold per slot, not gold per item.
+
+It is a working rule and not a decoration. A slot of the near ring's feathers
+is 5 gold; a shell, a slot each and further out than the first three summers
+reach, is 6, so a slot of the far field beats a slot of the near one and the
+trip is worth making. It also settles arguments by itself: surplus fruit sells
+for 1 and takes a slot each, so hauling food home as a living is 1 gold a
+slot, and nobody has to be forbidden from doing it.
+
+**Material does not sell.** Sticks, vines and logs were priced at 1, which
+made a summer's sticks and vines about 12 gold, more than the rent. The first
+three years could then be funded by carrying home the things a bridge is made
+of, which is not what the fields are for. With no price on material, all
+income is a field and the open question of whether material should sell at all
+is closed. It also gives the build recipes the whole of what material is for,
+and camp a pile of it that costs nothing to keep.
+
+Pure sellables are ordinary things, feathers and shells, because they need not
+be exotic to pull the player outward. Rarity is left out to keep it simple
+until respawning is designed.
 
 **Four currencies, and thickness as the dial.** A barrier can be short in
 time, a tool, materials or hydration. Because cuts persist, thickness

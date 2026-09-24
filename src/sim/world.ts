@@ -652,9 +652,14 @@ export class World {
    * drawn from the seed and the year, so a map and a year always come out the
    * same.
    *
-   * - Inside the near ring every node is back. Outside it the resource table
-   *   says: every year, a share of what was picked this summer, or never.
-   *   What was picked in an earlier summer and did not come back then is gone.
+   * - Never means never, wherever a node stands: a kind whose `returns` is
+   *   `never` is gone once it is picked, ring or no ring. It matters from
+   *   M10.5, when camp can be pitched so that a shell field falls inside a
+   *   near ring.
+   * - Otherwise, inside the near ring every node is back. Outside it the
+   *   resource table says: every year, or a share of what was picked this
+   *   summer. What was picked in an earlier summer and did not come back then
+   *   is gone.
    * - A sapling stands again {@link C.SAPLING_RETURN_YEARS} winters after it
    *   was felled, if nothing stands on its tile.
    * - Thicket creeps back onto a cut tile that touches it, by chance.
@@ -669,6 +674,7 @@ export class World {
     for (const node of this.nodes) {
       if (!node.harvested) continue;
       const returns = RESOURCES[node.kind].returns;
+      if (returns === "never") continue;
       if (this.inNearRing(node.x, node.y) || returns === "yearly") {
         node.harvested = false;
       } else if (returns === "slowly" && this.pickedThisSummer.has(node.id)) {

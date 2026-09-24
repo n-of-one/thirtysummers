@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import * as C from "../src/config.ts";
 import { NO_INPUT, type InputState } from "../src/input/keyboard.ts";
 import { fillList, FIRST_LIST, lineKey, offeredLines, type ListLine } from "../src/sim/list.ts";
+import { isMaterial, RESOURCE_KINDS, RESOURCES } from "../src/sim/resources.ts";
 import { shopStock } from "../src/sim/shop.ts";
 import { TileMap } from "../src/sim/tilemap.ts";
 import type { ResourceKind, ResourceNode, TerrainKind } from "../src/sim/types.ts";
@@ -72,26 +73,54 @@ function levelOf(total: number): number {
   return C.FAMILY_LEVELS.filter((at) => total >= at).length;
 }
 
+describe("what a slot is worth", () => {
+  const perSlot = (kind: ResourceKind) =>
+    (RESOURCES[kind].price * RESOURCES[kind].stack) / RESOURCES[kind].slots;
+
+  it("pays more for a slot the further out it was picked", () => {
+    // The one rule the prices follow: what rises with distance is what a slot
+    // brings home, never the price of a kind. The shell field is the longest
+    // trip on the map, so a pack of shells has to beat a pack of the ring's
+    // feathers, or the trip is only long.
+    expect(perSlot("shell")).toBeGreaterThan(perSlot("feather"));
+    expect(perSlot("feather")).toBeGreaterThan(perSlot("fruit"));
+  });
+
+  it("pays nothing at all for what a bridge is made of", () => {
+    // Material has no buyer, so the gold on the list can only come from a
+    // field. The keep-or-sell column is still there, and simply has nothing
+    // left to weigh.
+    for (const kind of RESOURCE_KINDS.filter(isMaterial)) expect(RESOURCES[kind].price).toBe(0);
+  });
+});
+
 describe("the winter model", () => {
   it("feeds the winter, sells the feathers and the spare fruit, pays the rent and gives the rest", () => {
+    const spare = 15 - C.UPKEEP_FRUIT;
     const m = winterModel(winter({ fruit: 15, stick: 5, vine: 2 }, 30));
-    expect(m.food).toMatchObject({ fromStore: 12, bought: 0, surplus: 3, cost: 0 });
-    // The feathers and the spare fruit sell: material is kept until the player
-    // says so.
+    expect(m.food).toMatchObject({ fromStore: C.UPKEEP_FRUIT, bought: 0, surplus: spare, cost: 0 });
+    // The feathers and the spare fruit sell. Material is kept until the player
+    // says so, and is worth nothing either way.
     expect(m.lines.find((l) => l.kind === "feather")).toMatchObject({ have: 30, sold: 30, gold: 30 });
-    expect(m.sales).toBe(30 + 3);
+    expect(m.lines.find((l) => l.kind === "stick")).toMatchObject({ have: 5, sold: 0, gold: 0 });
+    expect(m.sales).toBe(30 + spare);
     expect(m.upkeep).toMatchObject({ gold: C.UPKEEP_GOLD, total: C.UPKEEP_GOLD, met: true });
-    expect(m.left).toBe(30 + 3 - C.UPKEEP_GOLD);
-    expect(m.family).toMatchObject({ before: 0, total: 23, level: 1, shopOpen: false });
+    expect(m.left).toBe(30 + spare - C.UPKEEP_GOLD);
+    expect(m.family).toMatchObject({ before: 0, total: 31, level: 1, shopOpen: false });
   });
 
   it("buys the fruit a short camp lacks, at the town's price", () => {
-    const m = winterModel(winter({ fruit: 9 }, 20));
-    expect(m.food).toMatchObject({ fromStore: 9, bought: 3, cost: 3 * C.FRUIT_BUY_PRICE });
+    const m = winterModel(winter({ fruit: C.UPKEEP_FRUIT - 3 }, 20));
+    expect(m.food).toMatchObject({
+      fromStore: C.UPKEEP_FRUIT - 3,
+      bought: 3,
+      cost: 3 * C.FRUIT_BUY_PRICE,
+    });
     expect(m.left).toBe(20 - C.UPKEEP_GOLD - 3 * C.FRUIT_BUY_PRICE);
   });
 
   it("is applied by the world: kept material stays at camp into the next summer", () => {
+    const spare = 15 - C.UPKEEP_FRUIT;
     const world = field(10, 10);
     world.store.add("fruit", 15);
     world.store.add("stick", 5);
@@ -100,7 +129,8 @@ describe("the winter model", () => {
     world.endSummer();
 
     const input = world.winterInput();
-    // Two sticks sold, three kept.
+    // Two sticks sold, three kept. They fetch nothing, which is the point of
+    // the price: what is left over at camp is the only reason to keep them.
     input.keep = { ...input.keep, stick: 3 };
     world.endWinter(input, new Set());
     world.nextSummer();
@@ -109,7 +139,7 @@ describe("the winter model", () => {
     expect(world.store.count("stick")).toBe(3);
     expect(world.store.count("vine")).toBe(2);
     expect(world.store.count("feather")).toBe(0);
-    expect(world.family).toBe(30 + 3 + 2 - C.UPKEEP_GOLD);
+    expect(world.family).toBe(30 + spare - C.UPKEEP_GOLD);
     expect(world.tired).toBe(false);
   });
 });
@@ -125,15 +155,16 @@ describe("the shop by family level", () => {
   });
 
   it("puts the axe on summer 2's list when winter 1 reaches level 1, shop or no shop", () => {
-    // Thirty feathers, less the rent: the family at 20, level 1.
+    // Thirty feathers and four spare fruit, less the rent: the family at 28,
+    // level 1.
     const m = winterModel(winter({ fruit: 12, stick: 6 }, 30));
-    expect(m.family).toMatchObject({ levelBefore: 0, level: 1, shopOpen: false });
+    expect(m.family).toMatchObject({ levelBefore: 0, level: 1, total: 28, shopOpen: false });
     expect(m.frosted).toEqual([]);
     expect(m.unlocked.map((it) => it.id)).toEqual(["axe"]);
     expect(offeredLines(m).map(lineKey)).toEqual(["food", "rent", "item:axe", "level"]);
 
     // Short of level 1, nothing is opened, and the list has no axe.
-    const short = winterModel(winter({ fruit: 12 }, 15));
+    const short = winterModel(winter({ fruit: 12 }, 10));
     expect(short.family.level).toBe(0);
     expect(offeredLines(short).map(lineKey)).toEqual(["food", "rent", "level"]);
 
@@ -148,7 +179,7 @@ describe("the shop by family level", () => {
       { kind: "food" },
       { kind: "rent" },
       { kind: "item", id: "axe" },
-      { kind: "level", level: 2, gold: C.FAMILY_LEVELS[1]! - 20 },
+      { kind: "level", level: 2, gold: C.FAMILY_LEVELS[1]! - 28 },
     ]);
   });
 
@@ -160,16 +191,17 @@ describe("the shop by family level", () => {
   });
 
   it("frosts the cart at level 2, and buying the axe can take it away again", () => {
-    // Level 1 at 30. Twenty gold, less the rent, puts the family at 40 and
-    // level 2; the axe's eight puts it at 32 and leaves it at level 1.
-    const input = winter({ fruit: 12, stick: 3 }, 20, 30, 2);
+    // Level 1 at 30. Ten gold and four spare fruit, less the rent, puts the
+    // family at 38 and level 2; the axe's six puts it at 32 and leaves it at
+    // level 1.
+    const input = winter({ fruit: 12, stick: 3 }, 10, 30, 2);
     expect(input.stock).toEqual(["axe"]);
     const without = winterModel(input);
     expect(without.family.level).toBe(2);
     expect(without.frosted.map((it) => it.id)).toEqual(["cart"]);
 
     const withAxe = winterModel({ ...input, bought: ["axe"] });
-    expect(withAxe.family.given).toBe(without.family.given - 8);
+    expect(withAxe.family.given).toBe(without.family.given - 6);
     expect(withAxe.family.level).toBe(1);
     expect(withAxe.frosted).toEqual([]);
 
@@ -189,7 +221,7 @@ describe("the shop by family level", () => {
     world.endWinter({ ...input, bought: ["axe"] }, new Set());
     expect(world.tools.has("axe")).toBe(true);
     expect(world.store.count("stick")).toBe(1);
-    expect(world.family).toBe(30 + 25 - C.UPKEEP_GOLD - 8);
+    expect(world.family).toBe(30 + 25 + (12 - C.UPKEEP_FRUIT) - C.UPKEEP_GOLD - 6);
     // Owned, so it is not stocked again.
     world.nextSummer();
     world.endSummer();
@@ -206,22 +238,22 @@ describe("the list", () => {
     rows.map((r) => [r.label, r.parts.map((p) => `${p.atCamp}/${p.need} ${p.unit}`), r.done]);
 
   it("fills from the top: food in fruit, then one pot of gold, material in kind", () => {
-    // Twelve feathers and a shell: fourteen gold.
-    const rows = fillList(list, {}, { fruit: 12, stick: 3, feather: 12, shell: 1 });
+    // Three feathers and a shell: nine gold, and the shell is six of them.
+    const rows = fillList(list, {}, { fruit: 12, stick: 3, feather: 3, shell: 1 });
     expect(atCamp(rows)).toEqual([
-      ["Food", ["12/12 fruit"], true],
-      ["Rent", ["10/10 gold"], true],
-      ["Axe", ["4/8 gold", "3/3 stick"], false],
+      ["Food", ["8/8 fruit"], true],
+      ["Rent", ["6/6 gold"], true],
+      ["Axe", ["3/6 gold", "3/3 stick"], false],
       ["Increase family wealth", ["0/5 gold"], false],
     ]);
   });
 
   it("counts the pack as collected and only camp as home, and a line is done when it is home", () => {
-    const rows = fillList(list, { feather: 20, fruit: 1 }, { fruit: 11, stick: 3, feather: 10 });
+    const rows = fillList(list, { feather: 20, fruit: 1 }, { fruit: 7, stick: 3, feather: 10 });
     expect(rows.map((r) => r.parts.map((p) => [p.collected, p.atCamp]))).toEqual([
-      [[12, 11]],
-      [[10, 10]],
-      [[8, 0], [3, 3]],
+      [[8, 7]],
+      [[6, 6]],
+      [[6, 4], [3, 3]],
       [[5, 0]],
     ]);
     // The food is one short, and does not hold the rent back from being done.
@@ -238,7 +270,7 @@ describe("the list", () => {
     const input = winter({ fruit: 12, stick: 3 }, 20, 30, 2);
     const m = winterModel(input);
     expect(offeredLines(m).map(lineKey)).toEqual(["food", "rent", "item:axe", "item:cart", "level"]);
-    expect(offeredLines(m).at(-1)).toEqual({ kind: "level", level: 3, gold: C.FAMILY_LEVELS[2]! - 40 });
+    expect(offeredLines(m).at(-1)).toEqual({ kind: "level", level: 3, gold: C.FAMILY_LEVELS[2]! - 48 });
 
     const world = field(10, 10);
     world.family = 30;
@@ -302,8 +334,13 @@ describe("a tired summer", () => {
 describe("what the map does between summers", () => {
   /**
    * Camp's side of a two-tile stream is the near ring. Across it: ten feathers
-   * and four shells. In the ring: three fruit, a sapling, a row of thicket with
-   * gaps to cut, and a lone thicket tile to cut clear of any other.
+   * and four shells. In the ring: three fruit, one shell, a sapling, a row of
+   * thicket with gaps to cut, and a lone thicket tile to cut clear of any
+   * other.
+   *
+   * The shell in the ring is the rule that never means never wherever a node
+   * stands. It is here rather than in a test of its own because what makes it
+   * worth stating is that everything beside it does come back.
    */
   const W = 40;
   const H = 24;
@@ -311,8 +348,15 @@ describe("what the map does between summers", () => {
   const WALL_Y = 16;
   const GAPS = [3, 5, 7, 9, 11, 13, 15];
 
-  function map3(): { world: World; ring: ResourceNode[]; feathers: ResourceNode[]; shells: ResourceNode[] } {
+  function map3(): {
+    world: World;
+    ring: ResourceNode[];
+    ringShell: ResourceNode;
+    feathers: ResourceNode[];
+    shells: ResourceNode[];
+  } {
     const ring = [node("fruit", 4, 8), node("fruit", 6, 8), node("fruit", 8, 8)];
+    const ringShell = node("shell", 12, 8);
     const feathers = Array.from({ length: 10 }, (_, i) => node("feather", 24 + i, 6));
     const shells = Array.from({ length: 4 }, (_, i) => node("shell", 24 + i, 12));
     const world = field(
@@ -325,10 +369,10 @@ describe("what the map does between summers", () => {
         if (x === 4 && y === 20) return "thicket";
         return null;
       },
-      [...ring, ...feathers, ...shells],
+      [...ring, ringShell, ...feathers, ...shells],
     );
     world.tools.add("axe");
-    return { world, ring, feathers, shells };
+    return { world, ring, ringShell, feathers, shells };
   }
 
   function pick(world: World, n: ResourceNode): void {
@@ -353,14 +397,14 @@ describe("what the map does between summers", () => {
   const cut = (world: World, x: number) => world.map.get(x, WALL_Y);
 
   it("plays out over three winters, the same for the same seed and year", () => {
-    const { world, ring, feathers, shells } = map3();
+    const { world, ring, ringShell, feathers, shells } = map3();
     const inRing = (n: ResourceNode) => world.inNearRing(n.x, n.y);
-    expect(ring.every(inRing)).toBe(true);
+    expect([...ring, ringShell].every(inRing)).toBe(true);
     expect([...feathers, ...shells].some(inRing)).toBe(false);
 
     // Summer 1: everything picked, the sapling felled, the gaps and the lone
     // tile cut, and the stream bridged.
-    for (const n of [...ring, ...feathers, ...shells]) pick(world, n);
+    for (const n of [...ring, ringShell, ...feathers, ...shells]) pick(world, n);
     aim(world, 10, 4, 1, 0, C.FELL_TIME + 0.1);
     expect(world.map.get(10, 4)).toBe("grass");
     for (const x of GAPS) aim(world, x, WALL_Y, 0, 1, C.CUT_TIME + 0.1);
@@ -379,6 +423,8 @@ describe("what the map does between summers", () => {
     expect(back(ring)).toBe(3);
     expect(back(feathers)).toBe(5);
     expect(back(shells)).toBe(0);
+    // Everything else in the ring is back; the shell in it is not.
+    expect(back([ringShell])).toBe(0);
     expect(world.map.get(10, 4)).toBe("grass");
     expect(STREAM.map((x) => world.map.get(x, 10))).toEqual(["bridge", "bridge"]);
 

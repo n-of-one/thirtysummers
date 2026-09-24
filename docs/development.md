@@ -17,10 +17,13 @@ npm run map -- 42 --noise               # the landscape alone, with no layout on
 npm run map:check public/maps/x.txt     # does that map still hold the table and the economy?
 ```
 
-The last rows `map:check` prints are the economy: the perfect player of
+The last rows `map:check` prints are the economy: the two players of
 `docs/current/five-summers.md`, played over the map's counts through the
 winter model, with the margin on each row. A number changed in `config.ts`
-shows up there before it shows up in a playtest.
+shows up there before it shows up in a playtest. What they are held to is the
+chain -- which winter opens the shop, buys the axe and buys the cart -- and not
+the gold in that document's tables, which is M10.6's arithmetic and runs a few
+gold high until it lands.
 
 `npm run map` writes the map to stdout and its statistics to stderr, so a
 redirected dump is a map the game can load. Its statistics end with whether

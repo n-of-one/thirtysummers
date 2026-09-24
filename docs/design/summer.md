@@ -83,14 +83,40 @@ what no knife or axe can.
 
 ## What is gathered
 
-Resources form a ladder, and a rung is distance behind barriers. Near camp
-sells for nothing or one, and each barrier out roughly doubles it. Gold is
-currency, never a thing in the ground.
+Gold is currency, never a thing in the ground.
 
-Pure sellables are ordinary things, feathers and shells, about one per
-barrier run. Kinds with a use compete with their price: a stick that sells
-for one and builds a bridge is a choice in the first summer, and a log is a
-choice for years. Bulky kinds take two backpack slots. No rarity for now.
+**What one slot is worth is the number that rises outward.** The pack is what
+the player weighs with when they turn for home, so the thing that has to get
+better further out is what a slot brings back. A slot of the near ring's
+feathers is 5 gold, five to a slot at one each. A slot of shells, behind more
+barriers than anything the first summers reach, is 6. A price itself is a flat
+property of a kind: a shell is worth what a shell is worth wherever it was
+picked up, and nothing is priced by how far out it was found.
+
+**What pushes the family outward is depletion, not price.** A field that is
+worked out is gone, the ordinary kinds come back by half, and the near ring
+pays the upkeep and little more. Every gold above surviving is therefore
+further out, and the prices do not have to say so as well. Prices that doubled
+with each barrier were the earlier answer, from before a field could run dry;
+the line is in
+[../archive/decided-against.md](../archive/decided-against.md).
+
+**Density is how a far field pays for its walk.** What makes a place worth the
+trip is how much of it stands in one spot, so a field is gathered rather than
+swept. A far field with its kinds spread thinly is a walk with a walk inside
+it.
+
+Pure sellables are ordinary things, feathers and shells. Kinds with a use do
+not sell at all: a stick, a vine and a log are what a build is paid in, and
+winter offers no gold for them, so the way to earn is always a field and never
+the material lying in camp. Bulky kinds take two backpack slots. No rarity for
+now.
+
+**Some kinds are a place, not a scatter.** Fruit grows under a tree, several
+to one, each gathered as anything else is. A tree is seen from across the ring,
+so going for food is going somewhere, and the ring's food is a handful of stops
+rather than a sweep of the whole ring. A tree picked bare inside the near ring
+bears again next summer.
 
 **Some kinds lie there rather than grow there.** A feather is one: it is
 drawn the way a dropped item is, small and on its shadow, and a press takes
@@ -119,6 +145,18 @@ the tile ahead.
 - **Planks** laid on mud, one a tile, which the cart can cross. The town
   saws them from logs.
 
+**A trail is worn, not built.** Underbrush walked over enough times is
+trodden down and then gone, one tile at a time, on exactly the tiles the feet
+crossed. It is the one improvement with no key and no cost: the route the
+player already takes becomes the route that is fast, so the trip that felt
+like repetition is the trip that paid for the road. A tile shows its wear
+before it gives way, so a line forming is watched rather than discovered. It
+is underbrush only. Mud is not trodden into anything, because mud is what
+planks are for, and a thicket is a wall, so the knife keeps its job.
+
+The same wear is what the cart's road is made of over the winters, and what
+[winter.md](winter.md) means by a trail forming.
+
 The cache, a box built in the field, is parked in [ideas.md](ideas.md): the
 cart does its job.
 
@@ -141,6 +179,28 @@ A choice does not survive the end of a summer, and the clock runs while the
 menu is open: choosing what to build is part of what a summer is spent on.
 
 What wears, and how fast, is in [winter.md](winter.md).
+
+## The map you have walked
+
+The valley is big enough that a player cannot hold it in their head, and a
+summer that starts on a map indistinguishable from last summer's cannot feel
+like uncovering anything. So the character keeps a map, drawn in a corner of
+the screen, and it holds only ground that has been on screen at some point in
+some summer. Everything else is blank. It fills over a life, and it is the one
+record of where the family has been.
+
+It shows the shape of the land and the things that stand in it: ground and
+water, walls, camp, bridges, wells, the worn trails, and the landmarks. It
+does not show what there is to pick. Remembering that the far bank had
+feathers on it is the player's, and a map that marked every node would answer
+the question the exploring is made of. It is not a screen and it is never
+opened: it sits there, small, and costs no time to look at.
+
+**Landmarks are what the map is read by.** A valley of the same grass cannot
+be remembered, so each part of it has one thing that is nothing but itself: a
+dead tree, a pair of boulders, a pond, a waterfall in a bend. Nothing to pick
+and nothing to build. They are on the drawn map, and they are how a player
+says "past the dead tree" to themselves.
 
 ## Getting it home
 

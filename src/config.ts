@@ -164,15 +164,20 @@ export const BACKPACK_CAPACITY = 10;
 
 // ---------------------------------------------------------------- winter ----
 // What winter costs and what the surplus is worth, from
-// docs/current/five-summers.md: the near ring's feathers pay the rent exactly,
-// its fruit pays the food, and anything for the family comes from across the
-// stream.
+// docs/current/five-summers.md: the near ring's feathers make more than the
+// rent, its four trees hold twice the food a winter eats, and anything for the
+// family comes from across the stream.
 
-/** [DOC] Upkeep is flat for all five winters, since none of the improvements
- * is a structure: the fruit winter eats... */
-export const UPKEEP_FRUIT = 12;
+/**
+ * [DOC] The fruit winter eats...
+ *
+ * These are level 0's row of the upkeep table in five-summers.md, charged flat
+ * every winter. M10.6 turns the two of them into `UPKEEP_BY_LEVEL`, and the
+ * two players' tables in that document are its arithmetic, not this one's.
+ */
+export const UPKEEP_FRUIT = 8;
 /** ...and the rent it wants besides. */
-export const UPKEEP_GOLD = 10;
+export const UPKEEP_GOLD = 6;
 /** [DOC] Extra gold owed for ending the summer away from camp. */
 export const AWAY_GOLD_CHARGE = 3;
 /**
@@ -499,14 +504,24 @@ export const ROUTE_BEND_FROM_FIELD = 30;
  * dry pocket comes back with M12, and the thick wall is parked.
  */
 export const LAYOUT_NODES = {
-  nearRingFruit: 14,
+  nearRingTrees: 4,
   nearRingFeathers: 10,
   standSticks: 6,
   pocketVines: 6,
   featherFieldFeathers: 30,
-  featherFieldFruit: 4,
-  shellFieldShells: 30,
+  featherFieldTrees: 1,
+  shellFieldShells: 10,
 } as const;
+/**
+ * [DOC] Fruit under one tree. A fruit tree is an ordinary tree tile with this
+ * many ordinary fruit nodes on the open grass round it: nothing in the
+ * simulation knows the two belong together, and what says "fruit tree" to the
+ * player is the fruit rather than the tree.
+ *
+ * Four to a tree and four trees is twice what a winter eats, so the ring's
+ * food is four stops rather than a sweep of the whole ring.
+ */
+export const FRUIT_PER_TREE = 4;
 /**
  * Closest two nodes of the near ring may stand, in tiles. The ring is large
  * and its handful of nodes are what there is to find in it, so they are held

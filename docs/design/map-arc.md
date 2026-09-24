@@ -92,8 +92,18 @@ forces new logistics, which is what keeps a life's play changing.
 
 Gold to spare, after upkeep, goes to the family. The family has levels,
 each needing more surplus than the last, accumulated over the summers. A
+level opens the shop's next rows, moves upkeep from fruit toward rent, and at
+one of them the family can pick camp up and move it. A
 stronger family gives the heir a better start, in stats or in tools, or
-more from visiting the grave. A family that misses upkeep does not lose
+more from visiting the grave.
+
+**Camp moves within a life, not only between them.** Once the family can
+afford to, a winter can pitch camp on ground the family has walked, and every
+walk of the summers after it is shorter. It costs what a camp is made of, and
+it costs the old ring, because the ground that comes back every summer is
+whatever the camp reaches without crossing water. So a life has its own small
+version of the move the heir makes, and the heir's move is the same act at a
+larger scale. A family that misses upkeep does not lose
 the run. It gains no strength that winter and plays the next summer tired,
 enough to make upkeep a priority the year after, never enough to end a
 life.

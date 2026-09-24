@@ -19,10 +19,10 @@ further out.
    hydration drains `CART_HYDRATION_MUL` times as fast.
 2. **Rendering** as a prop that moves, depth-sorted with the player, drawn
    to the one-art-pixel rule.
-3. **Trails.** `src/sim/trace.ts` comes back from `itch-publish-1` with its
-   test, less stamina and sprint, and counts the tiles crossed each summer.
-   In `nextSummer`, underbrush crossed more than `TRAIL_CROSSINGS` times turns
-   to grass with `TRAIL_CHANCE`, seeded.
+3. **The cart wears the same trail.** Trails are built in
+   [M10.2](m10-2-trails.md), worn by walking during the summer. A pushed cart
+   adds to the same wear count, faster than feet, so a route the cart is pushed
+   along often becomes its road. Nothing new is needed here but the pusher.
 4. **The field for summer 4.** A second shell field further out along the
    route, larger than the first, through underbrush the cart crawls over,
    and past it, seen and out of reach, a mud flat with the dry pocket
@@ -34,6 +34,6 @@ further out.
   speed, and runs at walking speed on grass and bridge, all read back.
 - It follows a push, keeps its contents across the summer and the winter
   except fruit, and hydration drains faster while pushing.
-- Trails form over three simulated winters on a tile crossed often, and not
-  on one crossed once.
+- A pushed cart wears a tile faster than feet do, and a tile crossed once is
+  unchanged.
 - One summer over the protocol, hauling a parked cart home.

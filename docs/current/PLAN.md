@@ -26,9 +26,17 @@ The progression was then redrawn, on 21 Sep, from playing the winter
 prototype: winter 1 has no shop, and the family's level is what opens it;
 ore is out and shells behind the copse never come back; the cache is parked
 and the cart does its job; and a list the player ticks in winter steers the
-summer. [five-summers.md](five-summers.md) tells it as a story. M10 is now
-the first three years, so they are fun before anything is built on them.
-M10 is built and waiting for review.
+summer. [five-summers.md](five-summers.md) tells it as a story.
+
+**M10 is built and played, and the first three years are not fun yet.** The
+log is in [PLAYTEST.md](PLAYTEST.md) and what it decided is in
+[../rationale/design.md](../rationale/design.md) under "The first three years,
+and what they changed". Year 1 is close. Year 2 is a long walk to the bridge
+and then hauling, with money that does not add up without selling the material
+a bridge is made of, and year 3 is the same walk made longer. Nothing goes on
+top of that, so M10.1 to M10.6 answer the log one change at a time, each played
+and judged on its own before the next one starts. The cart, the well and fruit
+wait behind them.
 
 | Milestone | What it adds | Status |
 |---|---|---|
@@ -37,12 +45,36 @@ M10 is built and waiting for review.
 | QoL | a fixed view, the tile ahead for tools, the last minute with dusk, springs in the reeds, banking fruit, pause | done |
 | M9: the map | saplings, wells, caches, seven resources, the build menu, the layout pass | done |
 | The pack | camp as the first cache, the transfer panel, dropping a kind on the ground | done |
-| [M10: the first three years](m10-three-years.md) | the map for summers 1 to 3, the winter screen, the shop by family level, the list, the map between summers | in review |
-| [M11: the cart](m11-cart.md) | summer 4: the logistics experiment, and trails | not started |
+| M10: the first three years | the map for summers 1 to 3, the winter screen, the shop by family level, the list, the map between summers | done, and played: not fun yet |
+| [M10.1: fruit on trees](m10-1-fruit-trees.md) | the ring's food on four trees, shells at 6, material with no price, the upkeep and axe numbers | not started |
+| [M10.2: trails](m10-2-trails.md) | underbrush worn away by walking over it | not started |
+| [M10.3: the map](m10-3-map.md) | the map in the corner, holding only ground that has been seen | not started |
+| [M10.4: the shape of the ring](m10-4-terrain.md) | landmarks, the island, underbrush in patches | not started |
+| [M10.5: camp that moves](m10-5-camp.md) | a camp pitched on ground the family has walked, granted by a family level | not started |
+| [M10.6: upkeep by level](m10-6-upkeep.md) | a winter asked in fruit when poor and in rent when not | not started |
+| [M11: the cart](m11-cart.md) | summer 4: the logistics experiment, and its road | not started |
 | [M12: planks and the well](m12-planks-well.md) | summer 5: planks on mud, the well, the dry pocket | not started |
 | [M13: fruit](m13-fruit.md) | eating a fruit for a burst of speed, in place of meals | not started |
 
-The order is what each needs from the one before. The pack jumped the queue
+**The order of M10.1 to M10.6** is cheapest first, and what each needs from
+the one before. The trees and the prices come first because every playtest
+after them is read against them, and until they land every session still hits
+the year 2 wall. Trails next, because they are the answer to the complaint that
+was loudest and they cost one array and two thresholds. The map before the
+shape of the ring, because the map is the instrument the ring is then judged
+with, and it is much the cheaper of the two. Camp comes after the map, which is
+where its sites are picked, and after the ring, which is what it would be
+pitched in. Upkeep by level is last because its numbers are chosen against a
+summer that already has the other five in it.
+
+Held in reserve: the cart in summer 2 instead of summer 4, which is the
+designed answer to hauling arriving two summers after hauling breaks. If
+trails and a camp that moves do not fix years 2 and 3, that is the next lever,
+and summers 4 and 5 then need a new opening. It is in
+[../design/ideas.md](../design/ideas.md) with the other answers that were not
+taken.
+
+The order of the rest is what each needs from the one before. The pack jumped the queue
 because it was a dead end rather than a missing feature, and because the map
 could not be played with properly until it was gone. The body comes first,
 because the map is played with it. The map is second, because winter sells
@@ -54,8 +86,8 @@ a `[GUESS]` in `config.ts` unless five-summers.md gives it.
 
 ## Chores
 
-- `src/sim/trace.ts` and its test live only on `itch-publish-1`. M11's
-  trails bring them back to main.
+- `src/sim/trace.ts` and its test live only on `itch-publish-1`. M10.2's
+  trails bring them back to main, if the wear is easier to measure with them.
 
 ## At the end of each milestone
 

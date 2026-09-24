@@ -1,5 +1,5 @@
 import * as C from "../../config.ts";
-import { perfectPlayer, type MapCounts } from "../economy.ts";
+import { perfectPlayer, referencePlayer, type MapCounts } from "../economy.ts";
 import { RESOURCES } from "../resources.ts";
 import type { TileMap } from "../tilemap.ts";
 import type { ResourceKind, ResourceNode } from "../types.ts";
@@ -303,11 +303,17 @@ function countTiles(map: TileMap, cost: Float64Array, kind: string): number {
 }
 
 /**
- * The perfect player over the map's counts, through the winter model: what
- * five-summers.md says the first three winters come to, each with its margin.
+ * The two players over the map's counts, through the winter model: the chain
+ * five-summers.md asks the first winters for, each row with its margin.
+ *
+ * The chain is what is asserted, not the gold in that document's tables: they
+ * are M10.6's arithmetic, and until it lands upkeep is flat at level 0's row,
+ * which runs both families a few gold high. The reference player's family
+ * total is printed for that reason and held to nothing.
  */
 function economyRows(counts: MapCounts): Row[] {
   const [w1, w2, w3] = perfectPlayer(counts, 3);
+  const [r1, r2, r3, r4] = referencePlayer(counts, 4);
   const L = C.FAMILY_LEVELS;
   const ringGold = counts.ringFeathers * RESOURCES.feather.price;
   const shortOnFoot = C.UPKEEP_GOLD + L[0]! - ringGold;
@@ -347,6 +353,28 @@ function economyRows(counts: MapCounts): Row[] {
         `counted ${w3!.counted}, ${w3!.bought.join(", ") || "nothing"} bought` +
         (cart && !cart.bought ? ` (short ${cart.shortGold} gold)` : "") +
         `, left ${w3!.model.left}, family ${w3!.model.family.total}`,
+    },
+    {
+      summer: 1,
+      label: "a reference player reaches level 1 too",
+      ok: r1!.model.family.level >= 1,
+      detail: `counted ${r1!.counted}, family ${r1!.model.family.total}`,
+    },
+    {
+      summer: 2,
+      label: "a reference player buys the axe, and not level 2",
+      ok: r2!.bought.includes("axe") && r2!.model.family.level < 2,
+      detail: `counted ${r2!.counted}, family ${r2!.model.family.total}`,
+    },
+    {
+      summer: 3,
+      label: "the cart is a winter later for them",
+      ok: !r3!.bought.includes("cart") && r4!.bought.includes("cart"),
+      detail:
+        `winter 3 counted ${r3!.counted}, ${r3!.bought.join(", ") || "nothing"} bought, ` +
+        `family ${r3!.model.family.total} (level ${r3!.model.family.level}; ` +
+        `M10.6's upkeep is what makes this one 78 and level 2); ` +
+        `winter 4 ${r4!.bought.join(", ") || "nothing"} bought`,
     },
   ];
 }

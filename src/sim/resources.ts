@@ -28,7 +28,13 @@ export interface ResourceDef {
    * [GUESS] the five.
    */
   stack: number;
-  /** Gold one sells for in winter. */
+  /**
+   * Gold one sells for in winter. Zero for building material: what a bridge
+   * and an axe are made of has no buyer, so the gold on the list can only come
+   * from a field. The keep-or-sell column is still drawn, and a kind at zero
+   * simply makes the choice for the player -- which is also what keeps putting
+   * a price back on material to one number.
+   */
   price: number;
   returns: Returns;
   /**
@@ -74,7 +80,12 @@ export const isMaterial = (kind: ResourceKind): boolean => RESOURCES[kind].use =
  * first, then out along the ladder. [DOC] the kinds, where they grow, which
  * come back, the prices, the log's two slots and the feather's stack, from
  * docs/current/five-summers.md and docs/design/. [GUESS] ore's price: it is
- * placed nowhere until M12.
+ * placed nowhere until M12, and it is due the same per-slot look before it is.
+ *
+ * The one rule the prices follow is that what rises with distance is what a
+ * slot brings home, never the price of a kind: a slot of shells is 6 against
+ * a slot of feathers at 5, and it is a walk of about 100 tiles each way.
+ * `tests/winter.test.ts` holds the table to it so it cannot drift.
  *
  * The vine grows in the mud pocket that is its barrier, so a `y` means mud
  * under it; everything else stands on grass.
@@ -82,11 +93,11 @@ export const isMaterial = (kind: ResourceKind): boolean => RESOURCES[kind].use =
 export const RESOURCES: Record<ResourceKind, ResourceDef> = {
   fruit: def("fruit", "f", "grass", 1, 1, "slowly", "food"),
   feather: def("feather", "p", "grass", 1, 1, "slowly", "money", 5, true),
-  stick: def("stick", "s", "grass", 1, 1, "yearly", "material"),
-  vine: def("vine", "y", "mud", 1, 1, "yearly", "material"),
+  stick: def("stick", "s", "grass", 1, 0, "yearly", "material"),
+  vine: def("vine", "y", "mud", 1, 0, "yearly", "material"),
   ore: def("ore", "v", "grass", 1, 2, "never", "money"),
-  log: def("log", "l", "grass", 2, 1, "never", "material"),
-  shell: def("shell", "h", "grass", 1, 2, "never", "money"),
+  log: def("log", "l", "grass", 2, 0, "never", "material"),
+  shell: def("shell", "h", "grass", 1, 6, "never", "money"),
 };
 
 export const RESOURCE_KINDS: readonly ResourceKind[] = Object.keys(RESOURCES) as ResourceKind[];

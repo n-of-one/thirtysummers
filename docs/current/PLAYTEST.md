@@ -22,7 +22,41 @@ Play it blind. Do not open a map file, and leave the debug overlay shut
 until the session is over. The seed box and the teleport are for building,
 not for playing.
 
-No entries yet.
+## M10, the first three years, 23 Sep 2026
+
+**Map** seeds, not noted · **Summers played** 1 to 3 · **Who played** Erik ·
+**Watched by** nobody · **Build**: M10 as its file described it.
+
+Written up from Erik's notes on the session rather than at the keyboard, so it
+is shorter than the template asks for and holds only what he said.
+
+**What happened.**
+
+*Year 1* is all right. The ring inside the stream is explored, and most of the
+work is dodging underbrush so as not to be slowed down. The back and forth to
+camp is bearable. Working out how to build the bridge is the fun part. There is
+a little too much fruit to collect.
+
+*Year 2* is where it breaks down. The walk from camp to the bridge is too far,
+and this is where the exploring is supposed to start. Picking fruit and walking
+it back to camp is a chore within a few trips. It is hard to remember where
+everything is, so it does not feel like uncovering new terrain. With the
+numbers as they were, doing everything in year 2 is not possible: the axe and
+the family's next level together need more than the feathers out there, so the
+balance has to come from selling sticks and vines, which is not what the fields
+are meant to be for.
+
+*Year 3* is more of the same. Too much upkeep, 12 fruit and 10 feathers, before
+any progress can be made, and too much walking back and forth.
+
+**One sentence on how it felt.** The first year works and the second and third
+are a slog.
+
+**What it decided.** The idea is not in question; the first three years are.
+The verdict and the six changes that answer it are in
+[../rationale/design.md](../rationale/design.md) and in
+[PLAN.md](PLAN.md), as M10.1 to M10.6. Nothing goes on top of the first three
+years until they are fun.
 
 ---
 

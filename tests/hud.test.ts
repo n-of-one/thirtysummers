@@ -98,27 +98,27 @@ describe("hudModel", () => {
     w.inventory.add("feather", 4);
     w.inventory.add("fruit", 2);
     const boxes = hudModel(w).list;
-    // Rent takes the first ten feathers at camp, so it is done and stays on
-    // the list as done; the family gets the one left at camp and the four in
+    // Rent takes the first six feathers at camp, so it is done and stays on
+    // the list as done; the family gets the five left at camp and the four in
     // the pack.
     expect(boxes.map((b) => [b.title, b.wants, b.done, b.rows])).toEqual([
-      ["Food", null, false, [{ unit: "fruit", need: 12, collected: 9, atCamp: 7 }]],
-      ["Rent", "10 gold", true, [{ unit: "feathers", need: 10, collected: 10, atCamp: 10 }]],
-      ["Increase family wealth", "10 gold", false, [{ unit: "feathers", need: 10, collected: 5, atCamp: 1 }]],
+      ["Food", null, false, [{ unit: "fruit", need: 8, collected: 8, atCamp: 7 }]],
+      ["Rent", "6 gold", true, [{ unit: "feathers", need: 6, collected: 6, atCamp: 6 }]],
+      ["Increase family wealth", "10 gold", false, [{ unit: "feathers", need: 10, collected: 9, atCamp: 5 }]],
     ]);
   });
 
   it("says what food wants done in words, in the first summer only", () => {
     const w = world();
-    w.store.add("fruit", 5);
+    w.store.add("fruit", 2);
     w.inventory.add("fruit", 4);
     expect(hudModel(w).list.map((b) => b.hint)).toEqual([
-      { find: "find 3", bring: "bring 4 to camp" },
+      { find: "find 2", bring: "bring 4 to camp" },
       null,
       null,
     ]);
     w.inventory.clear();
-    expect(hudModel(w).list[0]!.hint).toEqual({ find: "find 7", bring: null });
+    expect(hudModel(w).list[0]!.hint).toEqual({ find: "find 6", bring: null });
     w.store.add("fruit", 7);
     // Done, so nothing left to say.
     expect(hudModel(w).list[0]!.hint).toBeNull();

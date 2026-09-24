@@ -69,6 +69,16 @@ chosen instead.
   the art felt good. A region is a resource field on the same grass.
 - **A second stat that reacts to time or effort.** It repeats the clock. A
   second stat, if it comes, reacts to place.
+- **Dimming unseen ground in the play view.** The way to show what has been
+  uncovered, in the view the game is actually played in. The view is where the
+  ground ahead is read, and darkening most of it to make a point about memory
+  costs more than it gives. The map in the corner shows the same thing and
+  leaves the view alone.
+- **A map that marks what there is to pick.** It answers the question the
+  exploring is made of. The map shows terrain, built things and landmarks.
+- **Cutting underbrush with the knife.** Underbrush is worn down by walking
+  over it, which is the improvement that costs no key. The knife keeps the
+  thicket.
 
 ## Winter and the economy
 
@@ -77,8 +87,18 @@ chosen instead.
   to the family, which gives surplus a meaning.
 - **A winter clock.** The first notes gave the night about five minutes.
   Winter has no clock and ends when the player starts the next summer.
-- **Upkeep that grows by itself, or that family levels raise.** It rises
-  only when a structure is finished.
+- **Upkeep that grows by itself, or a total that a family level raises.** It
+  grows only when a structure is finished. A level changing what upkeep is
+  asked in, from fruit toward rent, while the total falls, is a different thing
+  and is in: [../design/winter.md](../design/winter.md).
+- **Prices that double with each barrier out.** The first economy made
+  distance pay by pricing the same kind higher further away. Depletion does
+  that job now, so prices are flat properties of a kind and what rises outward
+  is gold per slot.
+- **Selling building material.** Sticks, vines and logs at 1 each made a
+  summer's material worth more than the rent, so the first years could be
+  funded without a field. Material has no price; it stays at camp for the
+  builds it is for.
 - **Missing upkeep ending the run.** It costs one tired summer, with longer
   holds and slower mud, and nothing more.
 - **Missing upkeep slowing the walk on easy ground.** The walk is the part

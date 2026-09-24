@@ -119,8 +119,14 @@ export function layoutSummerWorld(seed: number): GeneratedWorld {
   // the stand holds the sticks and nothing else.
   const walled: readonly (readonly [Vec2, number])[] = [
     [stand, C.STAND_RADIUS + C.STAND_WALL + 1],
+    // Camp's own clearing: a tree planted against the fire would be four fruit
+    // that cost nothing to reach, and the ring's food is meant to be four
+    // stops out in it.
+    [camp, C.CAMP_CLEARING + 2],
   ];
-  nodes.spread("fruit", camp, R - 6, N.nearRingFruit, C.NEAR_RING_SPACING, cy, walled);
+  // The ring's food, before anything else is scattered, so the feathers keep
+  // their distance from the trees rather than the other way about.
+  nodes.plant(stamp, camp, R - 6, N.nearRingTrees, C.NEAR_RING_SPACING, cy, walled);
   nodes.spread("feather", camp, R - 6, N.nearRingFeathers, C.NEAR_RING_SPACING, cy, walled);
   // A stick has to be reachable with a knife alone: saplings are a wall until
   // the axe comes, and a stick boxed in by them is a stick the first summer
@@ -150,8 +156,8 @@ export function layoutSummerWorld(seed: number): GeneratedWorld {
   );
   // Across the stream, and behind the copse.
   const field = C.FEATHER_FIELD_RADIUS - 1;
+  nodes.plant(stamp, featherField, field - 1, N.featherFieldTrees, C.NEAR_RING_SPACING);
   nodes.spread("feather", featherField, field, N.featherFieldFeathers, C.FIELD_SPACING);
-  nodes.spread("fruit", featherField, field, N.featherFieldFruit, C.FIELD_SPACING);
   nodes.spread("shell", shellField, C.SHELL_FIELD_RADIUS - 1, N.shellFieldShells, C.FIELD_SPACING);
 
   // Springs are placed from the finished map with the map file's own seed, so
@@ -451,16 +457,116 @@ class Scatter {
       if (this.taken.has(index)) continue;
       if (this.placed.some((n) => Math.hypot(n.x - x - 0.5, n.y - y - 0.5) < spacing)) continue;
       this.taken.add(index);
-      this.placed.push({
-        id: this.placed.length + 1,
-        kind,
-        x: x + 0.5,
-        y: y + 0.5,
-        z: 0,
-        harvested: false,
-      });
+      this.add(kind, x, y);
       placed++;
     }
     return placed;
   }
+
+  /**
+   * `count` fruit trees inside `radius` of `centre`.
+   *
+   * A fruit tree is a tree tile with {@link C.FRUIT_PER_TREE} ordinary fruit
+   * nodes on the open ground round it. Nothing in the simulation ties the two
+   * together: each fruit is harvested from the tile ahead and comes back like
+   * any other, and what says "fruit tree" to the player is the fruit rather
+   * than the tree, which is drawn like every other tree on the map.
+   *
+   * The arguments are `spread`'s, and hold the trees apart the same way, so
+   * the ring's food is stops rather than a clump.
+   */
+  plant(
+    stamp: Stamp,
+    centre: Vec2,
+    radius: number,
+    count: number,
+    spacing: number,
+    aboveY?: number,
+    avoid: readonly (readonly [Vec2, number])[] = [],
+  ): void {
+    let left = count;
+    for (const at of [spacing, spacing * 0.6, 0]) {
+      if (left <= 0) return;
+      left -= this.attemptTrees(stamp, centre, radius, left, at, aboveY, avoid);
+    }
+  }
+
+  private attemptTrees(
+    stamp: Stamp,
+    centre: Vec2,
+    radius: number,
+    count: number,
+    spacing: number,
+    aboveY: number | undefined,
+    avoid: readonly (readonly [Vec2, number])[],
+  ): number {
+    let placed = 0;
+    for (let tries = 0; placed < count && tries < count * 600; tries++) {
+      const angle = this.rng() * Math.PI * 2;
+      const at = Math.sqrt(this.rng()) * radius;
+      const x = Math.round(centre.x + Math.cos(angle) * at);
+      const y = Math.round(centre.y + Math.sin(angle) * at);
+      if (aboveY !== undefined && y > aboveY) continue;
+      if (avoid.some(([c, r]) => Math.hypot(x - c.x, y - c.y) <= r)) continue;
+      if (!this.canopyOpen(stamp, x, y)) continue;
+      if (this.placed.some((n) => Math.hypot(n.x - x - 0.5, n.y - y - 0.5) < spacing)) continue;
+      stamp.set(x, y, "tree");
+      this.taken.add(y * this.map.width + x);
+      for (const [dx, dy] of CANOPY.slice(0, C.FRUIT_PER_TREE)) {
+        this.taken.add((y + dy) * this.map.width + (x + dx));
+        this.add("fruit", x + dx, y + dy);
+      }
+      placed++;
+    }
+    return placed;
+  }
+
+  /**
+   * Is this a site for a tree: open grass with open grass on all eight sides,
+   * none of it spoken for and none of it the cart's road?
+   *
+   * All eight, not only the sides the fruit stand on, for two reasons. The
+   * ring of ground round the trunk is then joined to itself, so every fruit is
+   * walked to rather than looked at from across a wall; and a trunk dropped
+   * into a gap in the trees is a tree in a clearing rather than one more tree
+   * in a wood.
+   */
+  private canopyOpen(stamp: Stamp, x: number, y: number): boolean {
+    for (let dy = -1; dy <= 1; dy++) {
+      for (let dx = -1; dx <= 1; dx++) {
+        const nx = x + dx;
+        const ny = y + dy;
+        const index = ny * this.map.width + nx;
+        if (this.map.get(nx, ny) !== "grass") return false;
+        if (this.taken.has(index) || stamp.route.has(index)) return false;
+      }
+    }
+    return true;
+  }
+
+  private add(kind: ResourceKind, x: number, y: number): void {
+    this.placed.push({
+      id: this.placed.length + 1,
+      kind,
+      x: x + 0.5,
+      y: y + 0.5,
+      z: 0,
+      harvested: false,
+    });
+  }
 }
+
+/**
+ * Where a tree's fruit stand, in the order they are used: the four sides
+ * first, then the corners, so four fruit is a ring round the trunk.
+ */
+const CANOPY: readonly (readonly [number, number])[] = [
+  [0, -1],
+  [1, 0],
+  [0, 1],
+  [-1, 0],
+  [1, -1],
+  [1, 1],
+  [-1, 1],
+  [-1, -1],
+];

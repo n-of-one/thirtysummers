@@ -5,6 +5,7 @@ import { layoutSummerWorld } from "../src/sim/worldgen/layout.ts";
 import { nearRing } from "../src/sim/worldgen/reachability.ts";
 import { checkRows, cutsFromCamp, THIN_CUTS } from "../src/sim/worldgen/rows.ts";
 import { formatMap, parseMap } from "../src/sim/mapfile.ts";
+import type { Vec2 } from "../src/sim/types.ts";
 import type { GeneratedWorld } from "../src/sim/worldgen.ts";
 
 /**
@@ -24,6 +25,40 @@ const mapFor = (n: number): GeneratedWorld => {
   const made = layoutSummerWorld(n);
   built.set(n, made);
   return made;
+};
+
+const key = (x: number, y: number) => `${x},${y}`;
+const tileKey = (n: { x: number; y: number }) => key(Math.floor(n.x), Math.floor(n.y));
+
+/** The eight tiles round one, the ground a tree's fruit stands on. */
+const around = (x: number, y: number): Vec2[] => {
+  const out: Vec2[] = [];
+  for (let dy = -1; dy <= 1; dy++) {
+    for (let dx = -1; dx <= 1; dx++) {
+      if (dx !== 0 || dy !== 0) out.push({ x: x + dx, y: y + dy });
+    }
+  }
+  return out;
+};
+
+/**
+ * The fruit trees, found the way a player finds them: a tree with its fruit
+ * under it. Nothing in the data says a tree and a fruit belong together, so
+ * this is a tree tile with exactly `FRUIT_PER_TREE` fruit round it. A tree the
+ * landscape happened to grow near one touches at most one, since the ground
+ * all round a planted trunk is open.
+ */
+const fruitTrees = (world: GeneratedWorld): { at: Vec2; fruit: Vec2[] }[] => {
+  const fruit = new Set(world.nodes.filter((n) => n.kind === "fruit").map(tileKey));
+  const out: { at: Vec2; fruit: Vec2[] }[] = [];
+  for (let y = 0; y < world.map.height; y++) {
+    for (let x = 0; x < world.map.width; x++) {
+      if (world.map.get(x, y) !== "tree") continue;
+      const under = around(x, y).filter((t) => fruit.has(key(t.x, t.y)));
+      if (under.length === C.FRUIT_PER_TREE) out.push({ at: { x, y }, fruit: under });
+    }
+  }
+  return out;
 };
 
 describe("the five-summer layout", () => {
@@ -71,12 +106,59 @@ describe("the five-summer layout", () => {
         (n.kind === "fruit" || n.kind === "feather") &&
         onFoot[Math.floor(n.y) * world.map.width + Math.floor(n.x)] === 0,
     );
-    expect(inRing.length).toBe(C.LAYOUT_NODES.nearRingFruit + C.LAYOUT_NODES.nearRingFeathers);
-    for (const a of inRing) {
-      for (const b of inRing) {
-        if (a.id === b.id) continue;
-        expect(Math.hypot(a.x - b.x, a.y - b.y)).toBeGreaterThanOrEqual(C.NEAR_RING_SPACING);
+    expect(inRing.length).toBe(
+      C.LAYOUT_NODES.nearRingTrees * C.FRUIT_PER_TREE + C.LAYOUT_NODES.nearRingFeathers,
+    );
+
+    // What is held apart is the stops, not the nodes: a tree's four fruit are
+    // meant to stand together, and that is the whole point of the tree. So
+    // every fruit answers for its trunk, and a feather for itself. The spacing
+    // loses a tile that way, since a feather keeps its distance from the fruit
+    // rather than from the trunk they hang on.
+    const trunk = new Map<string, Vec2>();
+    for (const tree of fruitTrees(world)) {
+      for (const f of tree.fruit) trunk.set(key(f.x, f.y), tree.at);
+    }
+    const stops = new Map<string, Vec2>();
+    for (const n of inRing) {
+      const at = trunk.get(tileKey(n)) ?? { x: Math.floor(n.x), y: Math.floor(n.y) };
+      stops.set(key(at.x, at.y), at);
+    }
+    expect(stops.size).toBe(C.LAYOUT_NODES.nearRingTrees + C.LAYOUT_NODES.nearRingFeathers);
+    for (const a of stops.values()) {
+      for (const b of stops.values()) {
+        if (a === b) continue;
+        expect(Math.hypot(a.x - b.x, a.y - b.y)).toBeGreaterThanOrEqual(C.NEAR_RING_SPACING - 1);
       }
+    }
+  });
+
+  it.each(SEEDS)("hangs every fruit on a tree, on open ground, reachable on foot (seed %i)", (seed) => {
+    const world = mapFor(seed);
+    const trees = fruitTrees(world);
+    const onFoot = cutsFromCamp(world, { bridge: false, fell: false });
+    const N = C.LAYOUT_NODES;
+
+    expect(trees.length).toBe(N.nearRingTrees + N.featherFieldTrees);
+    // Every fruit on the map is under one of them: no fruit is scattered any
+    // more, and no tree has lost one to the ground it stands on.
+    const under = new Set(trees.flatMap((t) => t.fruit.map((f) => key(f.x, f.y))));
+    expect(world.nodes.filter((n) => n.kind === "fruit").map(tileKey).sort()).toEqual(
+      [...under].sort(),
+    );
+
+    // Four open tiles each, and every one of them walked to on foot with
+    // nothing cut: the ring's food is four stops, not a wall to be opened.
+    // Across the stream the same trunk is behind the bridge, which is what
+    // makes it summer 2's.
+    const cost = (f: Vec2) => onFoot[f.y * world.map.width + f.x]!;
+    const inRing = trees.filter((t) => t.fruit.every((f) => cost(f) === 0));
+    expect(inRing.length).toBe(N.nearRingTrees);
+    for (const tree of trees) {
+      for (const f of tree.fruit) expect(world.map.get(f.x, f.y)).toBe("grass");
+    }
+    for (const tree of trees.filter((t) => !inRing.includes(t))) {
+      expect(tree.fruit.every((f) => cost(f) === Infinity)).toBe(true);
     }
   });
 
@@ -121,7 +203,7 @@ describe("the five-summer layout", () => {
     const N = C.LAYOUT_NODES;
 
     expect(at(bridged, "feather") - at(home, "feather")).toBe(N.featherFieldFeathers);
-    expect(at(bridged, "fruit") - at(home, "fruit")).toBe(N.featherFieldFruit);
+    expect(at(bridged, "fruit") - at(home, "fruit")).toBe(N.featherFieldTrees * C.FRUIT_PER_TREE);
     expect(at(bridged, "shell")).toBe(0);
     expect(at(felled, "shell")).toBe(N.shellFieldShells);
     expect(world.nodes.filter((n) => n.kind === "ore")).toEqual([]);

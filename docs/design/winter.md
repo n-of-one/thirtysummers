@@ -7,9 +7,10 @@ five summers are in [../current/five-summers.md](../current/five-summers.md).
 ## What the map does without you
 
 **What comes back depends on where it is.** Everything in the inner ring,
-inside the first stream, is back every summer: fruit, feathers, sticks where
-saplings stand, vines in the mud. That is the safe option, and it is set to
-pay the upkeep and little more. Beyond the first stream the ordinary things,
+which is what camp reaches without crossing water, is back every summer:
+fruit, feathers, sticks where saplings stand, vines in the mud. That is the
+safe option, and it is set to pay the upkeep and little more. The ring is
+measured from wherever camp stands, so moving camp moves it. Beyond the first stream the ordinary things,
 fruit and feathers, come back by half of what was picked. The valuable
 finds, shells and ore, do not come back at all: a field worked out is gone,
 and the family is driven outward to find the next one. Play is never
@@ -31,30 +32,45 @@ describes.
 by spring. Camp keeps the lot. What keeps where is in
 [summer.md](summer.md), under *Getting it home*.
 
-**Trails form.** Underbrush the family crosses often turns to grass over the
-winters, gradually and with some chance, not every tile walked and not all at
-once. The route the player prefers becomes the road, without a tool.
+**Trails stay.** Underbrush is trodden down and worn away by walking over it,
+during the summer, on the tiles the feet actually crossed, as
+[summer.md](summer.md) describes. Winter does not undo it: a worn tile is
+ground now, and the cart's road over the years is made of the same wear. What
+a winter does to a trail is nothing at all, which is what makes walking the
+same line worth doing.
 
 ## Winter
 
 Winter is a screen, not a place. There is no clock. It shows what came home,
-what winter costs, what the town sells, and a button for the next summer.
+what winter costs, what the town sells, where camp could stand, and a button
+for the next summer.
 Nothing about winter is announced during the summer except the list the
 player made on this screen.
 
 In order:
 
-1. **Keep or sell.** Camp holds everything stored there and everything
-   carried when the clock stopped, building material included. The player
-   chooses what to keep for tools and improvements: sticks and vines for a
-   bridge, logs for the cart or a well. What is kept stays at camp for next
-   summer. The rest sells at the ladder's prices, and the sum is shown with
-   its breakdown.
-2. **Upkeep.** Winter needs a number of fruit and a number of gold. Fruit
-   comes from camp. If there is not enough, the shortfall is bought from
-   the town at its price. If there is too much, the surplus sells like
-   anything else. Gold comes off what was earned. Ending the summer away from
-   camp adds to the gold owed.
+1. **What sold.** Camp holds everything stored there and everything carried
+   when the clock stopped. Feathers, shells and ore sell, and the sum is shown
+   with its breakdown. Building material does not sell at any price: sticks,
+   vines and logs stay at camp for the builds they are for, so there is
+   nothing to choose here and no way to earn by carrying home the things a
+   bridge is made of.
+2. **Upkeep.** Winter needs a number of fruit and a number of gold, and what
+   it needs depends on how the family lives. A family with nothing eats what
+   is picked: much fruit, little rent. A family with standing buys its food:
+   less fruit each winter, more gold. The total never grows, and measured in
+   backpack slots it shrinks, so a level is never a heavier winter. What it
+   does is move the winter off the ground near camp and onto the money that
+   only comes from further out, which is the direction everything else in the
+   game points. Fruit comes from camp, a shortfall is bought from the town at
+   its price, and a surplus sells like anything else. Gold comes off what was
+   earned. Ending the summer away from camp adds to the gold owed.
+
+   Near camp always covers the food, so nothing about upkeep is ever a trap.
+   The rent, at the levels where it is large, is more than the ring's feathers
+   make, and that is the point of it. A winter that went unpaid asks for the
+   level below next year, so a bad year lowers the bar rather than raising it,
+   and a run cannot spiral out on upkeep alone.
 3. **The shop.** What the town sells, with prices: tools, gear, and the
    things that need something carried home before the town will make them.
    Greyed when unaffordable. The town deals with a family of standing, so
@@ -67,8 +83,24 @@ In order:
 4. **The family.** Gold does not carry across winters. Whatever is left goes
    to the family, and the family has levels: each level needs more surplus
    than the last, accumulated over the summers. A level opens more of the
-   shop. It never raises upkeep. It gives the surplus a meaning, and it is
-   what the map arc calls family strength.
+   shop, changes how the winter is paid for, and at one of them the family
+   learns it can move. It never makes a winter cost more than the one before.
+   It gives the surplus a meaning, and it is what the map arc calls family
+   strength.
+5. **Where camp stands.** Once the family is strong enough to pick up and
+   move, winter is where they do it. The screen offers the ground the family
+   has walked, and the player pitches camp on one of the places that will
+   hold one: open ground, within reach of water, with food growing round it.
+   It costs material, which is one of the things material is for. What camp
+   kept comes along.
+
+   Moving camp is a trade and not a shortcut. Everything a camp can reach
+   without crossing water comes back every summer, so a camp on the far bank
+   makes the far bank the ground that renews and leaves the old ring to the
+   half returns. It shortens every walk of the coming summers and it hands
+   the summers behind it back to the valley. The same move, made once a
+   generation, is what [map-arc.md](map-arc.md) describes between lives; this
+   is the smaller version of it, inside one.
 
 Spending in the shop and giving to the family pull against each other, and
 that is meant: an axe bought this winter is gold the family does not get,
@@ -77,8 +109,10 @@ decides the level it is read from, because the stock is fixed at the level
 the winter began with, so a purchase can never close the shop it was made
 in.
 
-Upkeep rises only when a structure is finished, because the works have to be
-supplied. Bridges and wells are not structures.
+Upkeep grows only when a structure is finished, because the works have to be
+supplied. Bridges and wells are not structures. A family level never grows it;
+it moves what upkeep is asked in, from fruit toward gold, and the total it
+asks for falls.
 
 ## The list
 
@@ -96,9 +130,9 @@ The list is filled from the top: food in fruit, then rent, then each ticked
 item, then the family's next level. Money is one pot, taken in that order.
 An item's material is counted in kind, the axe's sticks as sticks. Gold is
 counted from the money gathered, feathers and shells at what winter will
-sell them for, and a gold amount says what it is in feathers: rent is 10
-gold, which is 10 feathers. Selling building material does not tick
-anything: it is not meant to be the way to earn.
+sell them for, and a gold amount says what it is in feathers: a rent of 10
+gold is ten feathers. Building material does not sell, so nothing it is
+carried home for ticks a gold box.
 
 Every box looks the same, so the player picks the order. Each amount is a
 row of squares, one per item: green at camp, amber carried, empty still to

@@ -343,7 +343,7 @@ describe("the next summer", () => {
     expect(world.dropped).toHaveLength(0);
   });
 
-  it("regrows every node, refills hydration and restarts the clock", () => {
+  it("leaves what never comes back, refills hydration and restarts the clock", () => {
     const world = played();
     world.stats.hydration = 3;
     world.elapsedSec = C.SUMMER_LENGTH_SEC;
@@ -351,7 +351,10 @@ describe("the next summer", () => {
 
     world.nextSummer();
 
-    expect(world.nodes.every((n) => !n.harvested)).toBe(true);
+    // The one node here is ore, which never comes back. Camp is beside it, so
+    // it is inside the near ring, and never means never wherever it stands.
+    // What does come back is three winters of it in tests/winter.test.ts.
+    expect(world.nodes.every((n) => n.harvested)).toBe(true);
     expect(world.stats.hydration).toBe(C.HYDRATION_MAX);
     expect(world.elapsedSec).toBe(0);
     expect(world.remainingSec).toBe(C.SUMMER_LENGTH_SEC);

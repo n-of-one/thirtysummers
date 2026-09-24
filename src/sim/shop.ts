@@ -48,7 +48,7 @@ const item = (
  * Level 3 opens the well and planks, which come with M12.
  */
 export const SHOP: readonly ShopItem[] = [
-  item("axe", "buy", "Axe", "Fells saplings for logs", 1, 8, { stick: 3 }),
+  item("axe", "buy", "Axe", "Fells saplings for logs", 1, 6, { stick: 3 }),
   item("cart", "buy", "Cart", "Hauls a load home over grass and bridge", 2, 20, { log: 6 }),
 ];
 

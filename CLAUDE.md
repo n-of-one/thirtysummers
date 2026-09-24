@@ -72,7 +72,12 @@ approval, so keep the work where it is visible.
   cannot, and every such command costs Erik an approval, while the editing
   tools cost none. This holds however small the edit is -- a one-character
   change is a reason to use the editing tool, not an excuse to reach for
-  `sed`. Reading is different: `cat`, `sed -n`, `grep` and `find` are fine.
+  `sed`.
+- Read files with the Read tool and search them with the Grep and Glob tools,
+  never with `cat`, `sed -n`, `head`, `grep` or `find` through the shell. The
+  reason is the same one: a shell command costs Erik an approval and the
+  dedicated tools cost none. The shell is for running things -- `npm`, `git`,
+  the driver scripts -- not for looking at the tree.
 - One command per call, and nothing in it the harness cannot read literally.
   `$?`, other shell expansions, and several commands strung together with
   `&&` or `;` make the call unverifiable, and then it costs Erik an approval.

@@ -13,8 +13,8 @@ one up means refining it into a design document first. Rejected ideas are in
   resources sit near it.
 - How town strength carries into the next map's outpost. Perhaps a stronger
   town makes an outpost with better benefits in the next map's winters.
-- What family levels unlock beyond the shop: the heir's starting stats or
-  tools, more from the grave.
+- What family levels unlock beyond the shop, upkeep's shape and the camp
+  site: the heir's starting stats or tools, more from the grave.
 - What else changes with age besides summer length. Walking speed and the
   length of a hold are the candidates. Old characters drink less and tire
   more, young ones the reverse.
@@ -46,6 +46,29 @@ one up means refining it into a design document first. Rejected ideas are in
   current and washes up on a bank further down. The half circle round camp
   would carry felled logs home without a cart: logistics made of the map
   itself, and a reason to fell upstream.
+- **The stream as a conveyor.** The same idea for everything, not only logs:
+  anything put in running water drifts down and collects in a net at camp, so
+  the half circle is a delivery line and a field that touches water is worth
+  more than one that does not. Offered as an answer to the hauling in years 2
+  and 3, and not taken: trails and a camp that moves were taken instead.
+- **The cart, two summers earlier.** Bought with gold alone in winter 2, since
+  hauling is what breaks in summer 2 and the cart is the designed answer to
+  hauling. Held back as the reserve lever: if trails and a moved camp do not
+  fix years 2 and 3, this is the next thing to try, and summers 4 and 5 then
+  need a new opening.
+- **The cache as the rung below the cart.** Cheap, stationary, built from
+  sticks in an early summer, replaced by the cart later. It was parked because
+  two things that nearly do one job is one too many to learn, which only holds
+  while both exist at once.
+- **Someone who carries.** A dog, or the child once there is one, following at
+  a distance with a few slots of their own.
+- **Fruit that spoils in the pack.** Food becomes the first trip's job and
+  money the last trip's, which shapes the order of a summer without adding
+  work to it.
+- **The town's buyer on the road.** A peddler who walks the valley once a
+  summer, so where you meet them is where you sell. It breaks the rule that
+  camp sells nothing and everything is sold in winter, which is why it is only
+  an idea.
 - **Banking you can see.** When a load is stored at camp, a square flies
   from the player to the list and turns green where it lands, so bringing it
   home is watched rather than read.
