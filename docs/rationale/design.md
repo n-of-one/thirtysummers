@@ -106,7 +106,12 @@ summers 4 and 5, two summers after the problem. Underbrush worn down by feet
 puts the answer in the first summer and costs nothing to learn: the repetition
 is what makes the road. It is held to underbrush so the knife keeps the
 thicket and planks keep the mud, and to the tiles actually walked, so a route
-is a decision and not a radius.
+is a decision and not a radius. The first crossing already marks a tile and
+makes it a little faster, and the second turns it to grass. With wear that
+only showed after several crossings, the player would have to walk the same
+tiles again by luck before learning that walking changes the ground, and the
+lesson would come too late to plan with. Seen on the first trip, the line is
+something to aim for on the way back.
 
 **The map in the corner.** Nothing recorded what the player had seen, so
 nothing could feel uncovered even when it was. Dimming unseen ground in the

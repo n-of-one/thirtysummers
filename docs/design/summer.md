@@ -145,13 +145,14 @@ the tile ahead.
 - **Planks** laid on mud, one a tile, which the cart can cross. The town
   saws them from logs.
 
-**A trail is worn, not built.** Underbrush walked over enough times is
-trodden down and then gone, one tile at a time, on exactly the tiles the feet
-crossed. It is the one improvement with no key and no cost: the route the
-player already takes becomes the route that is fast, so the trip that felt
-like repetition is the trip that paid for the road. A tile shows its wear
-before it gives way, so a line forming is watched rather than discovered. It
-is underbrush only. Mud is not trodden into anything, because mud is what
+**A trail is worn, not built.** Underbrush walked over is trodden down and
+then gone, one tile at a time, on exactly the tiles the feet crossed. It is
+the one improvement with no key and no cost: the route the player already
+takes becomes the route that is fast, so the trip that felt like repetition is
+the trip that paid for the road. The first walk over a tile already treads it:
+it looks trodden and is a little easier to push through, so the player sees
+their own line behind them on the first trip and can choose to walk it again.
+Walked once more, it gives way to grass. It is underbrush only. Mud is not trodden into anything, because mud is what
 planks are for, and a thicket is a wall, so the knife keeps its job.
 
 The same wear is what the cart's road is made of over the winters, and what
