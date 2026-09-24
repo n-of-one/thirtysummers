@@ -130,6 +130,13 @@ export const DIRT_NARROW: readonly NarrowTile[] = [
  */
 export const THICKET_TINT = [0x52, 0x66, 0x44] as const;
 
+/**
+ * The multiply for underbrush walked over once: about halfway from
+ * `BRUSH_STENCIL.tint` to none at all, and a little warm, so the growth reads
+ * as pressed into the earth rather than as a lighter kind of plant. [GUESS]
+ */
+export const TRODDEN_TINT = [0xd4, 0xd8, 0xb2] as const;
+
 export const BRUSH_STENCIL = {
   bulk: [47, 90, 50],
   rim: [39, 73, 52],

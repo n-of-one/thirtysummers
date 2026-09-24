@@ -32,6 +32,7 @@ class PlaceholderPack implements AssetPack {
 
   private readonly made: Texture[] = [];
   private readonly terrains = new Map<TerrainKind, Texture[]>();
+  private readonly troddenTiles: Texture[];
   private readonly resources = new Map<ResourceKind, Texture>();
   private readonly droppedArt = new Map<ResourceKind, PropSprite>();
   private readonly walks = new Map<Facing, Texture[]>();
@@ -57,6 +58,10 @@ class PlaceholderPack implements AssetPack {
         Array.from({ length: VARIANTS }, () => this.bake((g) => drawTerrain(g, kind, rng))),
       );
     }
+    const troddenRng = mulberry32(hashString("trodden"));
+    this.troddenTiles = Array.from({ length: VARIANTS }, () =>
+      this.bake((g) => drawTrodden(g, troddenRng)),
+    );
     for (const kind of RESOURCE_KINDS) {
       this.resources.set(kind, this.bake((g) => drawResource(g, kind)));
       this.droppedArt.set(kind, this.bakeDropped(kind));
@@ -135,6 +140,9 @@ class PlaceholderPack implements AssetPack {
   ground(kind: TerrainKind, _mask: number, variant: number, _frame: number): Texture {
     const variants = this.terrains.get(kind)!;
     return variants[variant % variants.length]!;
+  }
+  trodden(_mask: number, variant: number): Texture {
+    return this.troddenTiles[variant % this.troddenTiles.length]!;
   }
   /** Each terrain is already drawn in its own colour. */
   groundTint(_kind: TerrainKind): number {
@@ -284,6 +292,22 @@ function drawTerrain(g: Graphics, kind: TerrainKind, rng: Rng): void {
       g.circle(6.8, 5, 1.6).fill(0x9cc862);
       break;
     }
+  }
+}
+
+/**
+ * Underbrush walked over once: the colour halfway to grass, most of the clumps
+ * pressed flat, and bare earth showing where the feet went.
+ */
+function drawTrodden(g: Graphics, rng: Rng): void {
+  g.rect(0, 0, S, S).fill(0x437234);
+  speckle(g, rng, 8, [0x5c8f45, 0x2b5322]);
+  speckle(g, rng, 6, [0x6a5a3a], 2);
+  for (let i = 0; i < 2; i++) {
+    const x = Math.floor(rng() * (S - 3));
+    const y = 1 + Math.floor(rng() * (S - 4));
+    g.rect(x, y, 3, 2).fill(0x2b5322);
+    g.rect(x + 1, y - 1, 1, 1).fill(0x67a04a);
   }
 }
 

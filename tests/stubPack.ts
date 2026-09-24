@@ -79,6 +79,15 @@ export class StubPack implements AssetPack {
     return this.groundTextures.get(kind)!;
   }
 
+  /** The one trodden texture, and every call for it, like the ground's. */
+  readonly troddenTexture = stubTexture();
+  readonly troddenCalls: { mask: number; variant: number }[] = [];
+
+  trodden(mask: number, variant: number): Texture {
+    this.troddenCalls.push({ mask, variant });
+    return this.troddenTexture;
+  }
+
   groundTint(): number {
     return 0xffffff;
   }

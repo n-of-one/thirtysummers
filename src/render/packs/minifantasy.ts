@@ -23,6 +23,7 @@ import {
   SYNTH_NARROW,
   T,
   THICKET_TINT,
+  TRODDEN_TINT,
   turnPixels,
   WALK_ROWS,
   type NarrowTile,
@@ -215,6 +216,8 @@ class MinifantasyPack implements AssetPack {
   private readonly brush: Texture[][];
   /** The same blocks again, painted darker: the wall version of undergrowth. */
   private readonly thicket: Texture[][];
+  /** And painted lighter: undergrowth walked over and not yet worn through. */
+  private readonly troddenBrush: Texture[][];
   private readonly dirt: Texture[];
   private readonly stone: Texture[];
   private readonly water: Texture[][];
@@ -252,6 +255,11 @@ class MinifantasyPack implements AssetPack {
     // ragged edge the stencil draws into a square.
     this.thicket = Array.from({ length: BLOCK_TILES }, (_, v) =>
       this.brushBlock(v, THICKET_TINT),
+    );
+    // A trail being worn: the same growth, lighter, and the same shapes, so it
+    // meets the undergrowth around it without a seam.
+    this.troddenBrush = Array.from({ length: BLOCK_TILES }, (_, v) =>
+      this.brushBlock(v, TRODDEN_TINT),
     );
     this.dirt = this.block("tiles", ...BLOCK.dirt, this.narrow("tiles", DIRT_NARROW));
     this.stone = this.block("tiles", ...BLOCK.stone, this.synth("tiles", ...BLOCK.stone));
@@ -588,6 +596,10 @@ class MinifantasyPack implements AssetPack {
         return frames[autotileIndex(mask)]!;
       }
     }
+  }
+
+  trodden(mask: number, variant: number): Texture {
+    return this.troddenBrush[variant % BLOCK_TILES]![autotileIndex(mask)]!;
   }
 
   prop(kind: TerrainKind, variant: number): PropSprite | null {

@@ -16,7 +16,7 @@ import type { Recipe, ResourceKind, ResourceNode, Tool, Vec2 } from "./types.ts"
  * tiles it was never about.
  */
 export interface SaveState {
-  v: 2;
+  v: 3;
   fingerprint: string;
   year: number;
   elapsedSec: number;
@@ -38,6 +38,8 @@ export interface SaveState {
   felled: [number, number][];
   /** Tile indices cut, which thicket can creep back onto. */
   cut: number[];
+  /** Tile index and wear, for every tile walked over, so a half-worn trail survives. */
+  worn: [number, number][];
   wells: [number, number][];
   dropped: [ResourceKind, number, number][];
   /** The summer in numbers, for the winter screen: the event log is not saved. */
@@ -45,10 +47,11 @@ export interface SaveState {
 }
 
 /**
- * The format's version. 2 since camp stopped selling: a version 1 save had its
- * feathers already turned into gold, which a summer no longer has.
+ * The format's version. 3 since trails: a version 2 save has no wear, and
+ * would come back with every half-worn tile forgotten. 2 was camp no longer
+ * selling.
  */
-const VERSION = 2;
+const VERSION = 3;
 
 /**
  * A short hash of a map as it came: its terrain, its nodes and its camp. Two

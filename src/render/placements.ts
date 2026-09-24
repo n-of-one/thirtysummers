@@ -4,6 +4,7 @@ import type { Dropped, ResourceNode, Spring, Vec2 } from "../sim/types.ts";
 import type { AssetPack, PropSprite } from "./packs/pack.ts";
 import { tileHash } from "./packs/pack.ts";
 import type { ScrollWindow } from "./scrollWindow.ts";
+import type { TroddenAt } from "./tileLayer.ts";
 
 /** One thing to draw standing on the ground, and where it stands. */
 export interface Placement {
@@ -46,6 +47,7 @@ export function* placementsIn(
   springs: readonly Spring[] = [],
   dropped: readonly Dropped[] = [],
   z = 0,
+  trodden: TroddenAt = () => false,
 ): Generator<Placement> {
   const { originX, originY, cols, rows } = window;
 
@@ -60,6 +62,8 @@ export function* placementsIn(
       if (kind !== "tree" && kind !== "underbrush" && kind !== "thicket" && kind !== "sapling") {
         continue;
       }
+      // A bush standing on a trail would say the trail is not there.
+      if (kind === "underbrush" && trodden(tileX, tileY, z)) continue;
       const art = pack.prop(kind, tileHash(tileX, tileY));
       if (!art) continue;
       yield {

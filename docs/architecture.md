@@ -80,7 +80,8 @@ in [development.md](development.md).
 - **`src/sim/`** is the whole game with no renderer. `world.ts` owns
   everything: `world.step(dt, input)`, the tools and recipes owned, the wells
   and what is stored at camp, the items dropped on the ground and the
-  selected kind the drop key throws, `transferTarget()` with `putAway` and
+  selected kind the drop key throws, the wear the player's feet leave on
+  underbrush with `trodden()` for the renderer to read, `transferTarget()` with `putAway` and
   `takeOut` for the transfer panel, and `availableAction`, the one query that
   decides what the interact key does. Between summers it owns the family's
   total, the list and whether the next summer is tired: `winterInput()` is

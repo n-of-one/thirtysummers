@@ -82,6 +82,17 @@ export const WALK_SPEED = 8;
 export const UNDERBRUSH_SPEED_MUL = 0.5;
 export const MUD_SPEED_MUL = 0.3;
 
+/**
+ * [GUESS] Trails. Each time the player's centre walks over an underbrush tile
+ * and leaves it adds one to its wear. At `TRAIL_WEAR_SHOW` it draws as trodden and is pushed
+ * through at `TRAIL_SPEED_MUL`, so the first walk leaves a line that already
+ * pays; at `TRAIL_WEAR_STEPS` it is grass. Low on purpose: the player has to
+ * see what walking does on the first trip, not find out by luck.
+ */
+export const TRAIL_WEAR_SHOW = 1;
+export const TRAIL_WEAR_STEPS = 2;
+export const TRAIL_SPEED_MUL = 0.7;
+
 /** [GUESS] Collision radius of the player, in tiles. */
 export const PLAYER_RADIUS = 0.3;
 

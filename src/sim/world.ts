@@ -204,6 +204,13 @@ export class World {
   /** Thicket tiles cut, by tile index, which the thicket can creep back onto. */
   private readonly cutTiles = new Set<number>();
   /**
+   * How often the player's centre has walked over each underbrush tile, by
+   * tile index. At `TRAIL_WEAR_SHOW` the tile is trodden, at `TRAIL_WEAR_STEPS`
+   * it is grass. Kept across winters: nothing grows back over a trail. The
+   * array is never replaced, so the renderer can hold on to it.
+   */
+  readonly wear: Uint8Array;
+  /**
    * The kind the drop key throws away, or null with an empty pack.
    *
    * Read through {@link dropKind}, which is what keeps it honest: the moment
@@ -291,6 +298,7 @@ export class World {
     this.springs = generated.springs;
     this.player = createPlayer(generated.camp);
     this.ring = nearRing(this.map, this.camp);
+    this.wear = new Uint8Array(this.map.width * this.map.height);
     this.original = this.map.clone();
     this.fingerprint = fingerprint(this.map, this.nodes, this.camp);
   }
@@ -311,8 +319,10 @@ export class World {
     const was = this.original.layerData(0);
     const terrain: [number, number][] = [];
     for (let i = 0; i < now.length; i++) if (now[i] !== was[i]) terrain.push([i, now[i]!]);
+    const worn: [number, number][] = [];
+    for (let i = 0; i < this.wear.length; i++) if (this.wear[i]! > 0) worn.push([i, this.wear[i]!]);
     return {
-      v: 2,
+      v: 3,
       fingerprint: this.fingerprint,
       year: this.year,
       elapsedSec: this.elapsedSec,
@@ -329,6 +339,7 @@ export class World {
       picked: [...this.pickedThisSummer],
       felled: [...this.felledIn],
       cut: [...this.cutTiles],
+      worn,
       wells: this.springs.filter((s) => s.well).map((s) => [s.x, s.y]),
       dropped: this.dropped.map((d) => [d.kind, d.x, d.y]),
       summary,
@@ -366,6 +377,8 @@ export class World {
     for (const [i, year] of state.felled) this.felledIn.set(i, year);
     this.cutTiles.clear();
     for (const i of state.cut) this.cutTiles.add(i);
+    this.wear.fill(0);
+    for (const [i, count] of state.worn) this.wear[i] = count;
     this.year = state.year;
     this.elapsedSec = state.elapsedSec;
     this.awayAtEnd = state.awayAtEnd;
@@ -916,8 +929,36 @@ export class World {
    */
   speed(): number {
     const ground = this.groundUnderPlayer();
+    const trodden = this.trodden(Math.floor(this.player.x), Math.floor(this.player.y), this.player.z);
+    const groundMul = trodden ? C.TRAIL_SPEED_MUL : ground.speedMul;
     const tiredMul = this.tired && ground.difficult ? C.TIRED_ROUGH_MUL : 1;
-    return C.WALK_SPEED * ground.speedMul * tiredMul;
+    return C.WALK_SPEED * groundMul * tiredMul;
+  }
+
+  /** How worn a tile is: how often the player has walked onto it while it was underbrush. */
+  wornAt(x: number, y: number): number {
+    if (x < 0 || y < 0 || x >= this.map.width || y >= this.map.height) return 0;
+    return this.wear[y * this.map.width + x]!;
+  }
+
+  /** Underbrush worn enough to show: drawn trodden and pushed through faster. */
+  trodden(x: number, y: number, z = 0): boolean {
+    return z === 0 && this.map.get(x, y, z) === "underbrush" && this.wornAt(x, y) >= C.TRAIL_WEAR_SHOW;
+  }
+
+  /**
+   * The player's centre has walked over an underbrush tile and left it: one
+   * more crossing.
+   * Enough of them and it is grass, through the same `map.set` as a cut, so it
+   * lands in the save's terrain diff and stays through the winter.
+   */
+  private tread(x: number, y: number): void {
+    const idx = y * this.map.width + x;
+    const wear = Math.min(this.wear[idx]! + 1, 255);
+    this.wear[idx] = wear;
+    const grass = wear >= C.TRAIL_WEAR_STEPS;
+    if (grass) this.map.set(x, y, "grass");
+    this.record({ type: "trodden", x, y, wear, grass });
   }
 
   /**
@@ -1152,6 +1193,8 @@ export class World {
     // into the stream is how a player says which tile they mean.
     player.heading = headingFor(input.moveX, input.moveY);
 
+    const fromX = Math.floor(player.x);
+    const fromY = Math.floor(player.y);
     const distance = this.speed() * dt;
     const travelled = moveWithCollision(
       this.map,
@@ -1165,5 +1208,14 @@ export class World {
     // animation from cycling on the spot.
     player.moving = travelled > 1e-6;
     player.distanceWalked += travelled;
+
+    // A tile is walked over once the centre has left it. Counted on the way in,
+    // the first step onto fresh underbrush would already tread it, and the
+    // player would cross it at the trodden speed before having walked it once.
+    // Moving about inside a tile is not walking over it again.
+    const moved = Math.floor(player.x) !== fromX || Math.floor(player.y) !== fromY;
+    if (moved && player.z === 0 && this.map.get(fromX, fromY) === "underbrush") {
+      this.tread(fromX, fromY);
+    }
   }
 }

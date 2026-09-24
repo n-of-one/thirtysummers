@@ -79,9 +79,10 @@ one up means refining it into a design document first. Rejected ideas are in
   stall where the haul is sold and a house for the family, so the screen
   reads as places rather than tables.
 - **A wider footprint for wear.** Any tile within 2 art pixels of the player's
-  centre counts as walked on, not only the tile under it. Then a tile should
-  count when the centre leaves it rather than enters it, or the footprint
-  treads the next tile before the player has walked onto it.
+  centre counts as walked on, not only the tile under it. Wear already counts
+  a tile when the centre leaves it, so the footprint would have to as well:
+  counted on the way in, it treads the next tile before the player has walked
+  onto it.
 - **Rarity**, once respawning is designed.
 - **Hazards** in the far regions. A still crocodile that bites when walked
   over is the cheapest first one. Monsters, and fighting or recruiting them,

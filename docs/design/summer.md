@@ -149,7 +149,9 @@ the tile ahead.
 then gone, one tile at a time, on exactly the tiles the feet crossed. It is
 the one improvement with no key and no cost: the route the player already
 takes becomes the route that is fast, so the trip that felt like repetition is
-the trip that paid for the road. The first walk over a tile already treads it:
+the trip that paid for the road. A tile is walked over once the feet have
+left it, so fresh underbrush is always crossed at its own pace. The first
+walk over a tile already treads it:
 it looks trodden and is a little easier to push through, so the player sees
 their own line behind them on the first trip and can choose to walk it again.
 Walked once more, it gives way to grass. It is underbrush only. Mud is not trodden into anything, because mud is what

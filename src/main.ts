@@ -108,8 +108,10 @@ view.onScale = (scale) => setResolution(app, scale);
 const pack = await loadAssetPack(app.renderer, params.get("pack") ?? undefined);
 
 const camera = new Camera();
-let tiles = new TileLayer(world.map, pack);
-let props = new PropLayer(world.map, pack, app.renderer);
+/** The world's trails, as the layers ask for them. Bound to one world, since a regenerate replaces it. */
+const troddenIn = (w: World) => (x: number, y: number, z: number) => w.trodden(x, y, z);
+let tiles = new TileLayer(world.map, pack, 0, troddenIn(world));
+let props = new PropLayer(world.map, pack, app.renderer, 0, troddenIn(world));
 // Last, so the marker is over the props: it says "this tile", and a marker a
 // bush can hide is no use on the one terrain that is made of bushes.
 const marker = new TargetMarker();
@@ -186,8 +188,8 @@ function regenerate(nextSeed: number): void {
 
   tiles.destroy();
   props.destroy();
-  tiles = new TileLayer(world.map, pack);
-  props = new PropLayer(world.map, pack, app.renderer);
+  tiles = new TileLayer(world.map, pack, 0, troddenIn(world));
+  props = new PropLayer(world.map, pack, app.renderer, 0, troddenIn(world));
   app.stage.addChild(tiles.container, props.container, marker.container);
   applyViewport();
   camera.centreOn(world.player);
@@ -388,7 +390,13 @@ app.ticker.add(({ deltaMS }) => {
       type === "pickedUp"
     ) {
       props.invalidate();
-    } else if (type === "cut" || type === "built" || type === "felled" || type === "summerStarted") {
+    } else if (
+      type === "cut" ||
+      type === "built" ||
+      type === "felled" ||
+      type === "trodden" ||
+      type === "summerStarted"
+    ) {
       tiles.invalidate();
       props.invalidate();
     } else if (type === "transferOpened") {

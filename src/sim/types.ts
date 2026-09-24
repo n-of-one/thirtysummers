@@ -97,7 +97,7 @@ export type BlockedReason =
  * The world appends and never removes. A reader keeps its own cursor into the
  * list, which is what lets the HUD show toasts and the end-of-summer summary
  * count the summer up without either of them writing back into simulation
- * state. A whole summer produces a few hundred of these, so keeping them all costs nothing.
+ * state. A whole summer produces a few thousand of these, most of them tiles trodden, so keeping them all costs nothing.
  */
 export type WorldEventPayload =
   | { type: "harvested"; kind: ResourceKind }
@@ -110,6 +110,11 @@ export type WorldEventPayload =
   | { type: "built"; x: number; y: number }
   /** A sapling felled with the axe, leaving grass and a log in the pack. */
   | { type: "felled"; x: number; y: number }
+  /**
+   * The player's centre walked over underbrush at (x, y) and left it, which has now been
+   * crossed `wear` times; `grass` when that crossing wore it through.
+   */
+  | { type: "trodden"; x: number; y: number; wear: number; grass: boolean }
   /** A well dug on (x, y), which is a spring from now on. */
   | { type: "dug"; x: number; y: number }
   /** The transfer panel was opened at camp, on (x, y). */

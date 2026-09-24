@@ -15,12 +15,14 @@ mechanism is built and M11 only adds the pusher.
 ## Steps
 
 1. **A wear count per tile.** A `Uint8Array` beside the tile grid in
-   `sim/world.ts`. The player's centre entering a tile it was not on last tick
-   adds one to that tile's count, once per entry, and only if the tile is
-   underbrush. Nothing else adds to it. A centre walked along the seam between
-   two rows enters tiles on both sides, so one pass can wear both rows. That
-   is allowed: it changes nothing that matters, and a player who finds it has
-   earned it.
+   `sim/world.ts`. The player's centre leaving a tile adds one to that tile's
+   count, once each time it leaves, and only if the tile is underbrush. Nothing
+   else adds to it. It is counted on leaving, not on entering: with a tile
+   trodden at one crossing, counting the entry would tread it the moment the
+   centre stepped onto it, and fresh underbrush would never be crossed at its
+   own speed. A centre walked along the seam between two rows moves through
+   tiles on both sides, so one pass can wear both rows. That is allowed: it
+   changes nothing that matters, and a player who finds it has earned it.
 2. **Two thresholds.** At `TRAIL_WEAR_SHOW` the tile draws as trodden
    underbrush and is pushed through at `TRAIL_SPEED_MUL` instead of
    `UNDERBRUSH_SPEED_MUL`, so the first walk already leaves a line and already

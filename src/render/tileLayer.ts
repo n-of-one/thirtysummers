@@ -26,6 +26,9 @@ export function surfaceOf(kind: TerrainKind): TerrainKind {
   return kind;
 }
 
+/** Whether the tile at (x, y, z) is underbrush trodden enough to draw as a trail. */
+export type TroddenAt = (x: number, y: number, z: number) => boolean;
+
 /**
  * Draws one z-layer of the map with a pool of sprites just large enough to
  * cover the screen. Cost is bound to the size of the viewport, not the size of
@@ -45,10 +48,15 @@ export class TileLayer {
   private drawnFrame = -1;
   private dirty = true;
 
+  /**
+   * @param trodden  whether a tile draws as trodden underbrush. The world
+   *                 answers it; the layer only reads.
+   */
   constructor(
     private readonly map: TileMap,
     private readonly pack: AssetPack,
     private readonly z = 0,
+    private readonly trodden: TroddenAt = () => false,
   ) {
     this.container.isRenderGroup = true;
   }
@@ -137,12 +145,10 @@ export class TileLayer {
         const tileX = originX + col;
         const kind = this.map.get(tileX, tileY, this.z);
         const sprite = this.sprites[row * cols + col]!;
-        sprite.texture = this.pack.ground(
-          kind,
-          this.mask(tileX, tileY, kind),
-          tileHash(tileX, tileY),
-          this.frame,
-        );
+        const mask = this.mask(tileX, tileY, kind);
+        sprite.texture = this.trodden(tileX, tileY, this.z)
+          ? this.pack.trodden(mask, tileHash(tileX, tileY))
+          : this.pack.ground(kind, mask, tileHash(tileX, tileY), this.frame);
         sprite.tint = this.pack.groundTint(kind);
       }
     }

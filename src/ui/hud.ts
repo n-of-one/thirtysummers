@@ -319,6 +319,9 @@ export function toastFor(event: WorldEvent): string | null {
     // of a summer says which one it is.
     case "winterEnded":
     case "summerStarted":
+    // A trail is told by the ground under the feet, and a line of toasts for
+    // every tile of it would bury everything else.
+    case "trodden":
       return null;
   }
 }
