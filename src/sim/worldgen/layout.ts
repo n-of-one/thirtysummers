@@ -126,7 +126,7 @@ export function layoutSummerWorld(seed: number): GeneratedWorld {
   ];
   // The ring's food, before anything else is scattered, so the feathers keep
   // their distance from the trees rather than the other way about.
-  nodes.plant(stamp, camp, R - 6, N.nearRingTrees, C.NEAR_RING_SPACING, cy, walled);
+  nodes.plant(stamp, camp, R - 6, N.nearRingTrees, N.nearRingFruit, C.NEAR_RING_SPACING, cy, walled);
   nodes.spread("feather", camp, R - 6, N.nearRingFeathers, C.NEAR_RING_SPACING, cy, walled);
   // A stick has to be reachable with a knife alone: saplings are a wall until
   // the axe comes, and a stick boxed in by them is a stick the first summer
@@ -156,7 +156,14 @@ export function layoutSummerWorld(seed: number): GeneratedWorld {
   );
   // Across the stream, and behind the copse.
   const field = C.FEATHER_FIELD_RADIUS - 1;
-  nodes.plant(stamp, featherField, field - 1, N.featherFieldTrees, C.NEAR_RING_SPACING);
+  nodes.plant(
+    stamp,
+    featherField,
+    field - 1,
+    N.featherFieldTrees,
+    N.featherFieldFruit,
+    C.NEAR_RING_SPACING,
+  );
   nodes.spread("feather", featherField, field, N.featherFieldFeathers, C.FIELD_SPACING);
   nodes.spread("shell", shellField, C.SHELL_FIELD_RADIUS - 1, N.shellFieldShells, C.FIELD_SPACING);
 
@@ -464,44 +471,67 @@ class Scatter {
   }
 
   /**
-   * `count` fruit trees inside `radius` of `centre`.
+   * `count` fruit trees inside `radius` of `centre`, holding `fruit` between
+   * them.
    *
-   * A fruit tree is a tree tile with {@link C.FRUIT_PER_TREE} ordinary fruit
-   * nodes on the open ground round it. Nothing in the simulation ties the two
-   * together: each fruit is harvested from the tile ahead and comes back like
-   * any other, and what says "fruit tree" to the player is the fruit rather
-   * than the tree, which is drawn like every other tree on the map.
+   * A fruit tree is a tree tile with a few ordinary fruit nodes on the open
+   * ground round it. Nothing in the simulation ties the two together: each
+   * fruit is harvested from the tile ahead and comes back like any other, and
+   * what says "fruit tree" to the player is the fruit rather than the tree,
+   * which is drawn like every other tree on the map.
    *
-   * The arguments are `spread`'s, and hold the trees apart the same way, so
-   * the ring's food is stops rather than a clump.
+   * The fruit is shared out unevenly, within the bounds in `config.ts`, so a
+   * tree is a place rather than a counted thing: some are worth the walk and
+   * some are passed by. The rest of the arguments are `spread`'s, and hold the
+   * trees apart the same way, so a field's food is stops rather than a clump.
    */
   plant(
     stamp: Stamp,
     centre: Vec2,
     radius: number,
     count: number,
+    fruit: number,
     spacing: number,
     aboveY?: number,
     avoid: readonly (readonly [Vec2, number])[] = [],
   ): void {
-    let left = count;
+    const share = this.share(count, fruit);
     for (const at of [spacing, spacing * 0.6, 0]) {
-      if (left <= 0) return;
-      left -= this.attemptTrees(stamp, centre, radius, left, at, aboveY, avoid);
+      if (share.length === 0) return;
+      this.attemptTrees(stamp, centre, radius, share, at, aboveY, avoid);
     }
+  }
+
+  /**
+   * `fruit` shared between `trees`, each tree between the bounds in
+   * `config.ts`: everyone gets the minimum, and what is left over is handed
+   * out a fruit at a time to trees with room for one.
+   */
+  private share(trees: number, fruit: number): number[] {
+    const out = Array.from({ length: trees }, () =>
+      Math.min(C.FRUIT_PER_TREE_MIN, Math.floor(fruit / trees)),
+    );
+    let left = fruit - out.reduce((a, b) => a + b, 0);
+    while (left > 0) {
+      const room = out.flatMap((n, i) => (n < C.FRUIT_PER_TREE_MAX ? [i] : []));
+      if (room.length === 0) break;
+      out[room[Math.floor(this.rng() * room.length)]!]!++;
+      left--;
+    }
+    return out;
   }
 
   private attemptTrees(
     stamp: Stamp,
     centre: Vec2,
     radius: number,
-    count: number,
+    share: number[],
     spacing: number,
     aboveY: number | undefined,
     avoid: readonly (readonly [Vec2, number])[],
-  ): number {
-    let placed = 0;
-    for (let tries = 0; placed < count && tries < count * 600; tries++) {
+  ): void {
+    const count = share.length;
+    for (let tries = 0; share.length > 0 && tries < count * 600; tries++) {
       const angle = this.rng() * Math.PI * 2;
       const at = Math.sqrt(this.rng()) * radius;
       const x = Math.round(centre.x + Math.cos(angle) * at);
@@ -512,13 +542,43 @@ class Scatter {
       if (this.placed.some((n) => Math.hypot(n.x - x - 0.5, n.y - y - 0.5) < spacing)) continue;
       stamp.set(x, y, "tree");
       this.taken.add(y * this.map.width + x);
-      for (const [dx, dy] of CANOPY.slice(0, C.FRUIT_PER_TREE)) {
+      for (const [dx, dy] of this.fruitSites(share.shift()!)) {
         this.taken.add((y + dy) * this.map.width + (x + dx));
         this.add("fruit", x + dx, y + dy);
       }
-      placed++;
     }
-    return placed;
+  }
+
+  /**
+   * Where one tree's `count` fruit hang, round the eight tiles of its canopy.
+   *
+   * The five tiles in front of the trunk and beside it are shuffled and taken
+   * first; the three behind it come last. A tree is drawn from the foot of its
+   * trunk upwards, so a fruit north of it is under the canopy and is not seen
+   * until the player has walked past, and up to three fruit are therefore
+   * always in the open. A fourth goes behind the trunk now and then, by
+   * {@link C.FRUIT_BEHIND_CHANCE}, which is what keeps a tree worth walking
+   * round.
+   *
+   * Shuffling the five is the rest of it: fruit at the compass points is a
+   * rosette, and a rosette reads as something that was placed rather than
+   * something that grew.
+   */
+  private fruitSites(count: number): readonly (readonly [number, number])[] {
+    const sites = this.shuffled([...CANOPY_FRONT, ...CANOPY_SIDE]).slice(0, count);
+    if (count > CANOPY_ALWAYS_SEEN && this.rng() < C.FRUIT_BEHIND_CHANCE) {
+      sites[sites.length - 1] = this.shuffled(CANOPY_BEHIND)[0]!;
+    }
+    return sites;
+  }
+
+  private shuffled<T>(items: readonly T[]): T[] {
+    const out = [...items];
+    for (let i = out.length - 1; i > 0; i--) {
+      const j = Math.floor(this.rng() * (i + 1));
+      [out[i], out[j]] = [out[j]!, out[i]!];
+    }
+    return out;
   }
 
   /**
@@ -530,6 +590,11 @@ class Scatter {
    * walked to rather than looked at from across a wall; and a trunk dropped
    * into a gap in the trees is a tree in a clearing rather than one more tree
    * in a wood.
+   *
+   * The row beyond that, to the south, has to be clear of anything drawn as
+   * tall as a tree. A tree is drawn upwards from the foot of its trunk, so a
+   * neighbour standing there would be drawn over the fruit in front of this
+   * one, and the whole point of hanging it there is that it is seen.
    */
   private canopyOpen(stamp: Stamp, x: number, y: number): boolean {
     for (let dy = -1; dy <= 1; dy++) {
@@ -540,6 +605,10 @@ class Scatter {
         if (this.map.get(nx, ny) !== "grass") return false;
         if (this.taken.has(index) || stamp.route.has(index)) return false;
       }
+    }
+    for (let dx = -2; dx <= 2; dx++) {
+      const kind = this.map.get(x + dx, y + 2);
+      if (kind === "tree" || kind === "sapling") return false;
     }
     return true;
   }
@@ -557,16 +626,30 @@ class Scatter {
 }
 
 /**
- * Where a tree's fruit stand, in the order they are used: the four sides
- * first, then the corners, so four fruit is a ring round the trunk.
+ * The eight tiles a tree's fruit can stand on, in three tiers.
+ *
+ * A tree is three tiles wide and four tall, drawn from the foot of its trunk
+ * upwards, so what is north of it is under the canopy and what is south of it
+ * is drawn over the tree. In front is therefore always seen, beside the trunk
+ * is clear of the canopy's bulk, and behind it is hidden until the player
+ * walks round.
  */
-const CANOPY: readonly (readonly [number, number])[] = [
-  [0, -1],
-  [1, 0],
+const CANOPY_FRONT: readonly (readonly [number, number])[] = [
   [0, 1],
-  [-1, 0],
-  [1, -1],
   [1, 1],
   [-1, 1],
+];
+const CANOPY_SIDE: readonly (readonly [number, number])[] = [
+  [1, 0],
+  [-1, 0],
+];
+const CANOPY_BEHIND: readonly (readonly [number, number])[] = [
+  [0, -1],
+  [1, -1],
   [-1, -1],
 ];
+/**
+ * Fruit up to this many is always in the open, however it falls. Three, so a
+ * tree only ever hides its last one, and only when it has four.
+ */
+const CANOPY_ALWAYS_SEEN = 3;

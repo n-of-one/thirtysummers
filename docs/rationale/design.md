@@ -76,10 +76,22 @@ played and judged on its own.
 
 **Fruit on a tree.** Twelve fruit spread across a ring 58 tiles in radius is
 an errand that crosses the whole ring, every summer, before anything else
-happens. The same fruit on four trees is four stops, each of them a place
-rather than a scatter, and the ring's food stops being a sweep. The tree is an
-ordinary tree; what marks it is the four fruit under it. It also makes the
-ring's food a place worth remembering, which is the same problem as the map.
+happens. The same fruit on a handful of trees is a handful of stops, each of
+them a place rather than a scatter, and the ring's food stops being a sweep.
+The tree is an ordinary tree; what marks it is the fruit under it. It also
+makes the ring's food a place worth remembering, which is the same problem as
+the map.
+
+How much hangs on one tree was settled in play: four under every tree made a
+tree a counted thing, so the ring is 15 fruit over 5 trees, two to four each.
+A tree worth the walk and a tree worth passing by is what makes the stop a
+place. Where the fruit hangs was settled the same way: the tiles round the
+trunk are shuffled rather than taken in order, because fruit at the compass
+points is a rosette, and a tree is drawn upwards from the foot of its trunk,
+so the fruit is hung in front of it and beside it first. Only a fourth is ever
+behind the trunk, and then only sometimes -- enough that walking round a tree
+can still turn something up, never so much that a stop looks empty from the
+south.
 
 **What a slot is worth.** Under *Summer*, below. The shell field went from
 30 shells at 2 to 10 at 6 for the same reason: 30 shells is 3 pack loads,

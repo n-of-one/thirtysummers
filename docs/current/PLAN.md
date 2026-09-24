@@ -38,6 +38,12 @@ top of that, so M10.1 to M10.6 answer the log one change at a time, each played
 and judged on its own before the next one starts. The cart, the well and fruit
 wait behind them.
 
+**M10.1 is done**, on 24 Sep. The ring's food is 15 fruit under 5 trees, two to
+four each and hung where they can be seen; a shell is 6 and material sells for
+nothing; upkeep and the axe are at level 0's numbers until M10.6. A winter's
+fruit is a 113-tile round trip of three or four stops, against 150 tiles of
+sweeping the ring. M10.2 is next.
+
 | Milestone | What it adds | Status |
 |---|---|---|
 | Chores | a clean tree to build on | done |
@@ -46,7 +52,7 @@ wait behind them.
 | M9: the map | saplings, wells, caches, seven resources, the build menu, the layout pass | done |
 | The pack | camp as the first cache, the transfer panel, dropping a kind on the ground | done |
 | M10: the first three years | the map for summers 1 to 3, the winter screen, the shop by family level, the list, the map between summers | done, and played: not fun yet |
-| [M10.1: fruit on trees](m10-1-fruit-trees.md) | the ring's food on four trees, shells at 6, material with no price, the upkeep and axe numbers | not started |
+| M10.1: fruit on trees | the ring's food on five trees, shells at 6, material with no price, the upkeep and axe numbers | done |
 | [M10.2: trails](m10-2-trails.md) | underbrush worn away by walking over it | not started |
 | [M10.3: the map](m10-3-map.md) | the map in the corner, holding only ground that has been seen | not started |
 | [M10.4: the shape of the ring](m10-4-terrain.md) | landmarks, the island, underbrush in patches | not started |
@@ -57,8 +63,8 @@ wait behind them.
 | [M13: fruit](m13-fruit.md) | eating a fruit for a burst of speed, in place of meals | not started |
 
 **The order of M10.1 to M10.6** is cheapest first, and what each needs from
-the one before. The trees and the prices come first because every playtest
-after them is read against them, and until they land every session still hits
+the one before. The trees and the prices came first because every playtest
+after them is read against them, and until they landed every session still hit
 the year 2 wall. Trails next, because they are the answer to the complaint that
 was loudest and they cost one array and two thresholds. The map before the
 shape of the ring, because the map is the instrument the ring is then judged

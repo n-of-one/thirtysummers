@@ -24,14 +24,13 @@ the history.
 
 - [current/PLAN.md](current/PLAN.md) is the status and order of the
   milestones, the chores, and what happens at the end of each milestone.
-- [current/m10-1-fruit-trees.md](current/m10-1-fruit-trees.md),
-  [current/m10-2-trails.md](current/m10-2-trails.md),
+- [current/m10-2-trails.md](current/m10-2-trails.md),
   [current/m10-3-map.md](current/m10-3-map.md),
   [current/m10-4-terrain.md](current/m10-4-terrain.md),
   [current/m10-5-camp.md](current/m10-5-camp.md) and
-  [current/m10-6-upkeep.md](current/m10-6-upkeep.md) are the six changes that
-  answer the first playtest of the first three years, built and played one at a
-  time. [current/m11-cart.md](current/m11-cart.md),
+  [current/m10-6-upkeep.md](current/m10-6-upkeep.md) are what is left of the six
+  changes that answer the first playtest of the first three years, built and
+  played one at a time. [current/m11-cart.md](current/m11-cart.md),
   [current/m12-planks-well.md](current/m12-planks-well.md) and
   [current/m13-fruit.md](current/m13-fruit.md) wait behind them. A milestone's
   file is deleted when it is done.

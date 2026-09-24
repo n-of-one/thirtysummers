@@ -165,7 +165,7 @@ export const BACKPACK_CAPACITY = 10;
 // ---------------------------------------------------------------- winter ----
 // What winter costs and what the surplus is worth, from
 // docs/current/five-summers.md: the near ring's feathers make more than the
-// rent, its four trees hold twice the food a winter eats, and anything for the
+// rent, its trees hold about twice the food a winter eats, and anything for the
 // family comes from across the stream.
 
 /**
@@ -504,24 +504,42 @@ export const ROUTE_BEND_FROM_FIELD = 30;
  * dry pocket comes back with M12, and the thick wall is parked.
  */
 export const LAYOUT_NODES = {
-  nearRingTrees: 4,
+  nearRingTrees: 5,
+  nearRingFruit: 15,
   nearRingFeathers: 10,
   standSticks: 6,
   pocketVines: 6,
   featherFieldFeathers: 30,
   featherFieldTrees: 1,
+  featherFieldFruit: 4,
   shellFieldShells: 10,
 } as const;
 /**
- * [DOC] Fruit under one tree. A fruit tree is an ordinary tree tile with this
- * many ordinary fruit nodes on the open grass round it: nothing in the
- * simulation knows the two belong together, and what says "fruit tree" to the
- * player is the fruit rather than the tree.
+ * [DOC] Fruit under one tree. A fruit tree is an ordinary tree tile with a few
+ * ordinary fruit nodes on the open grass round it: nothing in the simulation
+ * knows the two belong together, and what says "fruit tree" to the player is
+ * the fruit rather than the tree.
  *
- * Four to a tree and four trees is twice what a winter eats, so the ring's
- * food is four stops rather than a sweep of the whole ring.
+ * A field's fruit is split between its trees inside these bounds rather than
+ * shared out evenly, because a tree that always holds the same number is a
+ * counted thing and not a place: 15 fruit over 5 trees in the ring is a tree
+ * worth walking to and a tree worth passing by. The total is still about twice
+ * what a winter eats, so the ring's food is a handful of stops rather than a
+ * sweep of the whole ring.
  */
-export const FRUIT_PER_TREE = 4;
+export const FRUIT_PER_TREE_MIN = 2;
+export const FRUIT_PER_TREE_MAX = 4;
+/**
+ * [GUESS] Chance that a tree with more fruit than the ground in front of it can
+ * hold hangs its last one behind the trunk, where the canopy covers it.
+ *
+ * A tree is drawn from the foot of its trunk upwards, so the three tiles north
+ * of it are under the canopy and a fruit there is not seen until the player is
+ * past the tree. Two or three fruit are therefore always in front of it or
+ * beside it; only the fourth is ever hidden, and then only sometimes, so a
+ * tree can still surprise without a stop ever looking empty.
+ */
+export const FRUIT_BEHIND_CHANCE = 0.3;
 /**
  * Closest two nodes of the near ring may stand, in tiles. The ring is large
  * and its handful of nodes are what there is to find in it, so they are held

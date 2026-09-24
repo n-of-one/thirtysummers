@@ -16,7 +16,7 @@ import { initialKeep, levelAt, winterModel, type WinterModel } from "./winter.ts
  * and buys the cart -- and not the gold in that document's two tables. Those
  * were written against the per-level upkeep of M10.6, while upkeep is flat at
  * level 0's row until it lands, so the families run a few gold high. See
- * docs/current/m10-1-fruit-trees.md, step 7.
+ * docs/current/m10-6-upkeep.md, whose step 5 owns the rebalance.
  */
 
 /** What a map offers, counted by where it is. */

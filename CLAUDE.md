@@ -87,6 +87,15 @@ approval, so keep the work where it is visible.
 - Anything long-running goes in the background with its output redirected
   into `tmp/`: the dev server, the headless browser, a summer played out
   over the protocol. A five-minute summer is a background job, not a wait.
+- Never reach the network from the shell. `curl` and `wget` read outside the
+  project, so the harness blocks them and it costs Erik an approval either
+  way. Anything that has to fetch -- checking the dev server is up, a request
+  to the debugger -- goes in a script under `tmp/` and is run with
+  `node tmp/x.mjs`, which is one readable in-project command. The driver
+  scripts already work this way.
+- The dev server answers on `http://localhost:5173`, and only there: Vite
+  binds it to `::1`, so `127.0.0.1` fails to connect. Point the drivers and
+  the headless browser at `localhost`.
 - [docs/development.md](docs/development.md) has the commands themselves.
 
 ## Brainstorms

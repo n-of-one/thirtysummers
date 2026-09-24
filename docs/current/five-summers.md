@@ -43,8 +43,8 @@ age curve can come later without touching logic.
 
 **Summer 1, the tutorial year.** The character wakes at camp inside the half
 circle of stream, with a short list in the corner: 8 fruit at camp, 6 gold
-rent, 10 gold for the family. The ring's food grows under four trees, so food
-is four stops and not a sweep, and the ring's 10 feathers make more than the
+rent, 10 gold for the family. The ring's food grows under five trees, so food
+is a handful of stops and not a sweep, and the ring's 10 feathers make more than the
 rent. Everything the family's level needs is across the stream, in a field of
 feathers, and the first bridge, paid in sticks from behind the stand's thin
 thicket and vines from the mud, is what reaches it. The map in the corner
@@ -114,7 +114,8 @@ Easy ground is walked as fast as ever.
 - **The first stream** is a half circle around camp, 58 tiles out, with
   springs along both sides. Inside it is the near ring.
 - **The near ring** is large, so the first summer is explored rather than
-  swept. Its food is four fruit trees, its feathers are spread across it, its
+  swept. Its food is five fruit trees holding two to four fruit each, its
+  feathers are spread across it, its
   mud pocket is open and the vines in it are only waded to, each of them at
   least two tiles inside the mud so none can be taken from the grass, and a
   thin thicket, about three tiles, walls in the sapling stand where the sticks
@@ -143,7 +144,7 @@ from a field.
 
 | Where | What | Comes back | Price | Slots | Gold a slot |
 |---|---|---|---|---|---|
-| near ring | 4 trees, 4 fruit under each | every year | 1 | 1 | 1 |
+| near ring | 5 trees, 15 fruit between them | every year | 1 | 1 | 1 |
 | near ring | 10 feathers | every year | 1 | 5 to a slot | 5 |
 | sapling stand, behind thin thicket | 6 sticks | every year | no sale | 1 | 0 |
 | mud pocket | 6 vines | every year | no sale | 1 | 0 |
@@ -152,7 +153,7 @@ from a field.
 | behind the copse | 10 shells | never | 6 | 1 | 6 |
 
 The near ring's 10 feathers make 10 gold, more than the rent at the levels a
-first life starts on, and its four trees hold twice the food a winter eats. So
+first life starts on, and its five trees hold about twice the food a winter eats. So
 a summer spent only in the ring is survived, and everything for the family and
 the shop is across the stream. The bridge, about 3 sticks and 3 vines, is what
 makes the first list possible.

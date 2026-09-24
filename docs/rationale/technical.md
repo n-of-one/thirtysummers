@@ -744,6 +744,49 @@ dead straight, with the hedge on it. The row check reported this as "cart
 reaches 36 of 36 uncut", which is the kind of failure that is invisible in a
 screenshot.
 
+**A fruit tree is four things agreeing, and none of them is a data type.** The
+simulation has no such object: a tree tile is terrain, the fruit under it are
+ordinary nodes, and what ties them together is only that they were placed
+together. A node with a count on it was the other way, and it wanted a field on
+`ResourceNode`, a yield on `ResourceDef`, a save version and a rule for
+targeting a node on an impassable tile -- all to buy standing still while the
+holds repeat. Separate nodes also behave better with two slots left: you take
+what fits and the rest is still on the ground.
+
+The cost is that nothing downstream can ask which tree a fruit belongs to. The
+layout's own test therefore finds a tree the way a player does, by clustering
+the fruit and looking for the trunk that touches all of it. That works because
+the clusters are held `NEAR_RING_SPACING` apart and a canopy is under three
+tiles across, so a knot of fruit is never ambiguous. Had the spacing been
+tighter the test could not have been written at all, which is worth knowing
+before the ring's shape changes.
+
+**Where a fruit hangs is decided by how the sprite is drawn, not by the grid.**
+A tree is three tiles wide and four tall, anchored at the foot of its trunk, so
+the three tiles north of it are under the canopy and a fruit there is unseen
+until the player walks round. The canopy is therefore tiered -- in front,
+beside, behind -- and the tiers are shuffled rather than walked in order,
+because fruit at the compass points reads as something placed. Two or three
+fruit are always in the open; only a fourth is ever hidden, and then by chance.
+The same fact caught a second case: a neighbouring tree standing on the row
+south of a fruit is drawn over it just as its own trunk would be, so a tree site
+now needs that row clear of anything tree-tall as well. It was 2 fruit in 1140
+over sixty seeds, which is the sort of number that never shows up in a
+screenshot of one seed.
+
+**An even split makes a stop a count.** Four fruit under every tree was tidy and
+played as arithmetic: two trees is the winter's food, every time. The ring is 15
+over 5 trees, two to four each, handed out at random within those bounds, so
+some trees are worth the walk and some are passed by.
+
+**A trip is measured as a path over the map, not as a walk.** Whether the
+ring's food is a chore is a question about distance, and the honest measure is
+Dijkstra over the generated tiles at the terrain speeds the player actually
+walks, nearest-first from camp and back. A winter's fruit went from 150 tiles
+scattered to 91 at four trees of four, and to 113 at the uneven five -- the
+number that says the stops are choices again rather than a queue. Driving the
+real game for this would have measured the driver's pathfinding.
+
 ## Drawing the new terrain
 
 **A thicket is undergrowth painted darker through the same stencil.** It

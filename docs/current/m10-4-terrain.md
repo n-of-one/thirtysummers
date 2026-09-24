@@ -59,6 +59,6 @@ or just a longer way round? Is the island wanted?
 ## Open
 
 Whether the ring at 58 tiles of radius is still too large once its food is on
-four trees and its underbrush is in patches. The radius is the cheapest dial
+five trees and its underbrush is in patches. The radius is the cheapest dial
 on the map and it is deliberately not touched here, so that the log can say
 whether the shape or the size was the problem.
