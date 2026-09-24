@@ -17,8 +17,8 @@ it says so and points the way home. A summer can also be ended early from
 camp, with a button or a key, once there is nothing left worth doing. A
 summer can be paused, and the window losing focus pauses it.
 
-Speed improvements come from altering the map: a cut path, a bridge, a route
-the cart can run.
+Speed improvements come from altering the map: a cut path, a bridge, a trail
+worn by walking the same way again.
 
 ## The body
 
@@ -27,7 +27,10 @@ One bar, and the clock.
 **Time** is what a summer spends. Rough ground is slow, and the two kinds
 of it are slow to different degrees: underbrush is pushed through at half
 speed, mud is waded at under a third. They are separate barriers, so they
-have to feel separate under the feet.
+have to feel separate under the feet. Underbrush comes in degrees: thin where
+a clearing gives way to it, full further in, and dense near the trees. Thin
+underbrush is walked faster, and walking wears any but the dense kind thinner
+still (see *A trail is worn, not built*, below).
 Every improvement is a hold on a key whose length is its price, so a
 cut path saves next year exactly the seconds it cost this year. Nothing
 else runs down. There is no stamina: the clock already never recovers, is
@@ -69,6 +72,12 @@ first stopped.
 
 The kinds of barrier so far:
 
+- **Underbrush** only slows you down, and less the thinner it is. Walking it
+  wears it into a trail, so the barrier gives way to the route taken.
+- **Dense underbrush** is as slow as full underbrush and walking never wears
+  it; it is not a wall, so there is nothing for the knife to cut. It is the
+  floor of a wood and what grows near the trees, so a way through a wood stays
+  slow however often it is walked.
 - **Mud** only slows you down. It does not block, it annoys and it costs
   time, and both count. It does stop the cart, until planks cover it.
 - **Thicket** is a wall of brambles, cut with the knife a tile at a time.
@@ -116,7 +125,10 @@ now.
 to one, each gathered as anything else is. A tree is seen from across the ring,
 so going for food is going somewhere, and the ring's food is a handful of stops
 rather than a sweep of the whole ring. A tree picked bare inside the near ring
-bears again next summer.
+bears again next summer. A fruit tree stands where trees grow, in dense
+underbrush where there is any, and its fruit on whatever ground is round it;
+what it needs is room, no other tree within two tiles, so every fruit is
+walked to and none is hidden behind a neighbour's canopy.
 
 **Some kinds lie there rather than grow there.** A feather is one: it is
 drawn the way a dropped item is, small and on its shadow, and it is taken the
@@ -151,23 +163,31 @@ the tile ahead.
   saws them from logs.
 
 **A trail is worn, not built.** Underbrush walked over is trodden down a
-stage at a time until it is flat, one tile at a time, on exactly the tiles the
-feet crossed. It is
-the one improvement with no key and no cost: the route the player already
-takes becomes the route that is fast, so the trip that felt like repetition is
-the trip that paid for the road. A tile is walked over once the feet have
-left it, so fresh underbrush is always crossed at its own pace. The first
-walk over a tile already treads it:
-it looks trodden and is a little easier to push through, so the player sees
-their own line behind them on the first trip and can choose to walk it again.
-Each walk after that wears it flatter and faster, until it is flat and
-walked at full speed. Flat is still underbrush, pressed down, so the paths
-the player made read as paths. Walked over once more, a flat tile is grass:
-no faster, but the path is finished. It is underbrush only. Mud is not trodden into anything, because mud is what
-planks are for, and a thicket is a wall, so the knife keeps its job.
+stage at a time, on exactly the tiles the feet crossed. It is the one
+improvement with no key and no cost: the route the player already takes
+becomes the route that is fast, so the trip that felt like repetition is the
+trip that paid for the road.
 
-The same wear is what the cart's road is made of over the winters, and what
-[winter.md](winter.md) means by a trail forming.
+- A tile is walked over once the feet have left it, so fresh underbrush is
+  always crossed at its own pace.
+- The first walk already treads it: it looks trodden and is a little easier
+  to push through, so the player sees their own line behind them on the first
+  trip and can choose to walk it again.
+- Each walk after that wears it flatter and faster, until it is flat and
+  walked at full speed. Flat is still underbrush, pressed down, so the paths
+  the player made read as paths, and a tired summer does not slow it.
+- Walked over once more, a flat tile is grass: no faster, but the path is
+  finished.
+- The map starts some underbrush part-way worn, where it thins into a
+  clearing, and walking it carries on from there.
+- It is underbrush only. Dense underbrush never wears. Mud is not trodden
+  into anything, because mud is what planks are for, and a thicket is a
+  wall, so the knife keeps its job.
+- Nothing grows back over a trail yet. Thicket creep does take back a cut
+  tile next to thicket, walked or not, and a trail through it goes with it.
+
+A trail is also what [winter.md](winter.md) means by a trail forming. What a
+cart does to it is open while carts are rethought.
 
 The cache, a box built in the field, is parked in [ideas.md](ideas.md): the
 cart does its job.

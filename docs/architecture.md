@@ -104,7 +104,8 @@ in [development.md](development.md).
   the event log), `save.ts` (a game at the end of a summer as a URL string;
   `world.snapshot` and `world.restore` fill and read it).
 - **`src/sim/worldgen/`** turns a seed into a map: noise into terrain and a
-  camp, stream thickening and fords, a flood fill from camp, resources
+  camp (`terrain.ts` reads the forest noise through `FOREST_THRESHOLDS`, into
+  underbrush at a starting trail stage, dense underbrush and trees), stream thickening and fords, a flood fill from camp, resources
   scattered by terrain, springs on the bank. `worldgen.ts` says what order the
   steps run in, and why. On top of that, `layout.ts` stamps the table of the
   first three summers onto the landscape -- the stream round camp, the near

@@ -188,7 +188,8 @@ ones.
   a winter, next summer, the winter model and the world applying it, the
   shop by family level with its frosted line, the list filling from the top,
   a tired summer, three winters of the map changing on a small map, trails
-  worn by walking with their speeds, their save and their winters, the
+  worn by walking with their speeds, their save and their winters, dense
+  underbrush that never wears, underbrush stages from the forest noise, the
   near ring measured from the map, the layout pass over several seeds against
   every row of the table and the economy, and the debug overlay's arithmetic.
   The build menu's, the transfer panel's and the winter screen's markup have

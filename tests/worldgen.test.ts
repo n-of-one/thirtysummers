@@ -79,9 +79,14 @@ describe("generateWorld", () => {
     }
     const share = (n: number) => n / total;
 
-    // Enough open ground to travel, enough obstruction to make routing matter.
-    expect(share(hist.grass)).toBeGreaterThan(0.3);
+    // Enough ground to travel, enough obstruction to make routing matter.
+    // Grass is not what makes ground travelable any more: underbrush comes in
+    // degrees, from flat to dense, and most of the land between the woods is
+    // some of it. So some grass is left, and most of the map is walkable.
+    const walkable = hist.grass + hist.underbrush + hist.denseUnderbrush + hist.mud;
+    expect(share(hist.grass)).toBeGreaterThan(0.05);
     expect(share(hist.grass)).toBeLessThan(0.75);
+    expect(share(walkable)).toBeGreaterThan(0.6);
     expect(share(hist.tree)).toBeGreaterThan(0.02);
     expect(share(hist.underbrush + hist.denseUnderbrush)).toBeGreaterThan(0.05);
     expect(share(hist.stream)).toBeGreaterThan(0.005);

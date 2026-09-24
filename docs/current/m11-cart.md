@@ -24,7 +24,8 @@ field further out.
 2. **Rendering** as a prop that moves, depth-sorted with the player, drawn
    to the one-art-pixel rule.
 3. **The cart wears the same trail.** Trails are built in
-   [M10.2](m10-2-trails.md), worn by walking during the summer. A pushed cart
+   M10.2, worn by walking during the summer, and are described in
+   [../design/summer.md](../design/summer.md). A pushed cart
    adds to the same wear count, faster than feet, so a route the cart is pushed
    along often becomes its road. Nothing new is needed here but the pusher.
 4. **The field for summer 4.** A second shell field further out along the

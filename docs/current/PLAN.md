@@ -42,7 +42,20 @@ wait behind them.
 four each and hung where they can be seen; a shell is 6 and material sells for
 nothing; upkeep and the axe are at level 0's numbers until M10.6. A winter's
 fruit is a 113-tile round trip of three or four stops, against 150 tiles of
-sweeping the ring. M10.2 is next.
+sweeping the ring.
+
+**M10.2 is done**, on 24 Sep. Underbrush walked over wears a stage a walk,
+trodden, trodden again, flat, and the walk after flat makes grass; it shows
+from the first walk. A cut leaves underbrush. The forest noise sets how thick
+underbrush starts, in `FOREST_THRESHOLDS` with dense underbrush and trees, so
+brush thins into the clearings; dense underbrush is the floor of a wood and
+never wears. Fruit trees stand in underbrush, dense first. A held key sweeps
+feathers. The grass laid from camp north is gone, with the check that held a
+cart route to a cut. For the next playtest: is the line noticed on the first
+walk and walked back on purpose, does the walk to the bridge shorten over the
+summers, and are three walks to flat, and one more to grass, the right
+number? M10.4's "underbrush in patches" is partly answered by the noise table
+and wants re-reading before it is built. M10.3 is next.
 
 | Milestone | What it adds | Status |
 |---|---|---|
@@ -53,7 +66,7 @@ sweeping the ring. M10.2 is next.
 | The pack | camp as the first cache, the transfer panel, dropping a kind on the ground | done |
 | M10: the first three years | the map for summers 1 to 3, the winter screen, the shop by family level, the list, the map between summers | done, and played: not fun yet |
 | M10.1: fruit on trees | the ring's food on five trees, shells at 6, material with no price, the upkeep and axe numbers | done |
-| [M10.2: trails](m10-2-trails.md) | underbrush worn away by walking over it | not started |
+| M10.2: trails | underbrush worn away by walking over it, underbrush in degrees from the noise, dense underbrush | done |
 | [M10.3: the map](m10-3-map.md) | the map in the corner, holding only ground that has been seen | not started |
 | [M10.4: the shape of the ring](m10-4-terrain.md) | landmarks, the island, underbrush in patches | not started |
 | [M10.5: camp that moves](m10-5-camp.md) | a camp pitched on ground the family has walked, granted by a family level | not started |
@@ -92,8 +105,8 @@ a `[GUESS]` in `config.ts` unless five-summers.md gives it.
 
 ## Chores
 
-- `src/sim/trace.ts` and its test live only on `itch-publish-1`. M10.2's
-  trails bring them back to main, if the wear is easier to measure with them.
+- None. `src/sim/trace.ts` stays on `itch-publish-1`: M10.2 measured wear
+  without it.
 
 ## At the end of each milestone
 

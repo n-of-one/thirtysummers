@@ -119,6 +119,27 @@ apart from a field. Stages keep the paths the player made visible as paths,
 and give the walks after the second something to show for themselves; grass
 at the end is kept for the routes walked most.
 
+Building trails settled five things beside them. A cut through thicket leaves
+underbrush, not grass: the knife opens the wall and the feet make the path, so
+a cut is not a second, cheaper way to a road. The grass the layout laid from
+camp to the feather field is gone, because it was a road nobody had walked,
+and it went with the check that held the cart's route to needing a cut, since
+carts are being rethought. Underbrush is thin where the noise has only just
+crossed into it, so a clearing gives way to brush rather than meeting a
+line, and how thick the land is between the woods is tuned in one table.
+Dense underbrush is the one kind walking never wears: without it every route
+through the ring would end as a road, and a wood that stays slow however
+often it is crossed keeps some of the map a barrier. And a held key sweeps a
+feather field the way it works through a row of fruit; one press per feather
+made the field across the stream a chore of presses.
+
+**Fruit trees stand in underbrush.** A tree on open grass in the middle of
+brush looked planted. A fruit tree is a tree, so it stands where trees grow,
+dense underbrush first, and all it needs is room round it, no other tree
+within two tiles, so its fruit is walked to and seen. It also let grass become
+scarce without the ring's food clumping: a tree that needed open grass all
+round it had nowhere to go once most of the ring was underbrush.
+
 **The map in the corner.** Nothing recorded what the player had seen, so
 nothing could feel uncovered even when it was. Dimming unseen ground in the
 play view was the other option and was dropped: the game is played by looking

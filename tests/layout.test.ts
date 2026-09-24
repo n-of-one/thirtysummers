@@ -103,10 +103,14 @@ describe("the five-summer layout", () => {
     expect(parsed.springs).toEqual(world.springs);
   });
 
-  it.each(SEEDS)("puts every node on the ground its glyph implies (seed %i)", (seed) => {
+  it.each(SEEDS)("puts every node on the ground its glyph implies, fruit on any it can be picked from (seed %i)", (seed) => {
     const world = mapFor(seed);
     for (const node of world.nodes) {
-      expect(world.map.get(Math.floor(node.x), Math.floor(node.y))).toBe(RESOURCES[node.kind].ground);
+      const ground = world.map.get(Math.floor(node.x), Math.floor(node.y));
+      // A fruit tree stands in underbrush as well as on grass, so its fruit
+      // does too. A map file still puts grass under a fruit's glyph.
+      if (node.kind === "fruit") expect(["grass", "underbrush", "denseUnderbrush"]).toContain(ground);
+      else expect(ground).toBe(RESOURCES[node.kind].ground);
     }
   });
 
@@ -154,7 +158,7 @@ describe("the five-summer layout", () => {
     }
   });
 
-  it.each(SEEDS)("hangs every fruit on a tree, on open ground, reachable on foot (seed %i)", (seed) => {
+  it.each(SEEDS)("hangs every fruit on a tree, on walkable ground, reachable on foot (seed %i)", (seed) => {
     const world = mapFor(seed);
     const trees = fruitTrees(world);
     const onFoot = cutsFromCamp(world, { bridge: false, fell: false });
@@ -176,7 +180,9 @@ describe("the five-summer layout", () => {
     const inRing = trees.filter((t) => t.fruit.every((f) => cost(f) === 0));
     expect(inRing.length).toBe(N.nearRingTrees);
     for (const tree of trees) {
-      for (const f of tree.fruit) expect(world.map.get(f.x, f.y)).toBe("grass");
+      for (const f of tree.fruit) {
+        expect(["grass", "underbrush", "denseUnderbrush"]).toContain(world.map.get(f.x, f.y));
+      }
     }
 
     // The ring's fruit is shared out between its trees, unevenly but inside

@@ -495,9 +495,13 @@ class Scatter {
     avoid: readonly (readonly [Vec2, number])[] = [],
   ): void {
     const share = this.share(count, fruit);
+    // At each spacing, a trunk in dense underbrush first: a fruit tree stands
+    // most naturally where the ground is thickest, near the other trees.
     for (const at of [spacing, spacing * 0.6, 0]) {
-      if (share.length === 0) return;
-      this.attemptTrees(stamp, centre, radius, share, at, aboveY, avoid);
+      for (const denseOnly of [true, false]) {
+        if (share.length === 0) return;
+        this.attemptTrees(stamp, centre, radius, share, at, aboveY, avoid, denseOnly);
+      }
     }
   }
 
@@ -528,6 +532,7 @@ class Scatter {
     spacing: number,
     aboveY: number | undefined,
     avoid: readonly (readonly [Vec2, number])[],
+    denseOnly: boolean,
   ): void {
     const count = share.length;
     for (let tries = 0; share.length > 0 && tries < count * 600; tries++) {
@@ -537,6 +542,7 @@ class Scatter {
       const y = Math.round(centre.y + Math.sin(angle) * at);
       if (aboveY !== undefined && y > aboveY) continue;
       if (avoid.some(([c, r]) => Math.hypot(x - c.x, y - c.y) <= r)) continue;
+      if (denseOnly && this.map.get(x, y) !== "denseUnderbrush") continue;
       if (!this.canopyOpen(stamp, x, y)) continue;
       if (this.placed.some((n) => Math.hypot(n.x - x - 0.5, n.y - y - 0.5) < spacing)) continue;
       stamp.set(x, y, "tree");
@@ -581,19 +587,22 @@ class Scatter {
   }
 
   /**
-   * Is this a site for a tree: open grass with open grass on all eight sides,
-   * none of it spoken for and none of it the cart's road?
+   * Is this a site for a tree: walkable ground, grass or underbrush of any
+   * kind, with walkable ground on all eight sides, none of it spoken for and
+   * none of it the way in to the shell field?
    *
-   * All eight, not only the sides the fruit stand on, for two reasons. The
-   * ring of ground round the trunk is then joined to itself, so every fruit is
-   * walked to rather than looked at from across a wall; and a trunk dropped
-   * into a gap in the trees is a tree in a clearing rather than one more tree
-   * in a wood.
+   * Underbrush as well as grass, because a fruit tree stands most naturally
+   * among the others, and fruit is picked from any ground the player can
+   * stand on. All eight sides, not only the ones the fruit stand on, so no
+   * grown tree, sapling or wall stands next to the trunk: the ring of ground
+   * round it is joined to itself, and every fruit is walked to rather than
+   * looked at from behind a trunk.
    *
-   * The row beyond that, to the south, has to be clear of anything drawn as
+   * The ring beyond that, two tiles out, has to be clear of anything drawn as
    * tall as a tree. A tree is drawn upwards from the foot of its trunk, so a
-   * neighbour standing there would be drawn over the fruit in front of this
-   * one, and the whole point of hanging it there is that it is seen.
+   * neighbour standing south of a fruit would be drawn over it, and the whole
+   * point of hanging it there is that it is seen. Now that fruit trees stand
+   * among the others, a wood can come that close on any side.
    */
   private canopyOpen(stamp: Stamp, x: number, y: number): boolean {
     for (let dy = -1; dy <= 1; dy++) {
@@ -601,13 +610,18 @@ class Scatter {
         const nx = x + dx;
         const ny = y + dy;
         const index = ny * this.map.width + nx;
-        if (this.map.get(nx, ny) !== "grass") return false;
+        if (!TREE_GROUND.has(this.map.get(nx, ny))) return false;
         if (this.taken.has(index) || stamp.route.has(index)) return false;
       }
     }
-    for (let dx = -2; dx <= 2; dx++) {
-      const kind = this.map.get(x + dx, y + 2);
-      if (kind === "tree" || kind === "sapling") return false;
+    // Nothing drawn as tall as a tree within two tiles either way: in a wood
+    // one could otherwise stand beside a fruit on the canopy's edge, drawn
+    // over it or taken for its trunk.
+    for (let dy = -2; dy <= 2; dy++) {
+      for (let dx = -2; dx <= 2; dx++) {
+        const kind = this.map.get(x + dx, y + dy);
+        if (kind === "tree" || kind === "sapling") return false;
+      }
     }
     return true;
   }
@@ -623,6 +637,9 @@ class Scatter {
     });
   }
 }
+
+/** The ground a fruit tree and its fruit can stand on: what the player walks, bar mud. */
+const TREE_GROUND: ReadonlySet<TerrainKind> = new Set(["grass", "underbrush", "denseUnderbrush"]);
 
 /**
  * The eight tiles a tree's fruit can stand on, in three tiers.

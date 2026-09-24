@@ -778,7 +778,9 @@ The same fact caught a second case: a neighbouring tree standing on the row
 south of a fruit is drawn over it just as its own trunk would be, so a tree site
 now needs that row clear of anything tree-tall as well. It was 2 fruit in 1140
 over sixty seeds, which is the sort of number that never shows up in a
-screenshot of one seed.
+screenshot of one seed. Once fruit trees stood in underbrush, next to woods, a
+tree could come as close on the other sides, and the layout's test took it for
+the fruit's trunk; the clearance is now two tiles all round.
 
 **An even split makes a stop a count.** Four fruit under every tree was tidy and
 played as arithmetic: two trees is the winter's food, every time. The ring is 15
@@ -856,6 +858,55 @@ drawn taller than their tile.
 **The log is the oak, not the birch.** The birch log is pale and round on the
 sheet and sits in the pack beside the pale birch stick, where it reads as an
 egg. The oak's brown end-on log cannot be confused with it.
+
+## Trails and the forest noise
+
+**A trail is wear beside the grid, not a terrain.** Each tile has a wear count
+in a `Uint8Array` on the world, and the speed lookup and both layers read it;
+the tile stays underbrush in the grid until the walk after flat makes it grass.
+Trodden as terrain kinds would have meant three kinds appended to
+`TERRAIN_ORDER`, three glyphs, and every switch over terrain learning them, for
+what is one number per tile. The layers take a lookup, `(x, y, z) => stage`,
+rather than the world, so they still only read.
+
+**Wear counts when the centre leaves a tile, not when it enters.** Counted on
+entry, with a tile trodden at one crossing, the first step onto fresh
+underbrush trod it, and the rest of that tile was walked at the trodden speed:
+the first walk measured 2.27 s over a stretch that 0.5 puts at 3.1 s, and
+underbrush was never crossed at its own speed. The tests caught it, not play.
+Moving about inside one tile never counts.
+
+**The save keeps wear that differs from what the map started with.** The map
+starts some underbrush part-way worn from the noise, so storing every nonzero
+count would put thousands of tiles in a URL. `worn` holds only what walking
+changed, against a copy of the starting wear taken when the world is built,
+and restoring starts from that copy.
+
+**The tint steps are spaced by eye, not by value.** The first trodden stage
+took most of the distance to flat, so the first walk showed and the next two
+barely did. A mockup of four spacings, drawn by the pack's own `brushBlock` in
+a page on the dev server, settled it at even thirds. Dense underbrush is the
+same stencil a shade darker, `DENSE_TINT`, well short of thicket.
+
+**The forest noise runs round zero, about -0.8 to 0.8.** Half the map is below
+0, so a threshold near 0 is the middle of the map, not its bottom.
+`tmp/noise.mjs` prints the share of a seed below any value, which is how to
+read `FOREST_THRESHOLDS` as a share of the map.
+
+**A layout that erases generated water leaves its shape behind.** The layout
+used to paint the noise's own stream and then overwrite it with underbrush,
+because the table wants one stream of its own. That left a band two or three
+tiles wide of one ground drawn straight through whatever the noise had there,
+invisible while all underbrush was one kind and a sharp line once it came in
+stages: a row on seed 152, a diagonal past camp on seed 460. The layout now
+asks `paintTerrain` for no stream at all, and those tiles get what the noise
+says. The stream's noise is still made, so the forest and moisture fields keep
+their seeds.
+
+**A map file carries no noise.** Underbrush stages and the ground under a fruit
+are not in the text format, so a map read from a file has full underbrush
+everywhere and grass under every fruit. Map files are for freezing a map to
+play with someone, not for testing, so the loss is accepted.
 
 **Wells and caches are props on a tile, not terrain.** A well is an entry in
 `world.springs` with a flag, so everything that already knew how to drink at a
