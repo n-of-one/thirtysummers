@@ -308,7 +308,8 @@ export const BUILD_CANCEL_KEY = "escape";
  * player's tile and 28 either side, twice the radius of the circle marked seen
  * at full hydration. What is being taken in fills the middle; the ring round
  * it is ground seen before, or blank. The rest of the valley is behind
- * MAP_KEY. Odd, so the player's tile is the middle cell.
+ * MAP_KEY. Odd, so the player's tile is the middle cell. The canvas is one
+ * tile wider all round, for the ring the pointer to water sits on.
  */
 export const MAP_DIAMETER_TILES = 57;
 /**
@@ -324,6 +325,13 @@ export const MAP_SHRINK_CATCH_UP_HYDRATION = 25;
  * 25 is a step every 2% of hydration, two seconds of draining.
  */
 export const MAP_DRY_FADE_STEPS = 25;
+/**
+ * [GUESS] Tiles nearer another drinking spot has to be before the pointer on
+ * the corner map lets go of the one it points at. Springs come in rows along
+ * a bank, and walking along one, two can take turns being nearest; without
+ * this the pointer would flick between them.
+ */
+export const MAP_POINTER_HOLD_TILES = 2;
 /** [GUESS] Logical pixels between the map and the corner of the view. A multiple of the art pixel, 4. */
 export const MAP_MARGIN_PX = 16;
 /**

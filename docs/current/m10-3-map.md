@@ -69,8 +69,9 @@ an art pixel. It is the one part of the HUD the rule covers, and
    remembers is the reward for having gone there. Colours are `[GUESS]`es in `config.ts`.
    M10.5 draws the same picture larger on the winter screen, so there is one
    picture of the valley.
-4. **The widget**, `ui/mapWidget.ts` and `ui/hud.css`: a 57 by 57 canvas at
-   one canvas pixel a tile, scaled 4x with `image-rendering: pixelated`, 228
+4. **The widget**, `ui/mapWidget.ts` and `ui/hud.css`: a 59 by 59 canvas (the
+   57-tile circle and a ring for the pointer to water, step 9) at one canvas
+   pixel a tile, scaled 4x with `image-rendering: pixelated`, 236
    logical pixels across. Its circle is cut by the same rule `markCircle`
    marks by, so the seen circle sits in its middle cell for tile; cells never
    seen show as a dark blank. Outside the circle it is transparent; the
@@ -114,6 +115,21 @@ an art pixel. It is the one part of the HUD the rule covers, and
    the brightness, mixed in linear light (`fade` and `dryBrightness` in
    `ui/mapPicture.ts`). It moves in `MAP_DRY_FADE_STEPS` (25) steps, a redraw
    every 2% of hydration.
+9. **Water on the corner map.** Every seen drinking spot within the full
+   circle (radius 28) is drawn, even where thirst has cut the circle back. And
+   a pointer, one tile in the drink colour on a ring just outside the circle,
+   shows the bearing to the nearest seen drinking spot beyond it, always, not
+   only when dry: a guide back to water. Nearest in a straight line, the way
+   water is remembered, not the way there. The pointer sits on the first cell
+   outside the circle along the bearing, so it touches the circle's edge
+   whichever way it points, and as the spot comes within the circle it is
+   drawn itself at the same bearing and the pointer gives way without a jump
+   (`nearDrinks`, `drinkTarget` and `drinkPointer` in `ui/mapWidget.ts`).
+   Springs come in rows along a bank, so the pointer holds the spot it points
+   at until another is `MAP_POINTER_HOLD_TILES` (2) nearer, or it would flick
+   between two as the player walked along; the widget keeps the held spot and
+   lets go of it at a new summer or a regenerate. The canvas is one tile wider
+   all round for the pointer, 59 across.
 
 ## Tests
 

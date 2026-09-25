@@ -4,7 +4,7 @@ import { TileMap } from "../src/sim/tilemap.ts";
 import type { TerrainKind } from "../src/sim/types.ts";
 import { World } from "../src/sim/world.ts";
 import { dryBrightness, fade, isLandmark, mapMarks, tileColour } from "../src/ui/mapPicture.ts";
-import { minimapRadius, wholeArtPx } from "../src/ui/mapWidget.ts";
+import { drinkPointer, drinkTarget, minimapRadius, nearDrinks, wholeArtPx } from "../src/ui/mapWidget.ts";
 import { seenRadiusTiles } from "../src/sim/stats.ts";
 
 const SIZE = 40;
@@ -44,6 +44,95 @@ describe("the corner map running dry", () => {
       expect(last - r).toBeLessThanOrEqual(1);
       last = r;
     }
+  });
+});
+
+describe("water on the corner map", () => {
+  const R = (C.MAP_DIAMETER_TILES - 1) / 2;
+  const BIG = 120;
+
+  /** Grass with springs at `at`, the player at (60, 60), every spring seen unless told otherwise. */
+  function valley(at: [number, number][], unseen: [number, number][] = []): World {
+    const map = new TileMap(BIG, BIG);
+    for (let y = 0; y < BIG; y++) for (let x = 0; x < BIG; x++) map.set(x, y, "grass");
+    const w = new World({
+      seed: 1,
+      map,
+      camp: { x: 60.5, y: 60.5 },
+      nodes: [],
+      springs: [...at, ...unseen].map(([x, y]) => ({ x, y })),
+      reachable: new Uint8Array(BIG * BIG),
+    });
+    for (const [x, y] of at) w.seen[y * BIG + x] = 1;
+    for (const [x, y] of unseen) w.seen[y * BIG + x] = 0;
+    return w;
+  }
+
+  /** The pointer from (60, 60), with nothing held. */
+  const pointer = (w: World) => drinkPointer(drinkTarget(w, 60, 60), 60, 60);
+
+  it("lists every seen spot within the full circle, and none beyond it or unseen", () => {
+    const w = valley([[70, 60], [60, 60 + R], [60 + R, 60 + 1]], [[65, 65]]);
+    expect(nearDrinks(w, 60, 60)).toEqual([{ dx: 10, dy: 0 }, { dx: 0, dy: R }]);
+  });
+
+  it("points at the nearest seen spot beyond the circle, on the ring just outside it", () => {
+    const w = valley([[60 + 50, 60], [60, 60 - 40]], [[60, 60 + 35]]);
+    // The unseen spring is nearer, but only water seen before is pointed at.
+    expect(pointer(w)).toEqual({ dx: 0, dy: -(R + 1) });
+    // Whichever way it points, it touches the circle: outside it, with a cell
+    // of the circle beside it towards the player.
+    for (let a = 0; a < Math.PI * 2; a += 0.05) {
+      const w = valley([[60 + Math.round(Math.cos(a) * 45), 60 + Math.round(Math.sin(a) * 45)]]);
+      const p = pointer(w)!;
+      expect(p.dx * p.dx + p.dy * p.dy).toBeGreaterThan(R * R);
+      expect(Math.max(Math.abs(p.dx), Math.abs(p.dy))).toBeLessThanOrEqual(R + 1);
+      const touches = [[-1, 0], [1, 0], [0, -1], [0, 1], [-1, -1], [1, 1], [-1, 1], [1, -1]].some(
+        ([sx, sy]) => (p.dx + sx!) ** 2 + (p.dy + sy!) ** 2 <= R * R,
+      );
+      expect(touches).toBe(true);
+    }
+  });
+
+  it("gives way to the spot itself once it is on the map, at the same bearing", () => {
+    const outside = valley([[60, 60 - (R + 1)]]);
+    expect(pointer(outside)).toEqual({ dx: 0, dy: -(R + 1) });
+    const inside = valley([[60, 60 - R]]);
+    expect(pointer(inside)).toBeNull();
+    expect(nearDrinks(inside, 60, 60)).toEqual([{ dx: 0, dy: -R }]);
+  });
+
+  it("has nothing to point at before any water has been seen", () => {
+    expect(pointer(valley([], [[70, 60]]))).toBeNull();
+  });
+
+  it("holds the spot it points at until another is the hold's tiles nearer", () => {
+    // Two springs along a bank to the north, 8 apart, the player walking east
+    // along it: each is nearest for half the walk.
+    const w = valley([[56, 20], [64, 20]]);
+    const held = { x: 56, y: 20 };
+    // Just past the halfway point the other is nearer, but by less than 3.
+    expect(drinkTarget(w, 61, 60, null)).toEqual({ x: 64, y: 20 });
+    expect(drinkTarget(w, 61, 60, held)).toEqual(held);
+    // Shuffling back and forth across the halfway point, a tile either side:
+    // without the hold it would change every step; with it, never.
+    const changes = (hold: boolean) => {
+      let target = drinkTarget(w, 58, 60, null);
+      let n = 0;
+      for (let step = 0; step < 20; step++) {
+        const next = drinkTarget(w, step % 2 === 0 ? 61 : 59, 60, hold ? target : null);
+        if (next!.x !== target!.x) n++;
+        target = next;
+      }
+      return n;
+    };
+    expect(changes(false)).toBe(20);
+    expect(changes(true)).toBe(0);
+  });
+
+  it("lets go when another is nearer by the full hold", () => {
+    const w = valley([[40, 60], [90, 60]]);
+    expect(drinkTarget(w, 60, 60, { x: 90, y: 60 })).toEqual({ x: 40, y: 60 });
   });
 });
 

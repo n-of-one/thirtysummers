@@ -1,5 +1,6 @@
 import * as C from "../config.ts";
 import { seenRadiusTiles } from "../sim/stats.ts";
+import type { Vec2 } from "../sim/types.ts";
 import type { World } from "../sim/world.ts";
 import { dryBrightness, fade, isLandmark, mapMarks, tileColour } from "./mapPicture.ts";
 
@@ -29,6 +30,74 @@ export function minimapRadius(hydration: number): number {
   if (hydration < meet) return Math.round(seenRadiusTiles(hydration));
   const target = seenRadiusTiles(meet);
   return Math.round(target + ((MAP_RADIUS - target) * (hydration - meet)) / (from - meet));
+}
+
+/**
+ * The seen drinking spots within the corner map's full circle, as offsets
+ * from the player's tile. Drawn whatever the circle has shrunk to, so a dry
+ * player still sees where the water near them is.
+ */
+export function nearDrinks(world: World, px: number, py: number): { dx: number; dy: number }[] {
+  const w = world.map.width;
+  const out: { dx: number; dy: number }[] = [];
+  for (const s of world.springs) {
+    if (!world.seen[s.y * w + s.x]) continue;
+    const dx = s.x - px;
+    const dy = s.y - py;
+    if (dx * dx + dy * dy <= MAP_RADIUS * MAP_RADIUS) out.push({ dx, dy });
+  }
+  return out;
+}
+
+/**
+ * The drinking spot the pointer to water is for, or null before any water has
+ * been seen.
+ *
+ * The nearest seen spot in a straight line, the way the player remembers
+ * water to be, not the way there. But `held`, the one it was for last time,
+ * is kept until another is `MAP_POINTER_HOLD_TILES` nearer: springs come in
+ * rows along a bank, and without the hold the pointer would flick between two
+ * as the player walked along it.
+ */
+export function drinkTarget(world: World, px: number, py: number, held: Vec2 | null = null): Vec2 | null {
+  const w = world.map.width;
+  let best: Vec2 | null = null;
+  let bestD = Infinity;
+  let heldD = Infinity;
+  for (const s of world.springs) {
+    if (!world.seen[s.y * w + s.x]) continue;
+    const d = Math.hypot(s.x - px, s.y - py);
+    if (held && s.x === held.x && s.y === held.y) heldD = d;
+    if (d < bestD) {
+      best = s;
+      bestD = d;
+    }
+  }
+  if (heldD < Infinity && bestD > heldD - C.MAP_POINTER_HOLD_TILES) return held;
+  return best ? { x: best.x, y: best.y } : null;
+}
+
+/**
+ * Where the pointer to `target` goes, as an offset from the player's tile on
+ * the ring just outside the corner map's circle, or null while the target is
+ * within the circle: then it is drawn itself, and the pointer, which stood at
+ * the same bearing one tile further out, gives way to it without a jump.
+ */
+export function drinkPointer(target: Vec2 | null, px: number, py: number): { dx: number; dy: number } | null {
+  if (!target) return null;
+  const tx = target.x - px;
+  const ty = target.y - py;
+  const d2 = tx * tx + ty * ty;
+  if (d2 <= MAP_RADIUS * MAP_RADIUS) return null;
+  // The first cell outside the circle along the bearing, so the pointer sits
+  // against the circle's edge whichever way it points; rounding a point a
+  // fixed distance out would leave a gap on the diagonals.
+  const d = Math.sqrt(d2);
+  for (let t = MAP_RADIUS; ; t += 0.25) {
+    const dx = Math.round((tx * t) / d);
+    const dy = Math.round((ty * t) / d);
+    if (dx * dx + dy * dy > MAP_RADIUS * MAP_RADIUS) return { dx, dy };
+  }
 }
 
 /**
@@ -67,6 +136,8 @@ export class MapWidget {
   private dirty = true;
   /** Frames drawn, for measuring what the widget costs. */
   draws = 0;
+  /** The drinking spot the corner's pointer to water is holding, if any. */
+  private drinkTarget: Vec2 | null = null;
   /** The corner map's circle radius as last cut, in tiles. */
   private circle = MAP_RADIUS;
 
@@ -84,7 +155,8 @@ export class MapWidget {
     this.image = this.ctx.createImageData(1, 1);
     this.pixels = new Uint32Array(0);
     this.inside = new Uint8Array(0);
-    if (layout === "corner") this.resize(C.MAP_DIAMETER_TILES, C.MAP_DIAMETER_TILES);
+    // A ring wider than the circle, for the pointer to water.
+    if (layout === "corner") this.resize(C.MAP_DIAMETER_TILES + 2, C.MAP_DIAMETER_TILES + 2);
   }
 
   /**
@@ -167,6 +239,8 @@ export class MapWidget {
   reset(cursor = 0): void {
     this.seenEvents = cursor;
     this.dirty = true;
+    // Another world, or a new summer starting at camp: point afresh.
+    this.drinkTarget = null;
   }
 
   update(world: World): void {
@@ -228,6 +302,19 @@ export class MapWidget {
         }
         this.pixels[i] = colour === null ? unseen : abgr(colour);
       }
+    }
+    if (this.layout === "corner") {
+      // Water the player has seen: every spot within the full circle, even
+      // where thirst has cut the circle back, and a pointer on the ring
+      // outside it to the nearest one beyond.
+      const drink = abgr(C.MAP_COLORS.drink);
+      const put = ({ dx, dy }: { dx: number; dy: number }) => {
+        this.pixels[(playerY + dy) * this.width + playerX + dx] = drink;
+      };
+      for (const at of nearDrinks(world, ox + playerX, oy + playerY)) put(at);
+      this.drinkTarget = drinkTarget(world, ox + playerX, oy + playerY, this.drinkTarget);
+      const pointer = drinkPointer(this.drinkTarget, ox + playerX, oy + playerY);
+      if (pointer) put(pointer);
     }
     if (playerX >= 0 && playerY >= 0 && playerX < this.width && playerY < this.height) {
       this.pixels[playerY * this.width + playerX] = abgr(C.MAP_COLORS.player);
