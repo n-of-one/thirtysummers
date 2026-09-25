@@ -932,6 +932,68 @@ same texture means it snaps, sorts and scrolls with the item and can never be a
 pixel out of step. The placeholder pack's art is vector, so it redraws at three
 quarters into a smaller cell instead of resampling, to the same effect.
 
+## The map
+
+**What is seen is the simulation's to know, so the fog moved into it.** The
+fog's radius was worked out in the HUD as a share of the view's width. The map
+has to mark what is seen, deterministically and in a save, and the simulation
+does not know the view, so the radius became `sightRadiusTiles` in
+`sim/stats.ts`, in tiles, and the HUD draws the fog from it times `TILE`. The
+fog and the seen circle cannot disagree. The cost is that `?view=` no longer
+scales the fog.
+
+**The seen circle is centred on the player's tile, not the player.** What is
+seen then changes only when the tile does, so a tick marks nothing unless the
+tile changed or a drink widened the circle, and a walk can be checked exactly:
+log the tile and hydration each tick, work out the circles by hand, compare
+tile for tile. Equal, not approximately, and a changed radius fails it by
+hundreds of tiles. It is marked from the player's position, not the camera's;
+the camera follows closely enough that the difference does not show.
+
+**The map keeps the art-pixel rule, which fixes its sizes.** The canvas has a
+pixel a tile, shown at a whole number of art pixels a tile with
+`image-rendering: pixelated`, its corner on the art grid. So the whole valley,
+200 by 180, is 800 by 720 at one art pixel with the Minifantasy art, and two
+would be 1440 tall: there is no size in between. The corner map is a window,
+not the valley, for the same reason. Its circle is cut tile by tile by the
+rule the seen circle is marked by, never by a CSS radius through a pixel.
+
+**It draws only when something it shows changed.** The key is the player's
+tile, the seen count and the whole map's fade step, and the events that change
+ground under it set it dirty. Standing still it draws nothing; a first version
+drew every frame because a setter called each frame marked it dirty
+unconditionally. Measured at 10x over a summer: 0.28 ms a draw for a 48-tile
+window, 0.64 ms for 192, and nothing measurable in the frame time.
+
+**A fruit tree is found from its fruit.** Nothing in the simulation says which
+tree is one. The layout hangs fruit on the eight tiles round a trunk and keeps
+every other tree two tiles off, so a tree tile with a fruit node beside it is a
+fruit tree, and the map marks it whether or not the fruit is picked.
+
+**The dry fade is mixed in linear light, as a cube.** The eye judges
+brightness roughly as the cube root of the light, so a straight mix of the
+colour numbers seems to hold on and then fall away at the end. The brightness
+falls evenly with hydration, the light as its cube, and the mix is done after
+undoing the screen's gamma. It moves in 25 steps so the whole map redraws a
+few dozen times as the player runs dry rather than every frame.
+
+**The pointer to water takes the first cell outside the circle.** Rounding a
+point a fixed distance out along the bearing leaves a gap of blank cells on
+the diagonals, where the circle's stepped edge is furthest in. Stepping out
+along the bearing until a cell is outside the circle puts the pointer against
+the edge whichever way it points, and on the spot's own cell as it comes
+within reach. The spot it holds is widget state, kept until another is
+`MAP_POINTER_HOLD_TILES` nearer, since two springs on a bank take turns being
+nearest.
+
+**Seen levels were tried and blew up the save.** Keeping how well each tile
+was seen, as a level read off the fog's stops, gave the map a soft frontier.
+Every row crosses the fading edge wherever the player stood, so the run
+lengths that make a seen or unseen mask short made a level mask long: the
+test's summer went from under 4000 characters of URL to 15000, and to 6900
+with a compact encoding. It was dropped for how it looked, sharp edges read
+better, before the size had to be settled.
+
 ## Method
 
 Claims about how the game looks or behaves are measured, not asserted: drive the
@@ -955,5 +1017,9 @@ has been the harness rather than the game: keys sent to a page that was still
 paused from losing focus, an arrow press that walked the player two tiles because
 the ground ahead was open, a key pressed while the "Next summer" button still had
 focus, and a route followed past a barrier a player would have walked around.
+Building the map added three: a selector that found the whole map's hidden
+layer before the corner's, a key sent while a debug checkbox had focus and so
+went to the checkbox, and a page running a module the dev server had not
+reloaded (see [../development.md](../development.md)).
 Each one is a lesson about driving rather than about the game, and each is worth
 checking before believing a failure.

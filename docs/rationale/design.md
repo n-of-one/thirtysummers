@@ -310,6 +310,50 @@ summer with it can already reach a field and feel what a road would give,
 and trails are the road it makes by being used. Pushing it drains
 hydration, which gives the well a second reason.
 
+**The map holds what was seen, and seen is narrower than the screen.** The
+fog is never off: clear to 9 tiles at full hydration and black by 17, so the
+sides of the view are always dark. Marking the whole view would fill the map
+with ground nobody saw, so a tile is seen when it has been within 14 tiles of
+the player, a little into the fog's fade. Running dry narrows it with the fog,
+so thirst costs the survey as well as the view, with nothing extra built.
+
+**Sharp edges, not a fading frontier.** Keeping how well each tile was seen
+and drawing the dim edge of what was explored was built and looked worse than
+a map whose edge is simply where seeing stopped. A fog laid over the corner
+map, the same gradient as the real one, was tried too: it darkened only the
+ground behind the player, while new ground at the map's edge came in sharp,
+which read as lopsided.
+
+**Thirst must not be walked round with the map.** Once the corner map was
+there, a dry player could navigate by it with the fog closed in, which undoes
+what the fog is for. So the corner map shrinks: whole down to 50%, then
+closing fast to be no bigger than what the player sees by 25%, and following
+that down. Shrinking earlier, from 75% to match at 50%, was tried and took the
+map away while the player could still see; catching up later leaves a few
+seconds where the map is the better guide, which is the price of not taking it
+at the first sign of thirst. The whole map fades rather than shrinking: down
+to 0% only the landmarks are left, the river, the thickets, the places to
+drink, the fruit trees and camp, so a thirsty player can still work out where
+water is and which way round, but not the ground between. The fade is even to
+the eye, not in the colour values.
+
+**A thirsty player is helped to water, not to everything.** The places to
+drink stay on both maps however dry the player is, and a pointer on the rim of
+the corner map shows the nearest one seen, always, not only when dry: water is
+what a player needs to find again, and a guide to it everywhere is kinder than
+one that appears only in trouble. It points in a straight line, the way water
+is remembered to be, and leaves the route to the player and the fog. It holds
+on a spring until another is two tiles nearer, so walking along a bank does
+not make it flick; three held on too long.
+
+**The map is terrain and landmarks, not a record of the player.** Trails were
+drawn and taken off: worn underbrush is still underbrush until it is walked
+into grass, and a map of the player's own footprints said more about the
+player than the valley. Fruit trees are marked, as a block in the fruit's
+colour, picked or not, because a tree worth coming back to is a place; the
+fruit itself, or any other node, is not, because remembering the field is the
+player's.
+
 ## Between summers
 
 **The inner ring always comes back.** There is always a safe way to pay the

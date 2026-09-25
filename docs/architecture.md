@@ -136,13 +136,16 @@ in [development.md](development.md).
 - **`src/ui/`** is the HUD and the view. `hudModel(world)` turns state into
   plain numbers and `Hud.update` writes them into the markup in
   `index.html`; `edgeArrow` and `anchorPosition` are its geometry, pure.
-  `mapPicture.ts` is the valley as seen, a colour a tile, with fruit trees
-  marked and no resource nodes; `mapWidget.ts` draws it either as a circle round the player in
-  the top right, with the hydration bar under it and the circle shrinking to
-  what the player sees as they run dry, or as the whole valley that M puts in place of the tile
-  view, and redraws only when the player's tile, the seen count or the ground
-  it shows changes. M10.5's winter screen is meant to draw
-  the same picture larger.
+  `mapPicture.ts` is the valley as seen, a colour a tile, with drinking
+  spots, fruit trees and camp marked and no resource nodes, and the fade the
+  whole map takes as the player runs dry, all but its landmarks.
+  `mapWidget.ts` draws it two ways: as a circle round the player in the top
+  right, with the hydration bar under it, the circle shrinking to what the
+  player sees as they run dry and a pointer on its rim to the nearest seen
+  water; or as the whole valley that M puts in place of the tile view. It
+  redraws only when the player's tile, the seen count, the fade's step or the
+  ground it shows changes. M10.5's winter screen is meant to draw the same
+  picture larger.
   `buildMenu.ts` is the menu B opens: it draws `world.buildOptions()` and
   reports the choice back, and never writes simulation state itself.
   `transferPanel.ts` is the panel a held interact key opens at camp; the

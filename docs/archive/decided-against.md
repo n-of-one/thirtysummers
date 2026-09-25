@@ -76,6 +76,19 @@ chosen instead.
   leaves the view alone.
 - **A map that marks what there is to pick.** It answers the question the
   exploring is made of. The map shows terrain, built things and landmarks.
+- **Seen ground as whatever was on screen.** The fog darkens the sides of the
+  view at all times; the map would hold ground nobody saw.
+- **A fading frontier on the map**, each tile kept as well as it was seen.
+  Sharp edges read better, and the levels made the save several times longer.
+- **The real fog's gradient over the corner map**, closing in as the player
+  runs dry. It dimmed the ground behind the player while new ground came in
+  sharp at the map's edge.
+- **Shrinking the corner map from 75% hydration.** It took the map away while
+  the player could still see; it shrinks from 50% and catches up by 25%.
+- **Trails on the map.** A map of the player's own footprints; worn underbrush
+  is underbrush until it is grass.
+- **A pointer that flips to whichever spring is nearest.** Along a bank two
+  take turns; it holds until another is two tiles nearer. Three held too long.
 - **Cutting underbrush with the knife.** Underbrush is worn down by walking
   over it, which is the improvement that costs no key. The knife keeps the
   thicket.

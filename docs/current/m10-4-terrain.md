@@ -36,7 +36,10 @@ and trails in it.
    patches falls and the mean patch is bigger, so the ground ahead is a shape
    to go round or through rather than a texture to dodge.
 4. **Landmarks on the map**, from M10.3, and named in the debug overlay so a
-   playtest can be talked about afterwards without opening the map file.
+   playtest can be talked about afterwards without opening the map file. On
+   the map they are marks in `mapMarks` (`ui/mapPicture.ts`), like fruit trees
+   and camp, and so kept by `isLandmark` when the whole map fades as the
+   player runs dry.
 
 ## Verification
 

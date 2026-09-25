@@ -216,29 +216,37 @@ What wears, and how fast, is in [winter.md](winter.md).
 
 The valley is big enough that a player cannot hold it in their head, and a
 summer that starts on a map indistinguishable from last summer's cannot feel
-like uncovering anything. So the character keeps a map, drawn in a corner of
-the screen, and it holds only ground that has been on screen at some point in
-some summer. Everything else is blank. It fills over a life, and it is the one
-record of where the family has been.
+like uncovering anything. So the character keeps a map, and it holds only
+ground that has been seen at some point in some summer: a circle round the
+player, a little wider than the fog lets them see clearly. Everything else is
+blank. It fills over a life, and it is the one record of where the family has
+been.
 
 It shows the terrain and the things that stand in it: ground and water,
 walls, camp, bridges, every place to drink -- springs and wells alike -- and
-the landmarks. Trails are not drawn: worn
-underbrush is still underbrush until it is walked into grass. A
-fruit tree is one of those, marked in the colour of its fruit whether or not
-the fruit is picked, because a tree worth coming back to is a place. What
-there is to pick is not shown. Remembering that the far bank had
-feathers on it is the player's, and a map that marked every node would answer
-the question the exploring is made of. It sits in a corner, small, and costs
-no time to look at. A key swaps the view for the whole valley as the family
-has seen it, with the list and the pack still over it; the summer does not
-stop for it, so looking is still paid for in time.
+the landmarks. A fruit tree is one of those, marked in the colour of its
+fruit whether or not the fruit is picked, because a tree worth coming back to
+is a place. Trails are not drawn: worn underbrush is still underbrush until it
+is walked into grass. What there is to pick is not shown. Remembering that
+the far bank had feathers on it is the player's, and a map that marked every
+node would answer the question the exploring is made of.
+
+It sits in a corner, a circle round the player, and costs no time to look
+at. A key swaps the view for the whole valley as the family has seen it, with
+the list and the pack still over it; the summer does not stop for it, so
+looking is still paid for in time.
+
+**The way back to water is always on the map.** Past the edge of the corner's
+circle, a mark points to the nearest place to drink the family has seen, in a
+straight line: where the water is remembered to be, not the way there. As it
+comes within the circle it is drawn there itself.
 
 **Thirst takes the map as well as the view.** As the fog closes in, the map
-in the corner shrinks to what the player can see, and the whole valley fades
-until only its landmarks are left: the river, the thickets, the places to
-drink, the fruit trees and camp. A dry player can still find water and the
-way round, but not the ground between.
+in the corner shrinks to what the player can see, though the places to drink
+near them stay on it, and the whole valley fades until only its landmarks are
+left: the river, the thickets, the places to drink, the fruit trees and camp.
+A dry player can still find water and the way round, but not the ground
+between.
 
 **Landmarks are what the map is read by.** A valley of the same grass cannot
 be remembered, so each part of it has one thing that is nothing but itself: a

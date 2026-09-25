@@ -174,6 +174,15 @@ differ. `window.__game.view` has the scale, and
 itself is what is being checked. A screenshot is in screen pixels, so divide
 by `view.cssScale` and subtract the view's offset to get back to logical
 ones.
+
+**The dev server can miss an edit.** Several edits to one file in quick
+succession sometimes leave Vite serving the file as it was before the last
+of them, with no error until the page runs the stale code: a function "is
+not defined", or a value that should have changed has not. Before trusting a
+measurement after an edit, check what is served -- a script under `tmp/` that
+fetches `http://localhost:5173/src/<file>` and prints the lines matching a
+pattern -- and if it is stale, save the file again with a real edit.
+
 ## What must keep passing
 
 - `npm run typecheck` is clean, with no `any` in `sim/`.
@@ -198,10 +207,13 @@ ones.
   near ring measured from the map, the layout pass over several seeds against
   every row of the table and the economy, the fog's radius and the seen
   circle, the seen mask over a walk, a drink, a teleport, a winter and a
-  save, the map picture by ground class, and the debug overlay's arithmetic.
+  save, the map picture by ground class with its fruit trees and drinking
+  spots, the corner map shrinking as the player runs dry, the whole map's
+  fade and its landmarks, the pointer to water with its hold, the whole
+  map's size, and the debug overlay's arithmetic.
   The build menu's, the transfer panel's, the winter screen's and the map
-  widget's markup have no test: there is no DOM in the test run, so they are checked over the
-  protocol instead, holding keys with `autoRepeat` set as a real keyboard
+  widget's markup have no test: there is no DOM in the test run, so they are
+  checked over the protocol instead, holding keys with `autoRepeat` set as a real keyboard
   does. So is how a dropped item looks, in both packs.
 - `npm run map:check <file>` passes on any map file there is. There are none
   by default: testing is on seeds, and the layout's own tests sweep a spread

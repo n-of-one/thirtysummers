@@ -55,7 +55,22 @@ cart route to a cut. For the next playtest: is the line noticed on the first
 walk and walked back on purpose, does the walk to the bridge shorten over the
 summers, and are three walks to flat, and one more to grass, the right
 number? M10.4's "underbrush in patches" is partly answered by the noise table
-and wants re-reading before it is built. M10.3 is next.
+and wants re-reading before it is built.
+
+**M10.3 is done**, on 25 Sep. The character keeps a map of the ground seen in
+any summer: a tile is seen within 14 tiles of the player, narrowing with the
+fog. A circle of it, radius 28, sits top right with the hydration bar under
+it and the clock moved to the top left; M swaps the view for the whole valley,
+with the list and the pack over it and the clock running. It draws terrain,
+bridges, camp, every place to drink and fruit trees, not trails and not what
+there is to pick, at one art pixel a tile, and it is saved. A pointer on the
+corner map's rim always shows the nearest place to drink the family has seen.
+Running dry, the corner map shrinks to what the player sees by 25%, and the
+whole map fades to its landmarks by 0%. For the next playtest: does the map
+make a summer feel like uncovering ground, is it looked at and when, does not
+marking the fields leave the player lost, is radius 28 enough, and is the
+pointer to water a help or a crutch? M10.4 is next, and its landmarks go on
+the map.
 
 | Milestone | What it adds | Status |
 |---|---|---|
@@ -67,7 +82,7 @@ and wants re-reading before it is built. M10.3 is next.
 | M10: the first three years | the map for summers 1 to 3, the winter screen, the shop by family level, the list, the map between summers | done, and played: not fun yet |
 | M10.1: fruit on trees | the ring's food on five trees, shells at 6, material with no price, the upkeep and axe numbers | done |
 | M10.2: trails | underbrush worn away by walking over it, underbrush in degrees from the noise, dense underbrush | done |
-| [M10.3: the map](m10-3-map.md) | the map in the corner, holding only ground that has been seen | not started |
+| M10.3: the map | the map in the corner and the whole map on M, holding only ground that has been seen; what thirst does to both; the pointer to water | done |
 | [M10.4: the shape of the ring](m10-4-terrain.md) | landmarks, the island, underbrush in patches | not started |
 | [M10.5: camp that moves](m10-5-camp.md) | a camp pitched on ground the family has walked, granted by a family level | not started |
 | [M10.6: upkeep by level](m10-6-upkeep.md) | a winter asked in fruit when poor and in rent when not | not started |
