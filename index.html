@@ -19,7 +19,6 @@
 
     <div id="hud">
       <div class="hud-corner hud-tl">
-        <div class="clock"><span id="clock-time">5:00</span><small>left in summer</small></div>
         <div class="pill" id="year-pill">Year <b id="year-count">1</b></div>
         <button id="fullscreen">Full screen</button>
       </div>
@@ -30,8 +29,10 @@
       <!-- Which summer this is, until the first step. -->
       <div class="start-notice" id="start-notice" hidden></div>
 
-      <!-- Under the map in the corner, which MapWidget places top right. -->
+      <!-- Top right: the clock and the hydration bar, centred over the map in
+           the corner, which MapWidget places under them. -->
       <div class="hud-corner hud-tr">
+        <div class="clock"><span id="clock-time">5:00</span><small>left in summer</small></div>
         <div class="bar" id="bar-hydration">
           <div class="bar-fill"></div>
           <span class="bar-label">Hydration</span>

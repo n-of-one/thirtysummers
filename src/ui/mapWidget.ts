@@ -178,12 +178,16 @@ export class MapWidget {
     if (this.layout === "corner") {
       perTile = art;
       this.cut(this.circle);
-      // Top right, on the art grid, whatever the margin says. What sits
-      // under it -- the hydration bar -- is placed from where it ends.
+      // Top right, on the art grid whatever the margin says, under the clock
+      // and the hydration bar. They are centred over it, so they take its
+      // left and width, and it goes under wherever they end.
       left = Math.floor((this.view.width - C.MAP_MARGIN_PX - width * perTile) / art) * art;
-      top = Math.ceil(C.MAP_MARGIN_PX / art) * art;
-      this.canvas.parentElement?.style.setProperty("--map-bottom", `${top + height * perTile}px`);
-    } else {
+      const parent = this.canvas.parentElement;
+      parent?.style.setProperty("--map-left", `${left}px`);
+      parent?.style.setProperty("--map-width", `${width * perTile}px`);
+      const above = parent?.querySelector<HTMLElement>(".hud-tr");
+      const bottom = above ? above.offsetTop + above.offsetHeight : 0;
+      top = Math.ceil((bottom + C.MAP_MARGIN_PX / 2) / art) * art;    } else {
       perTile = wholeArtPx(width, height, art, this.view) * art;
       left = Math.floor((this.view.width - width * perTile) / 2 / art) * art;
       top = Math.floor((this.view.height - height * perTile) / 2 / art) * art;

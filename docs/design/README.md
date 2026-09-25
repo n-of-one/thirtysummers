@@ -76,6 +76,10 @@ In-game words, not game-design words.
 - The **family** takes the gold left over after upkeep and has **levels**,
   which open the shop. The **list** is what the player means to bring home,
   ticked in winter and carried through the summer.
+- The **near ring** is everything camp reaches without crossing water. The
+  **bramble bay** is the clearing in it where the sticks lie, at the edge of
+  a wood and behind brambles; always the whole name, since "bay" alone says
+  nothing. The **copse** is the ring of saplings round the shell field.
 - A **domain** is an area of play: natural, animal, spiritual. A
   **structure** is something built in a domain, named for its result: a mine,
   a made clearing that pleases a spirit. Building one is a set of **tasks**.

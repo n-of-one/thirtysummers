@@ -9,7 +9,7 @@ numbers for the first five summers are in
 
 **What comes back depends on where it is.** Everything in the near ring,
 which is what camp can reach without crossing water, is back every summer:
-fruit, feathers, sticks where saplings stand, vines in the mud. That is the
+fruit, feathers, sticks where a wood drops them, vines in the mud. That is the
 safe option, and it is set to pay the upkeep and little more. The ring is
 measured from wherever camp stands, so moving camp moves the ring. Beyond
 the first stream, the ordinary things, fruit and feathers, come back by half

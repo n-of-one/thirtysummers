@@ -60,8 +60,17 @@ html, body {
 
 .hud-corner { position: absolute; display: flex; flex-direction: column; gap: 8px; }
 .hud-tl { top: 14px; left: 14px; align-items: flex-start; }
-/* Under the map in the corner: MapWidget sets --map-bottom to where it ends. */
-.hud-tr { top: calc(var(--map-bottom, 0px) + 8px); right: 14px; align-items: flex-end; }
+/* The clock and the hydration bar, top right, centred over the map in the
+   corner: MapWidget sets --map-left and --map-width to the map's, and puts
+   the map under them. */
+.hud-tr {
+  top: 14px;
+  left: var(--map-left, auto);
+  width: var(--map-width, auto);
+  right: auto;
+  align-items: center;
+}
+.hud-tr .clock { text-align: center; }
 .hud-bl { bottom: 14px; left: 14px; flex-direction: row; }
 .hud-br { bottom: 14px; right: 14px; align-items: flex-end; }
 
