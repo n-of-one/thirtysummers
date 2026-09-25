@@ -1,0 +1,215 @@
+{
+  "main": {
+    "id": "fc602eb4566b21a0",
+    "type": "split",
+    "children": [
+      {
+        "id": "5ef7374ef190ef1c",
+        "type": "tabs",
+        "children": [
+          {
+            "id": "274c1ecf1d5cd0fe",
+            "type": "leaf",
+            "state": {
+              "type": "markdown",
+              "state": {
+                "file": "design/summer.md",
+                "mode": "source",
+                "source": false
+              },
+              "icon": "lucide-file",
+              "title": "summer"
+            }
+          }
+        ]
+      }
+    ],
+    "direction": "vertical"
+  },
+  "left": {
+    "id": "b0d6002ed1a061a3",
+    "type": "split",
+    "children": [
+      {
+        "id": "c5f0bcd77ac1799d",
+        "type": "tabs",
+        "children": [
+          {
+            "id": "49229e0d8192dd7d",
+            "type": "leaf",
+            "state": {
+              "type": "file-explorer",
+              "state": {
+                "sortOrder": "alphabetical",
+                "autoReveal": false,
+                "showSearch": false,
+                "searchQuery": ""
+              },
+              "icon": "lucide-folder-closed",
+              "title": "Files"
+            }
+          },
+          {
+            "id": "964c9373b2245d85",
+            "type": "leaf",
+            "state": {
+              "type": "search",
+              "state": {
+                "query": "",
+                "matchingCase": false,
+                "explainSearch": false,
+                "collapseAll": false,
+                "extraContext": false,
+                "sortOrder": "alphabetical"
+              },
+              "icon": "lucide-search",
+              "title": "Search"
+            }
+          },
+          {
+            "id": "dcc046aff9b7058e",
+            "type": "leaf",
+            "state": {
+              "type": "bookmarks",
+              "state": {
+                "showSearch": false,
+                "searchQuery": ""
+              },
+              "icon": "lucide-bookmark",
+              "title": "Bookmarks"
+            }
+          }
+        ]
+      }
+    ],
+    "direction": "horizontal",
+    "width": 300
+  },
+  "right": {
+    "id": "0ca09356789c46d6",
+    "type": "split",
+    "children": [
+      {
+        "id": "419a37e403d834f1",
+        "type": "tabs",
+        "children": [
+          {
+            "id": "1ef593541823126e",
+            "type": "leaf",
+            "state": {
+              "type": "backlink",
+              "state": {
+                "file": "design/summer.md",
+                "collapseAll": false,
+                "extraContext": false,
+                "sortOrder": "alphabetical",
+                "showSearch": false,
+                "searchQuery": "",
+                "backlinkCollapsed": false,
+                "unlinkedCollapsed": true
+              },
+              "icon": "links-coming-in",
+              "title": "Backlinks"
+            }
+          },
+          {
+            "id": "1b7eb77a50fa3b58",
+            "type": "leaf",
+            "state": {
+              "type": "outgoing-link",
+              "state": {
+                "file": "design/summer.md",
+                "linksCollapsed": false,
+                "unlinkedCollapsed": true
+              },
+              "icon": "links-going-out",
+              "title": "Outgoing links"
+            }
+          },
+          {
+            "id": "9f3ec9c45dbf2514",
+            "type": "leaf",
+            "state": {
+              "type": "tag",
+              "state": {
+                "sortOrder": "frequency",
+                "useHierarchy": true,
+                "showSearch": false,
+                "searchQuery": ""
+              },
+              "icon": "lucide-tags",
+              "title": "Tags"
+            }
+          },
+          {
+            "id": "4a9a6c0f17a32c89",
+            "type": "leaf",
+            "state": {
+              "type": "all-properties",
+              "state": {
+                "sortOrder": "frequency",
+                "showSearch": false,
+                "searchQuery": ""
+              },
+              "icon": "lucide-archive",
+              "title": "All properties"
+            }
+          },
+          {
+            "id": "538d80419f376539",
+            "type": "leaf",
+            "state": {
+              "type": "outline",
+              "state": {
+                "file": "design/summer.md",
+                "followCursor": false,
+                "showSearch": false,
+                "searchQuery": ""
+              },
+              "icon": "lucide-list",
+              "title": "Outline"
+            }
+          }
+        ]
+      }
+    ],
+    "direction": "horizontal",
+    "width": 300,
+    "collapsed": true
+  },
+  "left-ribbon": {
+    "hiddenItems": {
+      "switcher:Open quick switcher": false,
+      "graph:Open graph view": false,
+      "canvas:Create new canvas": false,
+      "daily-notes:Open today's daily note": false,
+      "templates:Insert template": false,
+      "command-palette:Open command palette": false,
+      "bases:Create new base": false
+    }
+  },
+  "active": "274c1ecf1d5cd0fe",
+  "lastOpenFiles": [
+    "design/README.md.tmp.67858.89ac9f6aa213",
+    "rationale/technical.md.tmp.67858.3726009bfaeb",
+    "rationale/technical.md.tmp.67858.8e540656b49d",
+    "rationale/technical.md.tmp.67858.52a5030537e1",
+    "rationale/technical.md.tmp.67858.ee998a511f1d",
+    "rationale/technical.md.tmp.67858.a7fdb861c8e5",
+    "rationale/technical.md.tmp.67858.2d7091ce4a24",
+    "rationale/technical.md.tmp.67858.babff463488c",
+    "current/PLAN.md.tmp.67858.79562b3fdbbc",
+    "current/PLAN.md.tmp.67858.99d4b3ce8868",
+    "current/PLAN.md.tmp.67858.e6e6ccbdcbdb",
+    "current/m10-4-mud.md",
+    "design/summer.md",
+    "current/m10-6-stream.md",
+    "current/m10-5-thicket.md",
+    "current/m10-4-terrain.md",
+    "current/m10-8-upkeep.md",
+    "current/m10-7-camp.md",
+    "design/README.md",
+    "rationale/design.md",
+    "README.md"
+  ]
+}

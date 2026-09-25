@@ -91,6 +91,20 @@ chosen instead.
 - **A pointer that flips to whichever spring is nearest.** Along a bank, two
   springs would take turns. It stays on one spring until another is two
   tiles nearer; a margin of three tiles kept it on the old one too long.
+- **Underbrush in fewer, larger patches**, so a route would be a decision.
+  Trails already make it one: the player shapes the route by walking it.
+- **A dry bank where the first bridge goes.** Mud was kept off the bank on
+  the line from camp to the feather field. It told the player where to
+  cross, and the map was more predictable for it.
+- **The sapling stand**, a disc of saplings inside a ring of thicket, with
+  the sticks in it. It looked stamped on, and nothing explained where it
+  stood. The sticks lie in a bramble bay at the edge of a wood instead.
+- **A wall of grown trees round the bramble bay.** Woods are trees scattered over a
+  floor that can be walked, and trees close enough to make a wall merge
+  their canopies. Brambles on the wood's floor close the bramble bay instead.
+- **A bramble bay with one thin mouth**, and brambles at least twice as deep
+  everywhere else. In play it left one reasonable way in. The brambles are
+  about as deep from every side instead.
 - **Cutting underbrush with the knife.** Underbrush is worn down by walking
   over it, the one improvement that needs no action. The knife keeps the
   thicket.

@@ -14,9 +14,9 @@ import { initialKeep, levelAt, winterModel, type WinterModel } from "./winter.ts
  *
  * What is held to is the chain -- which winter opens the shop, buys the axe
  * and buys the cart -- and not the gold in that document's two tables. Those
- * were written against the per-level upkeep of M10.6, while upkeep is flat at
+ * were written against the per-level upkeep of M10.8, while upkeep is flat at
  * level 0's row until it lands, so the families run a few gold high. See
- * docs/current/m10-6-upkeep.md, whose step 5 owns the rebalance.
+ * docs/current/m10-8-upkeep.md, whose step 5 owns the rebalance.
  */
 
 /** What a map offers, counted by where it is. */

@@ -10,9 +10,9 @@ The general rules are in [../design/](../design/README.md). This document
 has only what is particular to these five summers.
 
 M10 built the first three years, and they were played. They are not fun yet.
-[PLAN.md](PLAN.md) lists the six milestones that answer the playtest log,
-M10.1 to M10.6, which come before the cart and the well. This document
-describes the first five summers as they are meant to be once those six are
+[PLAN.md](PLAN.md) lists the milestones that answer the playtest log,
+M10.1 to M10.8, which come before the cart and the well. This document
+describes the first five summers as they are meant to be once those are
 done, so it is ahead of the code while they are being built. Each
 milestone's own file says what it changes.
 
@@ -21,7 +21,7 @@ milestone's own file says what it changes.
 Each summer opens one new thing, and the winter between spends the gold. The
 question for the log is whether summers 2 to 5 stay interesting. On the
 discovery test's maps they did not, and on M10's they did not either: summer
-2 became hauling, and summer 3 became hauling further. The six milestones
+2 became hauling, and summer 3 became hauling further. These milestones
 change why a trip is made, how long it takes, and whether the valley is
 remembered. The questions now are:
 
@@ -50,8 +50,8 @@ half circle of the stream, with a short list in the corner: 8 fruit at camp,
 so collecting it is a handful of stops and not a sweep, and the ring's 10
 feathers are worth more than the rent. Everything the family's level needs
 is across the stream, in a field of feathers. The first bridge reaches it.
-It is paid for with sticks from behind the thin thicket around the sapling
-stand, and vines from the mud. The map in the corner starts blank, and by
+It is paid for with sticks from the bramble bay, a clearing in a wood behind
+the brambles that fill the wood's floor, and vines from the mud. The map in the corner starts blank, and by
 the time the clock runs out it shows most of the ring.
 
 **Winter 1.** No shop. The screen shows what came home, what winter costs,
@@ -123,10 +123,17 @@ walking speed instead of 40%. Easy ground is walked as fast as ever.
   springs along both banks. Inside it is the near ring.
 - **The near ring** is large, so the first summer is explored rather than
   swept. Its food is five fruit trees with two to four fruit each, and its
-  feathers are spread across it. Its mud pocket is open, and the vines in it
-  can only be reached by wading: each one is at least two tiles into the
-  mud, so none can be picked from the grass. A thin thicket, about three
-  tiles deep, walls in the sapling stand where the sticks are.
+  feathers are spread across it. It is more open than the valley round it,
+  with less mud and less dense underbrush. Mud lies mostly where the water is, along
+  parts of the bank and in the low ground behind them, and in damp hollows
+  elsewhere. The largest patch inside the
+  ring is the mud pocket, and its vines can only be reached by wading: each
+  one is at least two tiles into the mud, so none can be picked from the
+  grass. The sticks lie in the bramble bay: a small
+  clearing at the edge of a wood, wherever in the ring a wood wraps round
+  one best. Brambles fill the wood's floor round it, about 3 tiles deep
+  from every side, so the knife can cut in from whichever side the player
+  comes. The ring has no saplings.
 - **The ring has features that are only themselves**: a pond, a rock
   outcrop, a stand of grown trees, a bend with a waterfall. One of them is
   the thing to want in year 1: an island in the stream with something on it,
@@ -160,7 +167,7 @@ This is the table the generator lays out on every seed, and that
 |---|---|---|---|---|---|
 | near ring | 5 trees, 15 fruit between them | every year | 1 | 1 | 1 |
 | near ring | 10 feathers | every year | 1 | 5 to a slot | 5 |
-| sapling stand, behind thin thicket | 6 sticks | every year | no sale | 1 | 0 |
+| the bramble bay, behind thin thicket | 4 sticks | every year | no sale | 1 | 0 |
 | mud pocket | 6 vines | every year | no sale | 1 | 0 |
 | across the stream | 30 feathers, 1 tree with 4 fruit | half of what was picked, each winter | 1 | 5 feathers to a slot | 5 |
 | the copse | saplings, felled for logs | after 3 winters | no sale | 2 | 0 |

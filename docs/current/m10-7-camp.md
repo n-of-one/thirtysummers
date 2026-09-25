@@ -1,4 +1,4 @@
-# M10.5: camp that moves
+# M10.7: camp that moves
 
 From summer 2 on, every trip out starts with the walk from camp to the far
 bank, over ground that was already picked the summer before. A family with
@@ -25,7 +25,10 @@ back every year.
    used up when it is spent, so a first life gets about one move every two or
    three years and cannot keep camp at the edge of what has been reached.
    Pitching camp costs 6 sticks and 6 vines from camp, which gives material a
-   use now that it does not sell.
+   use now that it does not sell. Since M10.5 the bramble bay gives 4 sticks a year,
+   and the bridge and the axe take 6 of the first two years' 8, so 6 sticks
+   saved is summer 3 at the earliest. That may suit the story, where winter 3
+   is the cart or the move; decide it here.
 3. **Which ground can take a camp**, as a function next to
    `worldgen/reachability.ts`, so the rule lives in one place. The tile must
    be open ground, it must have been seen, it must not be within a few tiles

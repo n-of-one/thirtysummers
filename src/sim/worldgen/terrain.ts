@@ -25,7 +25,8 @@ export function fbm(noise: Noise2D, x: number, y: number, octaves: number): numb
 
 /**
  * Paint the terrain of a fresh map from noise: a rock border, a winding stream,
- * woods thinning towards their edges, and mud in the damp hollows between.
+ * woods thinning towards their edges, and mud in the damp hollows, in the open
+ * or in underbrush, though never on the dense floor of a wood.
  *
  * `rng` supplies the derived seeds for the noise fields, so the same master
  * stream produces the same landscape. `seed` scatters the trees, which is a
@@ -39,6 +40,18 @@ export function fbm(noise: Noise2D, x: number, y: number, octaves: number): numb
  * and moisture noise say there instead. A layout that lays its own water asks
  * for that: erasing the stream afterwards left a scar the shape of it, a band
  * of one ground drawn straight through whatever the noise had around it.
+ *
+ * `moisture`, if given, is filled with the moisture noise on every tile that
+ * can turn to mud -- open ground and underbrush short of dense -- and NaN
+ * everywhere else. A layout that lays its own water reads it back to wet the
+ * ground near that water, and the NaN is what keeps a wood from turning to mud.
+ *
+ * `forest`, if given, is filled with the forest noise on every tile inside the
+ * border, and NaN on the border and the stream. A layout reads it back to find
+ * where the woods are, and to paint a tile again once it has changed the noise.
+ *
+ * `groundFor` says which settings each tile grows by. A layout gives the near
+ * ring its own, so it can be more open than the valley round it.
  */
 export function paintTerrain(
   seed: number,
@@ -48,6 +61,9 @@ export function paintTerrain(
   border = C.BORDER_THICKNESS,
   stages?: Uint8Array,
   streams = true,
+  moisture?: Float32Array,
+  forest?: Float32Array,
+  groundFor: (x: number, y: number) => C.GroundSettings = () => C.GROUND,
 ): TileMap {
   // Independent noise fields, each with its own derived seed.
   const forestNoise = createNoise2D(mulberry32(randInt(rng, 0, 2 ** 31)));
@@ -55,6 +71,8 @@ export function paintTerrain(
   const streamNoise = createNoise2D(mulberry32(randInt(rng, 0, 2 ** 31)));
 
   const map = new TileMap(width, height, C.MAP_LAYERS);
+  moisture?.fill(NaN);
+  forest?.fill(NaN);
 
   for (let y = 0; y < height; y++) {
     for (let x = 0; x < width; x++) {
@@ -73,30 +91,13 @@ export function paintTerrain(
         continue;
       }
 
-      // One field drives grass -> underbrush -> forest. Because the underbrush
-      // band sits directly below the tree threshold, trees come out ringed by
-      // underbrush automatically.
-      const forest = fbm(forestNoise, x / C.FOREST_SCALE, y / C.FOREST_SCALE, 4);
-      let kind: TerrainKind;
-      // Inside a wood trees are scattered over the floor, thickening towards
-      // the middle. Scattering by a spatial hash -- rather than filling every
-      // tile -- leaves organic gaps you can sometimes squeeze through, instead
-      // of a solid block of canopy.
-      const depth = clamp01((forest - C.TREE_THRESHOLD) / (C.FOREST_NOISE_MAX - C.TREE_THRESHOLD));
-      const density = C.TREE_DENSITY_EDGE + (C.TREE_DENSITY_CORE - C.TREE_DENSITY_EDGE) * depth;
-      if (forest >= C.TREE_THRESHOLD && hash2d(seed, x, y) < density) {
-        kind = "tree";
-      } else if (forest >= C.UNDERBRUSH_THRESHOLD) {
-        // Underbrush, the floor of a wood included, is whatever the table says
-        // for its noise: a trail stage, full, or dense.
-        const band = groundBand(forest);
-        kind = band.ground === "denseUnderbrush" ? "denseUnderbrush" : "underbrush";
-        if (stages && kind === "underbrush") stages[y * width + x] = band.stage ?? 0;
-      } else {
-        const moisture = fbm(moistureNoise, x / C.MOISTURE_SCALE, y / C.MOISTURE_SCALE, 3);
-        kind = moisture >= C.MUD_THRESHOLD ? "mud" : "grass";
-      }
-      map.set(x, y, kind);
+      const woods = fbm(forestNoise, x / C.FOREST_SCALE, y / C.FOREST_SCALE, 4);
+      const wet = fbm(moistureNoise, x / C.MOISTURE_SCALE, y / C.MOISTURE_SCALE, 3);
+      const ground = groundAt(seed, x, y, woods, wet, groundFor(x, y));
+      if (forest) forest[y * width + x] = woods;
+      if (moisture && ground.kind !== "tree" && ground.kind !== "denseUnderbrush") moisture[y * width + x] = wet;
+      if (stages && ground.stage) stages[y * width + x] = ground.stage;
+      map.set(x, y, ground.kind);
     }
   }
 
@@ -104,13 +105,51 @@ export function paintTerrain(
 }
 
 /**
- * The row of `FOREST_THRESHOLDS` whose ground a forest noise value grows: the
- * last row it reaches, and inside a wood the row before the trees, which is
- * the floor they stand on.
+ * What one tile grows, from its forest and moisture noise: the ground, and
+ * for underbrush the trail stage it starts at (0 for full).
+ *
+ * One field drives grass -> underbrush -> forest. Because the underbrush band
+ * sits directly below the tree threshold, trees come out ringed by underbrush
+ * automatically.
  */
-export function groundBand(forest: number): C.ForestBand {
-  let found = C.FOREST_THRESHOLDS[0]!;
-  for (const band of C.FOREST_THRESHOLDS) {
+export function groundAt(
+  seed: number,
+  x: number,
+  y: number,
+  forest: number,
+  wet: number,
+  ground: C.GroundSettings = C.GROUND,
+): { kind: TerrainKind; stage: number } {
+  const { bands } = ground;
+  const trees = bands.find((b) => b.ground === "trees")?.from ?? Infinity;
+  const underbrush = bands[0]!.from;
+  // Inside a wood trees are scattered over the floor, thickening towards
+  // the middle. Scattering by a spatial hash -- rather than filling every
+  // tile -- leaves organic gaps you can sometimes squeeze through, instead
+  // of a solid block of canopy.
+  const depth = clamp01((forest - trees) / (C.FOREST_NOISE_MAX - trees));
+  const density = C.TREE_DENSITY_EDGE + (C.TREE_DENSITY_CORE - C.TREE_DENSITY_EDGE) * depth;
+  if (forest >= trees && hash2d(seed, x, y) < density) return { kind: "tree", stage: 0 };
+  // The floor of a wood stays dry: dense underbrush never turns to mud.
+  if (forest >= underbrush && groundBand(forest, bands).ground === "denseUnderbrush") {
+    return { kind: "denseUnderbrush", stage: 0 };
+  }
+  // Open ground and underbrush of any stage are mud where it is wet enough.
+  // Underbrush that stays is whatever the table says for its noise: a trail
+  // stage, or full.
+  if (wet >= ground.mudThreshold) return { kind: "mud", stage: 0 };
+  if (forest < underbrush) return { kind: "grass", stage: 0 };
+  return { kind: "underbrush", stage: groundBand(forest, bands).stage ?? 0 };
+}
+
+/**
+ * The row of `bands` whose ground a forest noise value grows: the last row it
+ * reaches, and inside a wood the row before the trees, which is the floor
+ * they stand on.
+ */
+export function groundBand(forest: number, bands: readonly C.ForestBand[] = C.FOREST_THRESHOLDS): C.ForestBand {
+  let found = bands[0]!;
+  for (const band of bands) {
     if (forest < band.from) break;
     if (band.ground !== "trees") found = band;
   }

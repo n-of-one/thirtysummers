@@ -1,4 +1,4 @@
-# M10.6: upkeep that changes with the family's level
+# M10.8: upkeep that changes with the family's level
 
 A poor family eats what it picks: a lot of fruit and little rent. A family
 with standing buys its food: less fruit and more gold. The total never grows,
@@ -12,8 +12,9 @@ and the reason in [../rationale/design.md](../rationale/design.md). The
 rejected alternative, upkeep whose total rises with each level, is in
 [../archive/decided-against.md](../archive/decided-against.md).
 
-**Depends on** the five milestones before it, because its numbers are chosen
-against a summer that has trees, trails, a map and a camp that can move.
+**Depends on** the seven milestones before it, because its numbers are
+chosen against a summer that has trees, trails, a map, the ring's new ground
+and a camp that can move.
 That is why it is last, not because it is hard.
 
 ## Steps

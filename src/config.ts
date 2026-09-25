@@ -194,7 +194,7 @@ export const BACKPACK_CAPACITY = 10;
  * [DOC] The fruit winter eats...
  *
  * These are level 0's row of the upkeep table in five-summers.md, charged flat
- * every winter. M10.6 turns the two of them into `UPKEEP_BY_LEVEL`, and the
+ * every winter. M10.8 turns the two of them into `UPKEEP_BY_LEVEL`, and the
  * two players' tables in that document are its arithmetic, not this one's.
  */
 export const UPKEEP_FRUIT = 8;
@@ -514,8 +514,31 @@ export const TREE_DENSITY_CORE = 0.30;
  * looking like a fringe.
  */
 export const FOREST_NOISE_MAX = 0.7;
-/** Moisture above which open grass turns to mud. */
-export const MUD_THRESHOLD = 0.45;
+/** [GUESS] Moisture above which open grass turns to mud. */
+export const MUD_THRESHOLD = 0.35;
+
+/** What a stretch of the map grows from its noise: the forest bands and where mud starts. */
+export interface GroundSettings {
+  bands: readonly ForestBand[];
+  mudThreshold: number;
+}
+/** The ground everywhere but the near ring. */
+export const GROUND: GroundSettings = { bands: FOREST_THRESHOLDS, mudThreshold: MUD_THRESHOLD };
+/**
+ * [GUESS] The near ring's own ground: dense underbrush starts later, so there
+ * is less of it outside the woods, and mud needs wetter ground. The trees
+ * start where they do everywhere, so the ring's woods are the same woods. The
+ * stream is the border between the two, and the band of bank laid along it
+ * hides where one turns into the other.
+ */
+export const RING_GROUND: GroundSettings = {
+  bands: [
+    ...FOREST_THRESHOLDS.filter((b) => b.ground === "underbrush"),
+    { from: 0.19, ground: "denseUnderbrush" },
+    { from: TREE_THRESHOLD, ground: "trees" },
+  ],
+  mudThreshold: 0.5,
+};
 /** Half-width of the band around zero that becomes stream. Wider = fatter river. */
 export const STREAM_WIDTH = 0.03;
 
@@ -586,17 +609,101 @@ export const STREAM_HALF_WIDTH = 1.5;
 /** The camp's own clearing, cut out of whatever the noise put there. */
 export const CAMP_CLEARING = 4;
 
-/** The sapling stand in the near ring: sticks behind a thin wall of thicket. */
-export const STAND_RADIUS = 6;
-/** [DOC] "about three tiles" of thicket, which is a first-summer job. */
-export const STAND_WALL = 3;
-/** Share of the stand's own tiles that are saplings rather than open ground. */
-export const STAND_SAPLING_SHARE = 0.3;
+/**
+ * The bramble bay in the near ring: a clearing at the edge of a wood, with
+ * brambles on the wood's floor all round it and the sticks lying inside. It
+ * goes wherever in the ring a wood wraps round open ground furthest, never
+ * tied to camp.
+ *
+ * [GUESS] How near camp the bramble bay's middle may be, and how near the
+ * stream. Each leaves room for the floor and `BRAMBLE_BAY_THINNEST` of
+ * brambles past it, clear of camp's clearing and of the band along the banks,
+ * 4 tiles wide, where the springs are. Only the brambles' extra reach may be
+ * clipped there.
+ */
+export const BRAMBLE_BAY_FROM_CAMP = 20;
+export const BRAMBLE_BAY_FROM_STREAM = 16;
+/**
+ * [GUESS] How a spot is judged: this many rays out from it, each this long. A
+ * ray that meets a wood is wooded, and the share of wooded rays is how far the
+ * wood wraps round the spot. The longest run of open rays is the open side.
+ */
+export const BRAMBLE_BAY_RAYS = 16;
+export const BRAMBLE_BAY_REACH = 9;
+/**
+ * [GUESS] The least share of wooded rays the chosen spot needs. Below it, the
+ * forest noise round the spot is raised until a wood grows there.
+ */
+export const BRAMBLE_BAY_WRAP_MIN = 0.6;
+/** [GUESS] How much the noise is raised next to the spot, falling to nothing at `BRAMBLE_BAY_REACH`. */
+export const BRAMBLE_BAY_RAISE = 0.35;
+/**
+ * [GUESS] Tiles of open floor in the bramble bay, grown from the spot along the lowest
+ * noise, so its outline follows the ground rather than a circle.
+ */
+export const BRAMBLE_BAY_FLOOR_TILES = 36;
+/**
+ * [DOC] The brambles at their thinnest: "2 or 3 tiles", a first-summer job.
+ * They are this deep all round, and a little deeper here and there.
+ */
+export const BRAMBLE_BAY_THINNEST = 3;
+/** [GUESS] How much further the brambles run where the noise is a wood, so the edge follows it. */
+export const BRAMBLE_BAY_WOOD_EXTRA = 2;
+/**
+ * [GUESS] How much further again the brambles run in clumps, from a fine noise
+ * `BRAMBLE_BAY_CLUMP_SCALE` tiles across, so their outer edge is not a ring.
+ */
+export const BRAMBLE_BAY_EDGE_CLUMPS = 3;
+export const BRAMBLE_BAY_CLUMP_SCALE = 5;
+/**
+ * [GUESS] Half the angle of the bramble bay's open side, in radians, seen from the
+ * spot: the side left open when a wood has to be raised round it.
+ */
+export const BRAMBLE_BAY_OPEN_HALF_ANGLE = 0.45;
+/**
+ * [GUESS] How even the brambles are: at least `BRAMBLE_BAY_EVEN_SHARE` of the
+ * bramble bay's edge is reached with no more than `BRAMBLE_BAY_EVEN_SLACK`
+ * cuts over the thinnest way in. A playtest with one thin side and thick brambles everywhere else
+ * left one reasonable way in.
+ */
+export const BRAMBLE_BAY_EVEN_SLACK = 2;
+export const BRAMBLE_BAY_EVEN_SHARE = 0.5;
+/**
+ * [GUESS] Mud near water. The moisture noise is raised by this much at the
+ * water's edge, falling in a straight line to nothing `WET_REACH` tiles out, so
+ * mud gathers along some stretches of bank and in the low ground behind them.
+ */
+export const WET_BANK_BOOST = 0.45;
+export const WET_REACH = 10;
 /**
  * The mud pocket in the near ring: vines in mud, and no thicket round it. The
- * mud is the whole barrier, and it only costs time.
+ * mud is the whole barrier, and it only costs time. It is the largest patch of
+ * the ring's own mud, and it must have at least this many tiles `MUD_VINE_INSET`
+ * deep in mud, so the vines have room at `FIELD_SPACING`. [GUESS]
  */
-export const MUD_POCKET_RADIUS = 8;
+export const MUD_POCKET_CORE_MIN = 30;
+/**
+ * [GUESS] The most tiles the pocket's mud is filled out by, wettest ground
+ * first, when the noise made too little for the vines.
+ */
+export const MUD_POCKET_FILL_MAX = 400;
+/**
+ * The disc of mud stamped for the pocket when filling it out cannot make room,
+ * as every pocket used to be.
+ */
+export const MUD_POCKET_LAST_RESORT = 8;
+/** How many of the ring's largest patches are tried for the pocket. */
+export const MUD_POCKET_CANDIDATES = 8;
+/**
+ * How far the pocket turns from straight north of camp, in radians, at the
+ * least: the line north is the way out, and the pocket is off to one side.
+ */
+export const MUD_POCKET_OFF_NORTH = 0.9;
+/**
+ * [GUESS] Tiles from camp to the middle of the pocket, at the least. The disc
+ * it replaced stood 36 out; vines beside camp would cost no walk at all.
+ */
+export const MUD_POCKET_FROM_CAMP = 24;
 /**
  * [GUESS] Tiles of mud a vine keeps on every side of it. A vine on the rim can
  * be taken from the grass beside it, and then the pocket has cost nothing.
@@ -636,7 +743,9 @@ export const LAYOUT_NODES = {
   nearRingTrees: 5,
   nearRingFruit: 15,
   nearRingFeathers: 10,
-  standSticks: 6,
+  // Four: the first bridge takes three, so the axe's three in winter 2 need
+  // another trip into the bramble bay. With six, summer 1 already paid for both.
+  brambleBaySticks: 4,
   pocketVines: 6,
   featherFieldFeathers: 30,
   featherFieldTrees: 1,

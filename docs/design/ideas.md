@@ -42,6 +42,14 @@ one up means refining it into a design document first. Rejected ideas are in
 - **The thick wall**, twelve tiles of thicket into a last pocket, as a
   two-summer project. Out of the first five summers, which fill up without
   it. It may come back into summers 1 to 3 if they need more to do.
+- **Other ways to lay out thicket**, offered for M10.5 next to the bramble bay in a
+  wood, which was tried first. Thicket from its own noise, like mud, in
+  several clumps at the edges of woods. A hedgerow the player can walk round
+  or cut through, so the knife gives a shortcut rather than the only way in.
+  Several small clumps with a stick or two in each. A fallen tree overgrown
+  with brambles, its trunk a wall and its crown the sticks. And the wildest
+  one: sticks that drop from thicket as it is cut, so the barrier is the
+  field of sticks and grows back with it.
 - **Logs floating downstream.** A log dropped in a stream drifts with the
   current and washes up on a bank further down. The half circle round camp
   would carry felled logs home without a cart: logistics made of the map
@@ -88,6 +96,13 @@ one up means refining it into a design document first. Rejected ideas are in
   a tile when the centre leaves it, so the footprint would have to as well:
   counted on the way in, it treads the next tile before the player has walked
   onto it.
+- **Props on and beside mud**, from the swamp pack: stumps, stones, small
+  plants, as decoration with no effect. Nothing may read as reeds, which
+  mark springs, or as a stick or a log, which are picked up.
+- **Ground that gets worse when walked.** Wet grass that turns to mud where
+  it is walked often: a trail that makes the route slower, the opposite of
+  worn underbrush. For an outer ring, where the player has to choose between
+  a route that is short now and one that stays good.
 - **Rarity**, once respawning is designed.
 - **Hazards** in the far regions. A still crocodile that bites when walked
   over is the cheapest first one. Monsters, and fighting or recruiting them,

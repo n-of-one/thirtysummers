@@ -111,13 +111,17 @@ in [development.md](development.md).
   the event log), `save.ts` (a game at the end of a summer as a URL string;
   `world.snapshot` and `world.restore` fill and read it).
 - **`src/sim/worldgen/`** turns a seed into a map: noise into terrain and a
-  camp (`terrain.ts` reads the forest noise through `FOREST_THRESHOLDS`, into
-  underbrush at a starting trail stage, dense underbrush and trees), stream thickening and fords, a flood fill from camp, resources
+  camp (`terrain.ts` reads the forest noise through a set of ground settings,
+  `GROUND` or the near ring's own `RING_GROUND`, into underbrush at a
+  starting trail stage, dense underbrush, trees and mud), stream thickening
+  and fords, a flood fill from camp, resources
   scattered by terrain, springs on the bank. `worldgen.ts` says what order the
   steps run in, and why. On top of that, `layout.ts` stamps the table of the
   first three summers onto the landscape -- the stream round camp, the near
   ring, the feather field across the stream, the shell field behind its copse
-  -- and is what `World.fromSeed` and `npm run map` build; `rows.ts` measures
+  -- and is what `World.fromSeed` and `npm run map` build. `brambleBay.ts`
+  finds and lays down the near ring's bramble bay, the sticks behind
+  brambles. `rows.ts` measures
   whether a map matches that table, economy included, and is shared by the
   layout's tests and `npm run map:check`. `reachability.ts` has `nearRing`,
   the near ring worked out from the map, so a hand-edited file keeps the
@@ -140,12 +144,13 @@ in [development.md](development.md).
   spots, fruit trees and camp marked and no resource nodes, and the fade the
   whole map takes as the player becomes dehydrated, until only its landmarks
   are left. `mapWidget.ts` draws it two ways: as a circle round the player in
-  the top right, with the hydration bar under it, the circle shrinking to what
+  the top right, under the clock and the hydration bar, which are centred
+  over it, the circle shrinking to what
   the player sees as they become dehydrated and a pointer on its rim to the
   nearest seen
   water; or as the whole valley that M puts in place of the tile view. It
   redraws only when the player's tile, the seen count, the fade's step or the
-  ground it shows changes. M10.5's winter screen is meant to draw the same
+  ground it shows changes. M10.7's winter screen is meant to draw the same
   picture larger.
   `buildMenu.ts` is the menu B opens: it draws `world.buildOptions()` and
   reports the choice back, and never writes simulation state itself.

@@ -19,7 +19,8 @@ import type { GeneratedWorld } from "../worldgen.ts";
  * The map is filled from camp the way the player gets about in each summer: on
  * foot; with thin thicket cut; with the stream bridged; and with the saplings
  * felled. The fill counts how many thicket tiles the cheapest way to each tile
- * cuts, so a thin ring is told apart by its depth rather than by where it is.
+ * cuts, so thin thicket is told apart by its depth rather than by where it is,
+ * and the bramble bay by what it costs to cut onto its floor from each side.
  *
  * The last rows are the economy: the perfect player played over the map's
  * counts through the winter model, so a number changed in config shows up
@@ -48,9 +49,14 @@ interface Means {
  *
  * A 0-1 breadth-first search: a step onto walkable ground costs nothing, onto
  * thicket one cut, and a stream or a sapling is walkable only when `means`
- * says so.
+ * says so. A tile in `stopAt` is reached but never gone on from, so what it
+ * costs is what it costs to get onto it from outside.
  */
-export function cutsFromCamp(world: GeneratedWorld, means: Means): Float64Array {
+export function cutsFromCamp(
+  world: GeneratedWorld,
+  means: Means,
+  stopAt?: ReadonlySet<number>,
+): Float64Array {
   const { map } = world;
   const grid = new Grid(map.width, map.height);
   const cost = new Float64Array(grid.size).fill(Infinity);
@@ -63,6 +69,7 @@ export function cutsFromCamp(world: GeneratedWorld, means: Means): Float64Array 
 
   while (head < tail) {
     const idx = deque[head++]!;
+    if (stopAt?.has(idx)) continue;
     const x = grid.xOf(idx);
     const y = grid.yOf(idx);
     for (const [dx, dy] of NEIGHBOURS_4) {
@@ -161,6 +168,71 @@ function describe(world: GeneratedWorld, nodes: readonly ResourceNode[], steps: 
   return `${nodes.length}, ${d[0]}-${d[d.length - 1]} steps from water`;
 }
 
+/** What the bramble bay's rows are measured from. */
+export interface BrambleBayMeasure {
+  /** How many separate floors the sticks lie on: one, for a bramble bay. */
+  floors: number;
+  /** The floor the first stick lies on, as `y * width + x`. */
+  floor: Set<number>;
+  /** The fewest cuts onto the floor from camp: the thinnest way in. */
+  thinnest: number;
+  /**
+   * The share of the floor's edge that is cut onto with no more than
+   * `BRAMBLE_BAY_EVEN_SLACK` cuts over the thinnest: how even the brambles are.
+   */
+  even: number;
+}
+
+/**
+ * The bramble bay, measured from the map alone, so a file edited by hand is
+ * checked the same way: the open ground the sticks lie on, and what it costs
+ * to cut onto it at each tile of its edge.
+ *
+ * The edge is every floor tile beside thicket. Most of it should cost about
+ * what the thinnest way in costs, so the bramble bay can be approached from
+ * more than one side.
+ */
+export function measureBrambleBay(world: GeneratedWorld): BrambleBayMeasure {
+  const { map } = world;
+  const grid = new Grid(map.width, map.height);
+  const sticks = world.nodes.filter((n) => n.kind === "stick").map((n) => tileOf(world, n));
+  const floorOf = new Int32Array(grid.size).fill(-1);
+  const floors: Set<number>[] = [];
+  for (const start of sticks) {
+    if (floorOf[start]! >= 0) continue;
+    const floor = new Set<number>([start]);
+    floorOf[start] = floors.length;
+    const queue = [start];
+    for (let head = 0; head < queue.length; head++) {
+      const idx = queue[head]!;
+      for (const [dx, dy] of NEIGHBOURS_4) {
+        const nx = grid.xOf(idx) + dx;
+        const ny = grid.yOf(idx) + dy;
+        if (!grid.contains(nx, ny) || !map.isPassable(nx, ny)) continue;
+        const n = grid.index(nx, ny);
+        if (floorOf[n]! >= 0) continue;
+        floorOf[n] = floors.length;
+        floor.add(n);
+        queue.push(n);
+      }
+    }
+    floors.push(floor);
+  }
+  const floor = floors[0] ?? new Set<number>();
+  const cost = cutsFromCamp(world, { bridge: false, fell: false }, floor);
+  let thinnest = Infinity;
+  for (const i of floor) thinnest = Math.min(thinnest, cost[i]!);
+  let edge = 0;
+  let near = 0;
+  for (const i of floor) {
+    const byThicket = NEIGHBOURS_4.some(([dx, dy]) => map.get(grid.xOf(i) + dx, grid.yOf(i) + dy) === "thicket");
+    if (!byThicket) continue;
+    edge++;
+    if (cost[i]! <= thinnest + C.BRAMBLE_BAY_EVEN_SLACK) near++;
+  }
+  return { floors: floors.length, floor, thinnest, even: edge > 0 ? near / edge : 0 };
+}
+
 /** How many tiles the generator's own thickening rule would still change. */
 const pinches = (world: GeneratedWorld) => thickenStream(world.map.clone());
 
@@ -171,6 +243,15 @@ export function checkRows(world: GeneratedWorld): Row[] {
   const bridged = cutsFromCamp(world, { bridge: true, fell: false });
   const felled = cutsFromCamp(world, { bridge: true, fell: true });
   const steps = stepsFromWater(world);
+  // Drinking is never behind a wade: every spring is reached from camp without
+  // setting foot in mud, with water, thicket and saplings all crossed.
+  const dry = fill(map, [Math.floor(world.camp.y) * map.width + Math.floor(world.camp.x)], (x, y) => {
+    const kind = map.get(x, y);
+    return kind !== "mud" && kind !== "rock" && kind !== "tree";
+  });
+  const wadedTo = world.springs.filter(
+    (s) => map.get(s.x, s.y) === "mud" || dry[s.y * map.width + s.x]! < 0,
+  );
 
   // Summer 1: the near ring. Vines are waded to, sticks are cut to.
   const onFoot = within(world, noBridge, 0);
@@ -191,6 +272,12 @@ export function checkRows(world: GeneratedWorld): Row[] {
   // is parked, and a node behind one would be a node nobody can have.
   const beyond = world.nodes.filter((n) => felled[tileOf(world, n)]! > THIN_CUTS);
 
+  // The bramble bay: the sticks on one floor, in brambles about as deep from
+  // every side, with nothing on that floor but the sticks.
+  const bay = measureBrambleBay(world);
+  const inBay = world.nodes.filter((n) => n.kind !== "stick" && bay.floor.has(tileOf(world, n)));
+  const springsInBay = world.springs.filter((s) => bay.floor.has(s.y * map.width + s.x));
+
   const rows: Row[] = [
     {
       summer: 1,
@@ -208,6 +295,18 @@ export function checkRows(world: GeneratedWorld): Row[] {
       detail:
         `vines on foot ${count(onFoot, "vine")}; sticks ${count(onFoot, "stick")} on foot, ` +
         `${count(pockets, "stick")} once ${THIN_CUTS} or fewer tiles are cut`,
+    },
+    {
+      summer: 1,
+      label: "the sticks lie in one bramble bay, in brambles about as deep all round",
+      ok:
+        bay.floors === 1 &&
+        bay.thinnest >= 2 &&
+        bay.thinnest <= C.BRAMBLE_BAY_THINNEST &&
+        bay.even >= C.BRAMBLE_BAY_EVEN_SHARE,
+      detail:
+        `${bay.floors} floor${bay.floors === 1 ? "" : "s"}, ${bay.thinnest} cuts at the thinnest, ` +
+        `${Math.round(bay.even * 100)}% of the edge within ${bay.thinnest + C.BRAMBLE_BAY_EVEN_SLACK}`,
     },
     {
       summer: 1,
@@ -234,6 +333,18 @@ export function checkRows(world: GeneratedWorld): Row[] {
       label: "every node within a thin cut",
       ok: beyond.length === 0,
       detail: `${beyond.length} beyond`,
+    },
+    {
+      summer: 0,
+      label: "nothing but sticks in the bramble bay",
+      ok: inBay.length === 0 && springsInBay.length === 0,
+      detail: `${inBay.length} other nodes, ${springsInBay.length} springs`,
+    },
+    {
+      summer: 0,
+      label: "every spring reached without wading",
+      ok: wadedTo.length === 0,
+      detail: `${wadedTo.length} of ${world.springs.length} behind mud`,
     },
     {
       summer: 0,
@@ -274,7 +385,7 @@ function countTiles(map: TileMap, cost: Float64Array, kind: string): number {
  * five-summers.md asks the first winters for, each row with its margin.
  *
  * The chain is what is asserted, not the gold in that document's tables: they
- * are M10.6's arithmetic, and until it lands upkeep is flat at level 0's row,
+ * are M10.8's arithmetic, and until it lands upkeep is flat at level 0's row,
  * which runs both families a few gold high. The reference player's family
  * total is printed for that reason and held to nothing.
  */
@@ -340,7 +451,7 @@ function economyRows(counts: MapCounts): Row[] {
       detail:
         `winter 3 counted ${r3!.counted}, ${r3!.bought.join(", ") || "nothing"} bought, ` +
         `family ${r3!.model.family.total} (level ${r3!.model.family.level}; ` +
-        `M10.6's upkeep is what makes this one 78 and level 2); ` +
+        `M10.8's upkeep is what makes this one 78 and level 2); ` +
         `winter 4 ${r4!.bought.join(", ") || "nothing"} bought`,
     },
   ];

@@ -229,7 +229,7 @@ black.
 
 **Full screen is a button.** A full HD view in a browser window on a full HD
 screen is scaled down to fit under the browser's own bars, to 0.875 or less.
-The Full screen button in the top right corner gives the page every pixel of
+The Full screen button in the top left corner gives the page every pixel of
 the screen, and its label follows the state, including leaving by Esc.
 
 ## Stats
@@ -679,10 +679,12 @@ each summer opens exactly one thing and each barrier is short in the one
 currency the summer before supplied. `worldgen/layout.ts` therefore paints the
 generator's landscape, takes its own streams and walls back out, and stamps the
 table onto it: the half circle of stream round camp, the near ring inside it,
-the stand and the mud pocket, the ore field, the copse and the field it hides,
-the dry pocket, the wall into the last pocket, and the route a cart could run.
-What a map feels like to walk across is still the generator's; what it asks of
-the player is the table's.
+the ore field, the copse and the field it hides, the dry pocket, the wall into
+the last pocket, and the route a cart could run. The mud pocket was stamped
+too, as a disc, until M10.4 took it from the landscape's own mud (see *Mud*),
+and so was the sapling stand, until M10.5 put the sticks in a bramble bay at
+the edge of the ring's own woods (see *The bramble bay*). What a map feels like to walk across is still the generator's; what it
+asks of the player is the table's.
 
 Hand-stamping the five maps with a throwaway script came first and worked, and
 is exactly what made the next change expensive: "the starting area should be six
@@ -693,8 +695,8 @@ property worth keeping from the hand-edited era.
 **A barrier is measured by what it costs to cross, not by where it is.**
 `worldgen/rows.ts` fills the map from camp with a 0-1 breadth-first search that
 charges one for a thicket tile and nothing for walkable ground, with the stream
-and the saplings opened or not. A thin ring and a twelve-tile wall are then told
-apart by the depth of the cut rather than by their coordinates, which is what
+and the saplings opened or not. Thin brambles and a twelve-tile wall are then
+told apart by the depth of the cut rather than by their coordinates, which is what
 lets the same check test a generated map and an edited one against the same
 table.
 Each row of the table is one entry: fruit and feathers on foot, vines waded to
@@ -715,16 +717,15 @@ particular thing is done, and not before.
 
 **The tests found two bugs the checker could not.** The rows ask whether the
 map has the chain; they do not ask whether each thing is where it should be.
-Scattering the near ring's fruit over the whole ring put some of it inside the
-walled stand, visible from outside and unreachable in the first summer, and
-scattering sticks inside the stand let the stand's own saplings box one in,
-which is a wall until the axe arrives a year later. Both are now rules in the
-scatter: the near ring avoids what is walled off, and a stick only goes on
-ground that joins the wall without a sapling in the way.
+Scattering the near ring's fruit over the whole ring put some of it inside what
+was walled off, visible from outside and unreachable in the first summer, and
+scattering sticks among saplings let the saplings box one in, which is a wall
+until the axe arrives a year later. Both are now rules in the scatter: the near
+ring avoids what is walled off, and a stick only goes on the bramble bay's own floor.
 
 **A scatter that cannot fit what it was asked for closes up rather than
-placing fewer.** Spacing is what the near ring is for, but a stand that came out
-mostly saplings, or a ring whose noise left little open grass, will not take ten
+placing fewer.** Spacing is what the near ring is for, but a small floor, or a
+ring whose noise left little open grass, will not take ten
 nodes seven tiles apart. Placing eight and saying nothing means the summer is
 quietly worth less on that seed. It tries the spacing it wants, then a smaller
 one, then none.
@@ -856,8 +857,8 @@ copse wants, an orange canopy against green woods. It is also four tiles wide
 and eight tall, and a copse with one on every tile is a solid mass of canopy
 with no ground to see, no gaps to read, and nothing to aim a fell at. The drawn
 one is a tile wide and two tall, a pale trunk under a small crown in a yellower
-green, so a stand reads as young trees from across the ring and still shows the
-ground it stands on. Saplings occlude the player like trees, since they are
+green, so a copse reads as young trees from across the valley and still shows
+the ground it stands on. Saplings occlude the player like trees, since they are
 drawn taller than their tile.
 
 **The log is the oak, not the birch.** The birch log is pale and round on the
@@ -934,6 +935,111 @@ same texture means it snaps, sorts and scrolls with the item and can never be a
 pixel out of step. The placeholder pack's art is vector, so it redraws at three
 quarters into a smaller cell instead of resampling, to the same effect.
 
+## Mud
+
+**Mud near water is a pass in the layout, not in the noise.** The layout
+paints the noise with no stream (see above), so the noise cannot know where
+the water is. `paintTerrain` hands back the moisture it computed, and the layout
+raises it near the stream once the stream is in, then paints the mud again.
+Tiles the noise made dense underbrush or wood come back as NaN, which is what
+keeps a wood's floor from turning.
+
+**Mud takes underbrush, not only open ground.** Only 15% of the ring is open
+ground; the rest is underbrush or wood, down to the thinnest trail stage. With
+mud on open ground alone, the ring had less mud than when it had the stamped
+disc: 3.0% against 4.0%. Letting every stage of underbrush turn, but not dense
+underbrush or woods, took it to about 11%, and 13% with the boost near water
+at 0.45. The cost is the underbrush: mud took about a fifth of it and none of
+the dense, so dense went from a third of the ring's brush to two fifths, and
+it reads as more of it. Tune mud, trees and dense underbrush together.
+
+**The near ring grows by its own settings.** Played, 13% mud and 24% dense
+underbrush was too much for the ring, and right for the valley outside it.
+`paintTerrain` takes the settings per tile, and the layout gives the ring
+`RING_GROUND`: dense underbrush from 0.19 in the forest noise instead of
+0.12, and mud from a moisture of 0.5 instead of 0.35, near water included.
+Trees start at the same value on both sides, so the woods do not move and
+the bramble bay still finds them. Over the test seeds the ring went to 8.1% mud and
+17.5% dense underbrush, most of it the floor under the woods, which only
+fewer woods would change. The layout knows the ring before the stream is
+laid, so the ring is the half circle the stream will take and the strip below
+camp; the band of bank stamped along the stream hides where one set of
+settings meets the other. M10.4's test of more than 7% mud in the ring became
+more than 4%, the old pocket's share, which is what it was written to say.
+
+**The boost near water changes the banks, not the ring.** From 0.25 to 0.45,
+at the valley's mud threshold, the ring's mud went from 11.4% to 13.2% and the
+inside bank from 24% to 39% mud. It mostly makes the patches the noise already has near the bank larger,
+and rarely makes new ones, because the moisture noise still decides where mud
+can form at all. `WET_REACH` is the setting for mud further back from the
+water.
+
+**The pocket is filled like a hollow, not grown by a bump.** The noise rarely
+makes a patch deep enough to keep six vines two tiles from every edge, so the
+pocket usually has to be enlarged. Raising the moisture by a bump round it
+needed 0.3 to 0.85 on almost every seed, which is as much as the noise varies
+at all, so the whole circle turned and the pocket came out a disc again, with
+straight edges where woods clipped it. Now the wettest tile at the pocket's
+edge turns first, one at a time, so the outline follows the noise's contours.
+The patch that needs the fewest tiles added wins. Every trial runs on a record
+of what would be added, never on the map, so a patch passed over leaves nothing
+behind.
+
+**The pocket is counted on the near ring's tiles only.** Grown from mud on the
+bank, it reached across the stream once, and a vine landed on the far bank,
+where no one can get to it on foot in summer 1.
+
+**A spring is never behind mud, checked as ground, not as means.** The flood
+that decides it crosses water, thicket and saplings, so it only rules out
+ground that mud closes off. Without it, 39 of 40 seeds put springs in mud or
+behind it, about a quarter of all springs.
+
+## The bramble bay
+
+**The bramble bay goes where the woods already wrap round.**
+`worldgen/brambleBay.ts` casts
+16 rays from every open spot in the ring, a walk from camp and clear of the
+banks, and takes the spot where the most rays meet a wood within nine tiles;
+the seed's draw only breaks ties. So its place follows the landscape and is
+not tied to camp's side or angle: over the test seeds it lands 22 to 42 tiles
+out, from 79° west of north to 83° east. Where no spot is wrapped far enough,
+the forest noise is raised round the best one and those tiles are painted
+again through `groundAt`, the same rule `paintTerrain` uses, so the new wood
+is the generator's own. The floor is grown from the spot along the lowest
+noise, like the vines' pocket along the wettest ground, so it is never a disc.
+
+**The brambles are a depth from the floor, not a shape.** A tile is thicket
+when its distance from the floor, in steps, is within the depth there: 3 all
+round, up to 2 more where the noise is a wood, up to 3 more in clumps of a fine
+noise. Distance in steps is what a walk crosses, so every tile 3 or fewer
+steps out being thicket or a tree proves no way in costs fewer than 3 cuts,
+without a search. Trees stay where they are and stand in the brambles.
+
+**One thin mouth was the first build, and play dropped it.** The bramble bay had a
+mouth 3 deep and brambles at least twice that everywhere else, and a check
+that every cheaper way in entered next to the mouth. Two playtests found one
+reasonable way in, every time. The check now asks the opposite: at least half
+the floor's edge within two cuts of the thinnest way in. Over the test seeds
+it is 65% to 100%. The clump noise adds depth only from its upper half: with
+the whole range added, depth rose everywhere and some seeds came out 4 cuts
+at the thinnest.
+
+**The bramble bay is measured from the sticks, not from the layout.**
+`measureBrambleBay` in
+`rows.ts` takes the open ground the sticks lie on as the floor, and runs the
+0-1 fill from camp with the floor's tiles reached but not gone on from, so each
+edge tile's cost is what it costs to cut onto it from outside. A hand-edited
+file is checked the same way. The checks are shown not to be vacuous by
+editing a generated bramble bay: its thinnest way in cut down to one tile, thick
+brambles everywhere but one way in, and a feather on its floor each fail.
+
+**Four sticks, not six.** The narrowest crossing of the first stream is three
+bridge tiles on every test seed, so six sticks paid for both the bridge and
+the axe in summer 1, and the bramble bay was never visited again. Four leave one after
+the bridge, so summer 2 goes back in, through a cut that may have partly grown
+shut. The economy rows count every stick each year and spend none on the
+bridge, so they did not see it.
+
 ## The map
 
 **What is seen is the simulation's to know, so the fog moved into it.** The
@@ -959,6 +1065,15 @@ pixel a tile, shown at a whole number of art pixels a tile with
 would be 1440 tall: there is no size in between. The corner map is a window,
 not the valley, for the same reason. Its circle is cut tile by tile by the
 rule the seen circle is marked by, never by a CSS radius through a pixel.
+
+**The corner map places itself under the clock and the hydration bar.** The
+three share one column, top right, centred on one line. The map has to sit on
+the art grid, which a flex column cannot promise, so the widget places the
+map and hands its left edge and width to the column through `--map-left` and
+`--map-width`; the column centres the clock and the bar over it. The map then
+goes under wherever the column ends, read from the laid-out column. The HUD's
+fonts are the system's, so the column's height is known when the widget
+places itself.
 
 **It draws only when something it shows changed.** The key is the player's
 tile, the seen count and the whole map's fade step, and the events that change

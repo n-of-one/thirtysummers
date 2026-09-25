@@ -56,7 +56,8 @@ are a slog.
 **What it decided.** The idea is not in question; the first three years are.
 The verdict and the six changes that answer it are in
 [../rationale/design.md](../rationale/design.md) and in
-[PLAN.md](PLAN.md), as M10.1 to M10.6. Nothing goes on top of the first three
+[PLAN.md](PLAN.md), as M10.1 to M10.8, where the ring's features became
+three milestones. Nothing goes on top of the first three
 years until they are fun.
 
 ---

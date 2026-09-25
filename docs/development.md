@@ -22,7 +22,7 @@ The last rows `map:check` prints are the economy: the two players of
 winter model, with the margin on each row. A number changed in `config.ts`
 shows up there before it shows up in a playtest. They are checked against the
 chain -- which winter opens the shop, buys the axe and buys the cart -- and not
-against the gold in that document's tables, which is M10.6's arithmetic and runs a few
+against the gold in that document's tables, which is M10.8's arithmetic and runs a few
 gold high until it lands.
 
 `npm run map` writes the map to stdout and its statistics to stderr, so a
@@ -206,7 +206,9 @@ pattern -- and if it is stale, save the file again with a real edit.
   worn by walking with their speeds, their save and their winters, dense
   underbrush that never wears, underbrush stages from the forest noise, the
   near ring measured from the map, the layout pass over several seeds against
-  every row of the table and the economy, the fog's radius and the seen
+  every row of the table and the economy, the bramble bay with its even
+  brambles and the edited bramble bays its row must fail, a cut through them growing back over a
+  winter, no saplings in the ring, the fog's radius and the seen
   circle, the seen mask over a walk, a drink, a teleport, a winter and a
   save, the map picture by ground class with its fruit trees and drinking
   spots, the corner map shrinking as the player becomes dehydrated, the whole

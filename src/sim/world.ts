@@ -695,7 +695,7 @@ export class World {
    *
    * - Never means never, wherever a node stands: a kind whose `returns` is
    *   `never` is gone once it is picked, ring or no ring. It matters from
-   *   M10.5, when camp can be pitched so that a shell field falls inside a
+   *   M10.7, when camp can be pitched so that a shell field falls inside a
    *   near ring.
    * - Otherwise, inside the near ring every node is back. Outside it the
    *   resource table says: every year, or a share of what was picked this

@@ -1,7 +1,7 @@
 /**
  * What the family has seen: one byte a tile, 1 once it has been inside the
  * seen circle round the player in any summer. The map in the corner draws it,
- * and M10.5 picks camp sites off it.
+ * and M10.7 picks camp sites off it.
  *
  * The circle is centred on the player's tile, not on the player, so what is
  * seen changes only when the tile does, and a walk can be checked against it

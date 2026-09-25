@@ -15,13 +15,20 @@ function hold(world: World, seconds: number): void {
   world.step(C.TICK_SEC, NO_INPUT);
 }
 
-/** Find a tile of `kind` with walkable ground on one side, and aim at it from there. */
+/**
+ * Find a tile of `kind` with walkable ground on one side, and aim at it from
+ * there. Never from beside a spring: by then the player is thirsty, and the key
+ * would drink instead.
+ */
 function aimAt(world: World, kind: string): { x: number; y: number } {
   const { map } = world;
+  const bySpring = (x: number, y: number) =>
+    world.springs.some((s) => Math.abs(s.x - x) <= 2 && Math.abs(s.y - y) <= 2);
   for (let y = 1; y < map.height - 1; y++) {
     for (let x = 1; x < map.width - 1; x++) {
       if (map.get(x, y) !== kind) continue;
       for (const [dx, dy] of [[1, 0], [-1, 0], [0, 1], [0, -1]] as const) {
+        if (bySpring(x - dx, y - dy)) continue;
         if (!world.teleport(x - dx + 0.5, y - dy + 0.5)) continue;
         world.player.heading = { x: dx, y: dy };
         return { x, y };

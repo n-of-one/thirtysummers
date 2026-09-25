@@ -41,14 +41,14 @@ log is in [PLAYTEST.md](PLAYTEST.md), and what it decided is in
 years, and what they changed". Year 1 is close. Year 2 is a long walk to the
 bridge followed by hauling, and the money does not add up unless the player
 sells the material a bridge is made of. Year 3 is the same walk, made longer.
-Nothing new goes on top of that. Instead, M10.1 to M10.6 answer the log one
+Nothing new goes on top of that. Instead, M10.1 to M10.8 answer the log one
 change at a time, and each is played and judged on its own before the next
 one starts. The cart, the well and eating fruit wait until after them.
 
 **M10.1 is done** (24 Sep). The ring's food is 15 fruit under 5 trees, two
 to four fruit each, hung where they can be seen. A shell sells for 6, and
 material sells for nothing. Upkeep and the axe use the level 0 numbers until
-M10.6. Collecting a winter's fruit is now a round trip of 113 tiles with
+M10.8. Collecting a winter's fruit is now a round trip of 113 tiles with
 three or four stops, instead of 150 tiles of sweeping the ring.
 
 **M10.2 is done** (24 Sep). Walking over underbrush wears it down one stage
@@ -67,8 +67,8 @@ Are three walks to flat, and one more to grass, the right numbers?
 **M10.3 is done** (25 Sep). The character keeps a map of the ground seen in
 any summer. A tile counts as seen when it is within 14 tiles of the player,
 and less as the fog closes in. A circle of the map, 28 tiles in radius, sits
-top right with the hydration bar under it, and the clock has moved to the
-top left. M swaps the view for the whole valley, with the list and the pack
+top right, under the clock and the hydration bar, all three centred on one
+line. M swaps the view for the whole valley, with the list and the pack
 over it and the clock still running. The map shows terrain, bridges, camp,
 every place to drink and the fruit trees. It does not show trails or what
 there is to pick. It is drawn at one art pixel per tile, and it is saved. A
@@ -79,7 +79,47 @@ and the whole map fades until, at 0%, only its landmarks are left. Questions
 for the next playtest: does the map make a summer feel like uncovering
 ground? Is it looked at, and when? Does leaving the fields off the map leave
 the player lost? Is a radius of 28 enough? Is the pointer to water a help or
-a crutch? M10.4 is next, and its landmarks go on the map.
+a crutch?
+
+**The ring's features are split in three** (25 Sep). Trails made the ring
+worth playing: the player shapes the routes, and bigger patches of
+underbrush, the old plan for M10.4, are no longer needed. What still looks
+artificial is the ring's ground: the mud pocket is a perfect disc, the
+sapling stand a disc inside a ring of thicket, and the stream a perfect
+half circle. Each gets its own milestone, M10.4 to M10.6, mud first. The
+stream is the last of the three, and it is not designed yet. The scenery
+landmarks (a pond, a rock outcrop, a stand of grown trees) wait until the
+three show which ones are still needed.
+
+**M10.4 is done** (25 Sep). The ring has about three times as much mud: 13%
+of it, against 4% when the only mud was the stamped disc. Ground within 10
+tiles of the stream is wetter, so just over half the mud lies near water and
+about two fifths of the inside bank is mud. Open ground and underbrush of
+every stage can turn to mud; dense underbrush and woods never do. The vines'
+pocket is a patch of the ring's own mud, filled out along the wettest ground
+until it is deep enough for the vines, at least 24 tiles from camp. No
+spring is ever in mud or cut off by it. Mud took about a fifth of the
+ordinary underbrush and none of the dense, so the woods' dense floor now
+stands out more. M10.5 then gave the ring less of both. Questions for the
+next playtest: does the mud look as if it belongs there? Does mud on the bank
+change where the player crosses or drinks, and is that a choice or just a
+longer walk? Does the player still find the vines?
+
+**M10.5 is done** (25 Sep). The sapling stand is gone, and the ring has no
+saplings. The sticks lie in the bramble bay: a small clearing at the edge of a wood,
+wherever in the ring a wood wraps round open ground furthest, with brambles
+on the wood's floor all round it. The brambles are about 3 tiles deep from
+every side, deeper in the wood and in clumps, with the wood's trees standing
+in them. A first version had one thin mouth and brambles twice as deep
+everywhere else, and two playtests found only one reasonable way in. The bramble
+bay has 4 sticks, not 6: the first bridge takes 3, so the axe's 3 need a second
+trip in summer 2, through a cut that may have partly grown back. The ring
+also grows by its own ground settings: 8% mud and 18% dense underbrush,
+against 13% and 24% before, while the valley outside is unchanged. The clock
+has moved to the top right, over the hydration bar and the map. Questions for
+the next playtest: is the bramble bay found without being looked for? Does cutting
+in feel like a choice of side? In summer 2, is the narrowed way in noticed,
+and does it teach that thicket grows back? Is the ring now open enough?
 
 | Milestone | What it adds | Status |
 |---|---|---|
@@ -92,14 +132,16 @@ a crutch? M10.4 is next, and its landmarks go on the map.
 | M10.1: fruit on trees | the ring's food on five trees, shells at 6, material with no price, the upkeep and axe numbers | done |
 | M10.2: trails | underbrush worn away by walking over it, underbrush in degrees from the noise, dense underbrush | done |
 | M10.3: the map | the map in the corner and the whole map on M, showing only ground that has been seen; what thirst does to both; the pointer to water | done |
-| [M10.4: features in the ring](m10-4-terrain.md) | landmarks, the island, underbrush in patches | not started |
-| [M10.5: camp that moves](m10-5-camp.md) | a camp pitched on ground the family has walked, granted by a family level | not started |
-| [M10.6: upkeep by level](m10-6-upkeep.md) | a winter asked in fruit when poor and in rent when not | not started |
+| M10.4: mud | more mud, most of it where the water is, the vines' patch taken from it | done |
+| M10.5: the bramble bay | the sticks in a clearing of a wood, closed by brambles; no saplings in the ring; the ring's own ground | done |
+| [M10.6: the stream](m10-6-stream.md) | a stream that is not a half circle, the island | not designed |
+| [M10.7: camp that moves](m10-7-camp.md) | a camp pitched on ground the family has walked, granted by a family level | not started |
+| [M10.8: upkeep by level](m10-8-upkeep.md) | a winter asked in fruit when poor and in rent when not | not started |
 | [M11: the cart](m11-cart.md) | summer 4: the logistics experiment, and its road | being rethought |
 | [M12: planks and the well](m12-planks-well.md) | summer 5: planks on mud, the well, the dry pocket | not started |
 | [M13: fruit](m13-fruit.md) | eating a fruit for a burst of speed, in place of meals | not started |
 
-**The order of M10.1 to M10.6** is cheapest first, and after that what each
+**The order of M10.1 to M10.8** is cheapest first, and after that what each
 one needs from the one before.
 
 - The trees and the prices came first, because every later playtest is read
@@ -107,10 +149,14 @@ one needs from the one before.
   year 2.
 - Trails came next, because they answer the loudest complaint and cost one
   array and two thresholds.
-- The map comes before the features in the ring, because the map is what
-  the ring is then judged with, and it is much the cheaper of the two.
+- The map comes before the ring's ground, because the map is what the ring
+  is then judged with, and it is much the cheaper of the two.
+- Mud comes first of the three, because it is the smallest change. It is
+  written against water in general, so the stream can change shape after
+  it. The stream is last because it moves the most: the ring's edge, the
+  banks and the bridge.
 - Camp that moves comes after the map, where its sites are picked, and after
-  the features in the ring, which is where it would be pitched.
+  the ring's ground, which is where it would be pitched.
 - Upkeep by level is last, because its numbers are chosen against a summer
   that already has the other five in it.
 

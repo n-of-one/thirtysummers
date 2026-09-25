@@ -4,7 +4,7 @@ import type { World } from "../sim/world.ts";
 
 /**
  * The valley as the family has seen it, a colour a tile. The map in the corner
- * draws a window of it, and M10.5's winter screen draws it larger, so there is
+ * draws a window of it, and M10.7's winter screen draws it larger, so there is
  * one picture of the valley and not two.
  *
  * It shows the terrain -- ground, water, walls, the woods, bridges -- with

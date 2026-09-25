@@ -3,7 +3,8 @@ import { RESOURCES } from "../resources.ts";
 import { mulberry32, type Rng } from "../rng.ts";
 import type { TileMap } from "../tilemap.ts";
 import type { ResourceKind, ResourceNode, TerrainKind, Vec2 } from "../types.ts";
-import { reachableFrom } from "./reachability.ts";
+import { carveBrambleBay, findBrambleBay } from "./brambleBay.ts";
+import { nearRing, reachableFrom } from "./reachability.ts";
 import { placeSprings } from "./springs.ts";
 import { keepStagesOnUnderbrush, paintTerrain } from "./terrain.ts";
 import { thickenStream } from "./water.ts";
@@ -37,17 +38,36 @@ export function layoutSummerWorld(seed: number): GeneratedWorld {
   // The generator's landscape without its own stream: this map's water is the
   // one stream the table asks for, and its only walls are the ones placed
   // below. The noise paints no walls of its own.
-  const underbrushStages = new Uint8Array(W * H);
-  const map = paintTerrain(seed, mulberry32(seed), W, H, C.LAYOUT_BORDER, underbrushStages, false);
-
-  const stamp = new Stamp(map, W, H);
   const camp: Vec2 = { x: Math.floor(W / 2) + jitter(6) + 0.5, y: H - C.CAMP_FROM_BOTTOM + 0.5 };
   const cx = Math.floor(camp.x);
   const cy = Math.floor(camp.y);
+  const R = C.NEAR_RING_RADIUS;
+  // The near ring grows by its own settings, more open than the valley: inside
+  // the half circle the stream will take, and the strip below camp between
+  // its two legs. The band of bank along the stream hides the change.
+  const groundFor = (x: number, y: number): C.GroundSettings =>
+    (y <= cy ? Math.hypot(x - camp.x, y - camp.y) < R : Math.abs(x - camp.x) < R) ? C.RING_GROUND : C.GROUND;
+
+  const underbrushStages = new Uint8Array(W * H);
+  const moisture = new Float32Array(W * H);
+  const forest = new Float32Array(W * H);
+  const map = paintTerrain(
+    seed,
+    mulberry32(seed),
+    W,
+    H,
+    C.LAYOUT_BORDER,
+    underbrushStages,
+    false,
+    moisture,
+    forest,
+    groundFor,
+  );
+
+  const stamp = new Stamp(map, W, H);
   // Which side the copse is on. The pockets take the other, so the summers
   // pull the player across the map rather than round one corner of it.
   const side = rng() < 0.5 ? -1 : 1;
-  const R = C.NEAR_RING_RADIUS;
 
   const at = (dx: number, dy: number): Vec2 => ({ x: cx + dx, y: cy + dy });
   const featherField = at(jitter(10), -(R + C.FEATHER_FIELD_BEYOND + jitter(4)));
@@ -55,12 +75,10 @@ export function layoutSummerWorld(seed: number): GeneratedWorld {
     side * (C.SHELL_FIELD_SIDE + jitter(8)),
     -(R + C.SHELL_FIELD_BEYOND + jitter(6)),
   );
-  // The two pockets sit well off the line out of camp, one to each side, so
-  // the route north never cuts through the stand's wall.
+  // The vines' pocket sits well off the line out of camp, on the far side
+  // from the copse. This is only where its last resort goes.
   const UP = -Math.PI / 2;
-  const off = () => 0.9 + rng() * 0.5;
-  const stand = polar(camp, 0.45 * R, UP - side * off());
-  const mudPocket = polar(camp, 0.62 * R, UP + side * off());
+  const mudPocket = polar(camp, 0.62 * R, UP + side * (0.9 + rng() * 0.5));
 
   // The clearings each pocket and field is worked in, before anything is
   // walled off, so a wall is never drawn over its own field.
@@ -73,11 +91,28 @@ export function layoutSummerWorld(seed: number): GeneratedWorld {
   stamp.halfRing(camp, R, C.STREAM_HALF_WIDTH);
   stamp.clearBanks(camp, R);
 
-  // The near ring: the stand behind its thin thicket, and the open mud pocket.
-  // The mud is a barrier that only costs time, so nothing walls it.
-  stamp.discIf(stand, 0, C.STAND_RADIUS, () => (rng() < C.STAND_SAPLING_SHARE ? "sapling" : "grass"));
-  stamp.disc(stand, C.STAND_RADIUS + 0.5, C.STAND_RADIUS + C.STAND_WALL + 0.5, "thicket");
-  stamp.disc(mudPocket, 0, C.MUD_POCKET_RADIUS, "mud");
+  // The near ring's bramble bay, where the sticks lie: the edge of a wood
+  // that wraps furthest round open ground, anywhere in the ring, with
+  // brambles on the wood's floor round it. It goes down before the mud, so
+  // the mud keeps out.
+  const ring = nearRing(map, camp);
+  const bay = findBrambleBay(map, seed, rng, camp, ring, forest, moisture, underbrushStages);
+  carveBrambleBay(map, seed, camp, forest, underbrushStages, bay);
+
+  // Mud where the water is: the noise only knew about moisture, and now the
+  // stream is in, the ground near it is wetter. Kept dry are the clearings
+  // and the bramble bay.
+  const wet = new Wet(map, moisture, ring, [
+    [camp, C.CAMP_CLEARING + 2],
+    [featherField, C.FEATHER_FIELD_RADIUS + 2],
+    [shellField, C.SHELL_FIELD_RADIUS + 2],
+    [bay.centre, bay.reach + 2],
+  ]);
+  wet.soak();
+  // The vines' pocket is the largest patch of that mud on its side of the
+  // ring, grown only if it is too small to hold them. Nothing walls it: the
+  // mud is a barrier that only costs time.
+  const pocket = wet.pocket(camp, R, side, mudPocket);
 
   // The way in to the shell field: from the feather field, bending round to
   // the copse, grass the whole way, and the one gap the underbrush round the
@@ -111,9 +146,9 @@ export function layoutSummerWorld(seed: number): GeneratedWorld {
   const N = C.LAYOUT_NODES;
   // Inside the ring, what is walled off is walled off: the first summer's
   // fruit and feathers are out in the open where they can be walked to, and
-  // the stand holds the sticks and nothing else.
+  // the bramble bay holds the sticks and nothing else.
   const walled: readonly (readonly [Vec2, number])[] = [
-    [stand, C.STAND_RADIUS + C.STAND_WALL + 1],
+    [bay.centre, bay.reach + 1],
     // Camp's own clearing: a tree planted against the fire would be four fruit
     // that cost nothing to reach, and the ring's food is meant to be four
     // stops out in it.
@@ -123,31 +158,32 @@ export function layoutSummerWorld(seed: number): GeneratedWorld {
   // their distance from the trees rather than the other way about.
   nodes.plant(stamp, camp, R - 6, N.nearRingTrees, N.nearRingFruit, C.NEAR_RING_SPACING, cy, walled);
   nodes.spread("feather", camp, R - 6, N.nearRingFeathers, C.NEAR_RING_SPACING, cy, walled);
-  // A stick has to be reachable with a knife alone: saplings are a wall until
-  // the axe comes, and a stick boxed in by them is a stick the first summer
-  // can see and cannot have.
-  const openStand = standOpen(map, stand);
+  // The sticks lie on the bramble bay's floor, as what the wood drops.
+  const floorReach = [...bay.floor].reduce(
+    (r, i) => Math.max(r, Math.hypot((i % W) - bay.centre.x, (i - (i % W)) / W - bay.centre.y)),
+    0,
+  );
   nodes.spread(
     "stick",
-    stand,
-    C.STAND_RADIUS - 0.5,
-    N.standSticks,
+    bay.centre,
+    floorReach + 0.5,
+    N.brambleBaySticks,
     C.FIELD_SPACING,
     undefined,
     [],
-    (x, y) => openStand.has(y * W + x),
+    (x, y) => bay.floor.has(y * W + x),
   );
-  // Vines sit well inside the mud, never along its rim, so reaching one is
-  // always a wade rather than a step off the grass.
+  // Vines sit well inside the pocket's mud, never along its rim, so reaching
+  // one is always a wade rather than a step off the grass.
   nodes.spread(
     "vine",
-    mudPocket,
-    C.MUD_POCKET_RADIUS - 0.5,
+    pocket.centre,
+    pocket.radius,
     N.pocketVines,
     C.FIELD_SPACING,
     undefined,
     [],
-    (x, y) => insideMud(map, x, y, C.MUD_VINE_INSET),
+    (x, y) => pocket.tiles.has(y * W + x) && insideMud(map, x, y, C.MUD_VINE_INSET),
   );
   // Across the stream, and behind the copse.
   const field = C.FEATHER_FIELD_RADIUS - 1;
@@ -196,59 +232,315 @@ function insideMud(map: TileMap, x: number, y: number, inset: number): boolean {
   return true;
 }
 
+/** The vines' pocket: its tiles deep enough in mud, and a circle round them. */
+interface Pocket {
+  centre: Vec2;
+  radius: number;
+  tiles: ReadonlySet<number>;
+}
+
+/** A pocket filled out: the tiles turned to mud for it, and its tiles deep enough for a vine. */
+interface Fill {
+  added: number[];
+  core: number[];
+}
+
+const NEIGHBOURS_4 = [
+  [1, 0],
+  [-1, 0],
+  [0, 1],
+  [0, -1],
+] as const;
+
 /**
- * The tiles inside the stand a player can stand on once they have cut the wall,
- * with no axe: the ground that joins the wall without a sapling in the way.
+ * Mud from the moisture the noise left, made wetter near the water the layout
+ * laid.
  *
- * A stand is saplings scattered over open ground, and scattering can close a
- * pocket of that ground off. The wall can be cut anywhere, so anything joined
- * to it is reachable, and anything else is not until the axe arrives.
+ * The noise paints the landscape before there is a stream, so on its own it
+ * puts mud wherever its moisture field happens to be high, with no regard for
+ * where the water is. This raises the moisture near the water and paints the
+ * mud again, on the ground the noise lets turn: open ground and underbrush,
+ * including the band of bank `clearBanks` stamped over them. Dense underbrush
+ * and woods keep their floor. Nothing inside a `dry` disc turns.
  */
-function standOpen(map: TileMap, stand: Vec2): Set<number> {
-  const reach = new Set<number>();
+class Wet {
+  private readonly map: TileMap;
+  private readonly moisture: Float32Array;
+  /**
+   * The near ring's tiles: the pocket is counted only on them, so a pocket
+   * grown from mud on the bank never puts a vine across the water.
+   */
+  private readonly ring: Uint8Array;
+  private readonly dry: readonly (readonly [Vec2, number])[];
+  /** What the water adds to each tile's moisture. */
+  private readonly boost: Float32Array;
+
+  constructor(
+    map: TileMap,
+    moisture: Float32Array,
+    ring: Uint8Array,
+    dry: readonly (readonly [Vec2, number])[],
+  ) {
+    this.map = map;
+    this.moisture = moisture;
+    this.ring = ring;
+    this.dry = dry;
+    this.boost = waterBoost(map);
+  }
+
+  /** Paint the mud over the whole map. */
+  soak(): void {
+    for (let y = 0; y < this.map.height; y++) {
+      for (let x = 0; x < this.map.width; x++) this.paint(x, y);
+    }
+  }
+
+  /**
+   * The vines' pocket: a patch of mud inside the ring on the pockets' side,
+   * well off the line north from camp.
+   *
+   * A patch with too few tiles deep enough in mud for the vines is filled out
+   * the way a hollow fills with water: the wettest ground at its edge turns
+   * first, a tile at a time, so its outline follows the noise's own contours
+   * instead of taking a stamped shape. Of the ring's largest patches, the
+   * pocket is the one that needs the fewest tiles added. With no patch that
+   * will do, it fills from whichever spot on the pockets' side needs the
+   * fewest, over the stretch of the ring the disc used to be placed in.
+   *
+   * Where even that cannot make room, because the ground is a wood that never
+   * turns, the old disc is stamped at `fallback` as a last resort: a seed
+   * without its vines is a seed whose first bridge cannot be built.
+   */
+  pocket(camp: Vec2, radius: number, side: number, fallback: Vec2): Pocket {
+    const W = this.map.width;
+    const UP = -Math.PI / 2;
+    const spots: number[][] = [];
+    for (const out of [0.5, 0.62, 0.75]) {
+      for (const turn of [0.9, 1.15, 1.4]) {
+        const at = polar(camp, out * radius, UP + side * turn);
+        const i = at.y * W + at.x;
+        if (this.inRing(at.x, at.y) && (this.map.get(at.x, at.y) === "mud" || this.canTurn(i))) spots.push([i]);
+      }
+    }
+    const best = this.leastFilled(this.patches(camp, radius, side)) ?? this.leastFilled(spots);
+    if (best) {
+      for (const i of best.added) this.map.set(i % W, (i - (i % W)) / W, "mud");
+      return this.shape(best.core);
+    }
+    const r = C.MUD_POCKET_LAST_RESORT;
+    const core: number[] = [];
+    for (let y = Math.floor(fallback.y - r); y <= fallback.y + r; y++) {
+      for (let x = Math.floor(fallback.x - r); x <= fallback.x + r; x++) {
+        if (Math.hypot(x - fallback.x, y - fallback.y) <= r) this.map.set(x, y, "mud");
+      }
+    }
+    for (let y = Math.floor(fallback.y - r); y <= fallback.y + r; y++) {
+      for (let x = Math.floor(fallback.x - r); x <= fallback.x + r; x++) {
+        if (this.inRing(x, y) && insideMud(this.map, x, y, C.MUD_VINE_INSET)) core.push(y * W + x);
+      }
+    }
+    return this.shape(core);
+  }
+
+  /** Of the patches in `starts`, the one that needs the fewest tiles added; earlier ones win a tie. */
+  private leastFilled(starts: readonly (readonly number[])[]): Fill | null {
+    let best: Fill | null = null;
+    for (const start of starts) {
+      const fill = this.fill(start, best ? best.added.length - 1 : C.MUD_POCKET_FILL_MAX);
+      if (fill) best = fill;
+    }
+    return best;
+  }
+
+  /**
+   * Fill the patch `start` out until it has room for the vines, adding at
+   * most `max` tiles, or null if that is not enough.
+   *
+   * The map is not touched: what is added is returned. A tile at the edge is
+   * taken wettest first, mud already there before anything else, so the
+   * pocket takes in the mud it meets and spreads into the dampest ground.
+   */
+  private fill(start: readonly number[], max: number): Fill | null {
+    const { map } = this;
+    const W = map.width;
+    const added: number[] = [];
+    const inPocket = new Set<number>();
+    const isMud = (x: number, y: number) => map.get(x, y) === "mud" || inPocket.has(y * W + x);
+    const core = new Set<number>();
+    // Priority of each tile waiting at the edge.
+    const edge = new Map<number, number>();
+
+    const take = (i: number) => {
+      inPocket.add(i);
+      edge.delete(i);
+      const x = i % W;
+      const y = (i - x) / W;
+      for (const [dx, dy] of NEIGHBOURS_4) {
+        const nx = x + dx;
+        const ny = y + dy;
+        const n = ny * W + nx;
+        if (inPocket.has(n) || edge.has(n) || !this.inRing(nx, ny)) continue;
+        if (map.get(nx, ny) === "mud") edge.set(n, Infinity);
+        else if (this.canTurn(n)) edge.set(n, this.moisture[n]! + this.boost[n]!);
+      }
+      // Only tiles this close can have become deep enough in mud.
+      const inset = C.MUD_VINE_INSET;
+      for (let cy = y - inset; cy <= y + inset; cy++) {
+        for (let cx = x - inset; cx <= x + inset; cx++) {
+          const c = cy * W + cx;
+          if (core.has(c) || !inPocket.has(c)) continue;
+          let deep = true;
+          for (let dy = -inset; dy <= inset && deep; dy++) {
+            for (let dx = -inset; dx <= inset && deep; dx++) deep = isMud(cx + dx, cy + dy);
+          }
+          if (deep) core.add(c);
+        }
+      }
+    };
+
+    for (const i of start) {
+      if (map.get(i % W, (i - (i % W)) / W) !== "mud") added.push(i);
+      take(i);
+    }
+    while (core.size < C.MUD_POCKET_CORE_MIN) {
+      if (added.length > max || edge.size === 0) return null;
+      let next = -1;
+      let wettest = -Infinity;
+      for (const [i, wet] of edge) {
+        if (wet > wettest) {
+          wettest = wet;
+          next = i;
+        }
+      }
+      if (wettest !== Infinity) added.push(next);
+      take(next);
+    }
+    return added.length > max ? null : { added, core: [...core] };
+  }
+
+  /** Whether the tile at index `i` may be turned to mud: open ground or underbrush, wet by the noise, not kept dry. */
+  private canTurn(i: number): boolean {
+    const W = this.map.width;
+    const x = i % W;
+    const y = (i - x) / W;
+    const kind = this.map.get(x, y);
+    if (kind !== "grass" && kind !== "underbrush") return false;
+    if (Number.isNaN(this.moisture[i]!)) return false;
+    return !this.dry.some(([c, r]) => Math.hypot(x - c.x, y - c.y) <= r);
+  }
+
+  /**
+   * Where the vines go: round the middle of the pocket's core, as far out as
+   * it reaches, and on the core's tiles only.
+   */
+  private shape(core: readonly number[]): Pocket {
+    const W = this.map.width;
+    const tiles = new Set(core);
+    const at = core.map((i) => ({ x: i % W, y: (i - (i % W)) / W }));
+    const centre = {
+      x: Math.round(at.reduce((s, t) => s + t.x, 0) / Math.max(1, at.length)),
+      y: Math.round(at.reduce((s, t) => s + t.y, 0) / Math.max(1, at.length)),
+    };
+    const reach = at.reduce((r, t) => Math.max(r, Math.hypot(t.x - centre.x, t.y - centre.y)), 0);
+    return { centre, radius: reach + 0.5, tiles };
+  }
+
+  /**
+   * Turn the ground at (x, y) to mud if its moisture, near water, is high
+   * enough: in the near ring, by the ring's own threshold.
+   */
+  private paint(x: number, y: number): void {
+    const i = y * this.map.width + x;
+    const threshold = this.ring[i] ? C.RING_GROUND.mudThreshold : C.GROUND.mudThreshold;
+    if (this.moisture[i]! + this.boost[i]! < threshold) return;
+    if (this.canTurn(i)) this.map.set(x, y, "mud");
+  }
+
+  /** Whether (x, y) is on the map and in the near ring. */
+  private inRing(x: number, y: number): boolean {
+    return x >= 0 && y >= 0 && x < this.map.width && y < this.map.height && this.ring[y * this.map.width + x] === 1;
+  }
+
+  /** The tiles of each patch of mud the pocket may be, largest first. */
+  private patches(camp: Vec2, radius: number, side: number): number[][] {
+    const { map } = this;
+    const W = map.width;
+    const inRing = (x: number, y: number) =>
+      y <= camp.y &&
+      Math.hypot(x - camp.x, y - camp.y) <= radius - 6 &&
+      this.inRing(x, y) &&
+      map.get(x, y) === "mud";
+    const seen = new Uint8Array(W * map.height);
+    const found: number[][] = [];
+    for (let y = 0; y < map.height; y++) {
+      for (let x = 0; x < W; x++) {
+        if (seen[y * W + x] || !inRing(x, y)) continue;
+        seen[y * W + x] = 1;
+        const stack = [y * W + x];
+        const tiles: number[] = [];
+        let sx = 0;
+        let sy = 0;
+        while (stack.length > 0) {
+          const i = stack.pop()!;
+          const tx = i % W;
+          const ty = (i - tx) / W;
+          tiles.push(i);
+          sx += tx;
+          sy += ty;
+          for (const [dx, dy] of NEIGHBOURS_4) {
+            const n = (ty + dy) * W + tx + dx;
+            if (seen[n] || !inRing(tx + dx, ty + dy)) continue;
+            seen[n] = 1;
+            stack.push(n);
+          }
+        }
+        const dx = sx / tiles.length - camp.x;
+        const dy = sy / tiles.length - camp.y;
+        // On the pockets' side, turned well away from north, and a walk out
+        // from camp rather than beside it.
+        if (dx * side <= 0 || Math.atan2(Math.abs(dx), -dy) < C.MUD_POCKET_OFF_NORTH) continue;
+        if (Math.hypot(dx, dy) < C.MUD_POCKET_FROM_CAMP) continue;
+        found.push(tiles);
+      }
+    }
+    return found.sort((a, b) => b.length - a.length).slice(0, C.MUD_POCKET_CANDIDATES);
+  }
+}
+
+/**
+ * What the water adds to the moisture of each tile: `WET_BANK_BOOST` beside
+ * the stream, falling in a straight line to nothing `WET_REACH` steps away.
+ */
+function waterBoost(map: TileMap): Float32Array {
+  const W = map.width;
+  const dist = new Int32Array(W * map.height).fill(-1);
   const queue: number[] = [];
-  const walkable = (x: number, y: number) =>
-    Math.hypot(x - stand.x, y - stand.y) <= C.STAND_RADIUS + 0.5 &&
-    map.isPassable(x, y) &&
-    map.get(x, y) !== "sapling";
-
-  for (let y = Math.floor(stand.y - C.STAND_RADIUS - 1); y <= stand.y + C.STAND_RADIUS + 1; y++) {
-    for (let x = Math.floor(stand.x - C.STAND_RADIUS - 1); x <= stand.x + C.STAND_RADIUS + 1; x++) {
-      if (!walkable(x, y)) continue;
-      // Against the wall, so cutting in from outside lands here.
-      const touchesWall = [
-        [1, 0],
-        [-1, 0],
-        [0, 1],
-        [0, -1],
-      ].some(([dx, dy]) => map.get(x + dx!, y + dy!) === "thicket");
-      if (!touchesWall) continue;
-      const idx = y * map.width + x;
-      if (reach.has(idx)) continue;
-      reach.add(idx);
-      queue.push(idx);
+  for (let y = 0; y < map.height; y++) {
+    for (let x = 0; x < W; x++) {
+      if (map.get(x, y) !== "stream") continue;
+      dist[y * W + x] = 0;
+      queue.push(y * W + x);
     }
   }
-
-  while (queue.length > 0) {
-    const idx = queue.pop()!;
-    const x = idx % map.width;
-    const y = (idx - x) / map.width;
-    for (const [dx, dy] of [
-      [1, 0],
-      [-1, 0],
-      [0, 1],
-      [0, -1],
-    ]) {
-      const nx = x + dx!;
-      const ny = y + dy!;
-      const n = ny * map.width + nx;
-      if (reach.has(n) || !walkable(nx, ny)) continue;
-      reach.add(n);
-      queue.push(n);
+  for (let head = 0; head < queue.length; head++) {
+    const i = queue[head]!;
+    const x = i % W;
+    const y = (i - x) / W;
+    if (dist[i]! >= C.WET_REACH) continue;
+    for (const [dx, dy] of NEIGHBOURS_4) {
+      const nx = x + dx;
+      const ny = y + dy;
+      if (nx < 0 || ny < 0 || nx >= W || ny >= map.height || dist[ny * W + nx]! >= 0) continue;
+      dist[ny * W + nx] = dist[i]! + 1;
+      queue.push(ny * W + nx);
     }
   }
-  return reach;
+  const boost = new Float32Array(dist.length);
+  for (let i = 0; i < dist.length; i++) {
+    const d = dist[i]!;
+    if (d > 0 && d < C.WET_REACH) boost[i] = C.WET_BANK_BOOST * (1 - d / C.WET_REACH);
+  }
+  return boost;
 }
 
 /** A point `distance` from `from` at `angle`, rounded to a tile. */
@@ -414,7 +706,7 @@ class Scatter {
    * scatter from spilling into the strip below camp. `avoid` keeps them out of
    * what is walled off inside the ring, so what the first summer can see is
    * what it can pick up. `allow` is the last word on a tile, and is how the
-   * stand keeps its sticks on ground a player without an axe can stand on.
+   * bramble bay keeps its sticks on its own floor.
    */
   spread(
     kind: ResourceKind,
@@ -427,8 +719,8 @@ class Scatter {
     allow: (x: number, y: number) => boolean = () => true,
   ): void {
     // The spacing is what it aims for. Where the ground will not take that
-    // many -- a stand that came out mostly saplings, a ring of noise with
-    // little open grass in it -- it closes up rather than leaving the field
+    // many -- a bramble bay with a small floor, a ring of noise with little open
+    // grass in it -- it closes up rather than leaving the field
     // short, because how much is there is what the summer is worth.
     let left = count;
     for (const at of [spacing, spacing * 0.6, 0]) {

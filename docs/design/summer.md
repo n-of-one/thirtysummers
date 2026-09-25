@@ -47,7 +47,8 @@ age changes only the length of the summer.
 drains at a steady rate whatever the character does. It is refilled only at
 springs: drinking spots on the stream bank, marked by reeds. The character
 drinks standing beside one, with a short action, and every spring refills at
-the same speed. Springs sit along the streams, many of them on both banks.
+the same speed. Springs sit along the streams, many of them on both banks,
+and never in mud or where mud is the only way to them.
 At a spring the action key drinks while the character is thirsty, and lays a
 bridge tile when they are not. Water is never carried. When the character is
 dehydrated, the view narrows into fog.
@@ -91,7 +92,9 @@ The kinds of barrier so far:
   the floor of a wood and grows near the trees, so a way through a wood stays
   slow however often it is walked.
 - **Mud** only slows you down. It does not block; it annoys and it costs
-  time, and both count. It does stop the cart, until planks cover it.
+  time, and both count. It does stop the cart, until planks cover it. Mud
+  lies in damp hollows and gathers along stretches of the stream, in the
+  open and in underbrush, but never on the dense floor of a wood.
 - **Thicket** is a wall of brambles, cut with the knife one tile at a time.
 - **Stream** is bridged one tile at a time, with sticks and vines.
 - **Saplings** are a copse of young trees, felled with the axe for logs.
