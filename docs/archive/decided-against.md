@@ -15,23 +15,24 @@ chosen instead.
 
 ## Summer
 
-- **Sprint as a held key.** A key that makes you faster is a key held all
-  the time. Speed comes from changing the map. A burst bought with a fruit
-  is a different thing and is M12's experiment.
+- **Sprint on a key.** A key that makes you faster is a key kept pressed
+  all the time. Speed comes from changing the map. A burst of speed from
+  eating a fruit is a different thing, and it is M13's experiment.
 - **Stamina**, in both forms. As a rate, 1%/s on rough ground and recovering
   while standing, it asked how long to wait, which is not a decision. As a
   budget spent per rough tile and per cut, it could not be planned, because
-  underbrush is a third to a half of every map and nobody sums a texture by
-  eye, and at zero it stopped the legs, a second hard stop beside the clock.
-  Time is the budget now: rough ground is slow and a cut is a hold.
+  underbrush is a third to a half of every map and nobody adds up a texture
+  by eye. At zero it stopped the legs, a second hard stop next to the clock.
+  Time is the budget now: rough ground is slow, and a cut is an action that
+  takes time.
 - **Stamina per tool**, as tools that wear with use, so a bridge spends the
   hammer. It is stamina cut into pieces and adds nothing the clock does
   not.
 - **Meals**, a counted number of fruit a summer, each refilling stamina.
   They went with stamina. The concern they answered stays: uncapped eating
-  can turn fruit into an exchange rate, where a summer's reach is how much
-  fruit was brought. A meal count or diminishing returns per fruit is the
-  fallback if the fruit burst shows that.
+  can turn fruit into an exchange rate, where how far a summer reaches
+  depends on how much fruit was brought. If the fruit burst shows that, the
+  fallback is a meal count, or less effect from each extra fruit.
 - **A full-stomach cooldown after eating.** It was the one real irritation
   of the discovery test.
 - **Springs as pools apart from the stream.** One-tile pools two tiles from
@@ -42,7 +43,7 @@ chosen instead.
   since M8 anyway, for a spring beside a thicket.
 - **A dawn at the start of a summer**, the dusk in reverse. Only the evening
   means something: it is the clock running out.
-- **Carried water**, as a node in the backpack or in a flask. Hydration's job
+- **Carried water**, as an item in the backpack or in a flask. Hydration's job
   is to tie the character to a place, and carried water cuts that tie.
 - **Hydration as gates**, where low hydration slowed or stopped something
   else. Hydration does one thing, the fog.
@@ -60,7 +61,7 @@ chosen instead.
   end for the whole run.
 - **Refusing to let the player drop things.** A game about carrying things
   cannot say no to putting one down; the prompt names the count instead.
-- **Drawing a dropped item as its node art scaled down.** Any fractional
+- **Drawing a dropped item as its map art scaled down.** Any fractional
   scale breaks the one-art-pixel rule, 0.5 included; it is resampled to whole
   pixels instead. A bar under the art read as a shelf, and a quarter turn did
   nothing for the round kinds.
@@ -69,28 +70,29 @@ chosen instead.
   the art felt good. A region is a resource field on the same grass.
 - **A second stat that reacts to time or effort.** It repeats the clock. A
   second stat, if it comes, reacts to place.
-- **Dimming unseen ground in the play view.** The way to show what has been
-  uncovered, in the view the game is actually played in. The view is where the
-  ground ahead is read, and darkening most of it to make a point about memory
-  costs more than it gives. The map in the corner shows the same thing and
-  leaves the view alone.
-- **A map that marks what there is to pick.** It answers the question the
-  exploring is made of. The map shows terrain, built things and landmarks.
+- **Dimming unseen ground in the play view.** It would show what has been
+  uncovered in the view the game is actually played in. But the view is
+  where the player reads the ground ahead, and darkening most of it to make a
+  point about memory costs more than it gives. The map in the corner shows
+  the same thing and leaves the view alone.
+- **A map that marks what there is to pick.** It answers the question that
+  exploring is about. The map shows terrain, built things and landmarks.
 - **Seen ground as whatever was on screen.** The fog darkens the sides of the
-  view at all times; the map would hold ground nobody saw.
+  view at all times, so the map would show ground nobody saw.
 - **A fading frontier on the map**, each tile kept as well as it was seen.
   Sharp edges read better, and the levels made the save several times longer.
 - **The real fog's gradient over the corner map**, closing in as the player
-  runs dry. It dimmed the ground behind the player while new ground came in
-  sharp at the map's edge.
+  becomes dehydrated. It dimmed the ground behind the player while new
+  ground came in sharp at the map's edge.
 - **Shrinking the corner map from 75% hydration.** It took the map away while
   the player could still see; it shrinks from 50% and catches up by 25%.
 - **Trails on the map.** A map of the player's own footprints; worn underbrush
   is underbrush until it is grass.
-- **A pointer that flips to whichever spring is nearest.** Along a bank two
-  take turns; it holds until another is two tiles nearer. Three held too long.
+- **A pointer that flips to whichever spring is nearest.** Along a bank, two
+  springs would take turns. It stays on one spring until another is two
+  tiles nearer; a margin of three tiles kept it on the old one too long.
 - **Cutting underbrush with the knife.** Underbrush is worn down by walking
-  over it, which is the improvement that costs no key. The knife keeps the
+  over it, the one improvement that needs no action. The knife keeps the
   thicket.
 
 ## Winter and the economy
@@ -102,8 +104,8 @@ chosen instead.
   Winter has no clock and ends when the player starts the next summer.
 - **Upkeep that grows by itself, or a total that a family level raises.** It
   grows only when a structure is finished. A level changing what upkeep is
-  asked in, from fruit toward rent, while the total falls, is a different thing
-  and is in: [../design/winter.md](../design/winter.md).
+  paid in, from fruit toward rent, while the total falls, is a different
+  thing, and it is in [../design/winter.md](../design/winter.md).
 - **Prices that double with each barrier out.** The first economy made
   distance pay by pricing the same kind higher further away. Depletion does
   that job now, so prices are flat properties of a kind and what rises outward
@@ -112,8 +114,8 @@ chosen instead.
   summer's material worth more than the rent, so the first years could be
   funded without a field. Material has no price; it stays at camp for the
   builds it is for.
-- **Missing upkeep ending the run.** It costs one tired summer, with longer
-  holds and slower mud, and nothing more.
+- **Missing upkeep ending the run.** It costs one tired summer, with slower
+  actions and slower mud, and nothing more.
 - **Missing upkeep slowing the walk on easy ground.** The walk is the part
   of a summer that is already routing. The penalty lands on the work.
 - **A list of what broke over winter.** The player meets the damage in play.
@@ -167,6 +169,8 @@ chosen instead.
 - **Floor, budget, leash, shelf.** Game-design words. The game says upkeep,
   hydration, shop.
 - **Hero, main character** for the character.
+- **A hold**, for keeping the E key down. It is an action, done with the
+  action key, and "hold" was also used for contain, show and stay true.
 
 ## Process
 

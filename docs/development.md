@@ -14,20 +14,20 @@ npm run map         # ASCII dump of a seed laid out to the table of the first su
 npm run map -- 42 > public/maps/x.txt   # ...and the same dump as a playable map
                                         # (there are no map files by default)
 npm run map -- 42 --noise               # the landscape alone, with no layout on it
-npm run map:check public/maps/x.txt     # does that map still hold the table and the economy?
+npm run map:check public/maps/x.txt     # does that map still match the table and the economy?
 ```
 
 The last rows `map:check` prints are the economy: the two players of
 `docs/current/five-summers.md`, played over the map's counts through the
 winter model, with the margin on each row. A number changed in `config.ts`
-shows up there before it shows up in a playtest. What they are held to is the
+shows up there before it shows up in a playtest. They are checked against the
 chain -- which winter opens the shop, buys the axe and buys the cart -- and not
-the gold in that document's tables, which is M10.6's arithmetic and runs a few
+against the gold in that document's tables, which is M10.6's arithmetic and runs a few
 gold high until it lands.
 
 `npm run map` writes the map to stdout and its statistics to stderr, so a
 redirected dump is a map the game can load. Its statistics end with whether
-the map holds every row of the table, and which rows it does not. The
+the map matches every row of the table, and which rows it does not. The
 landscape is the generator's; the barriers are stamped on by
 `sim/worldgen/layout.ts`, which is also what `?seed=<n>` plays.
 The format is one character per
@@ -48,7 +48,7 @@ tile. Its legend is in the dump's footer.
 - `?save=<text>`, beside the `?map=` or `?seed=` it was made on, opens a game
   saved at the end of a summer, straight onto its winter. The winter screen
   shows the link to copy, and the address bar carries it while the winter is
-  up, so a reload comes back to the same winter. The save holds only what the
+  up, so a reload comes back to the same winter. The save keeps only what the
   summers changed, and a save opened on another map is refused.
 - `?view=1280x720` draws the game in a logical view of that size instead
   of `VIEW_W × VIEW_H`, for trying view sizes in play.
@@ -63,12 +63,13 @@ gitignored. Without them the code-drawn placeholder pack draws everything.
 
 ## Controls
 
-WASD or arrows to move. E or Space to gather, cut, fell and store; held beside
-a spring or a well, to drink; pressed on something lying on the ground, to
-pick it up. A feather lies on the ground wherever it is found, so it takes no
-hold: a press takes it, and a held key takes every feather that comes in reach
-while walking. What the player dropped is a press each, so a key held on the
-fruit beside it does not put it straight back in the pack.
+WASD or arrows to move. E or Space is the action key: keep it pressed to
+gather, cut and fell, or beside a spring or a well to drink; press it at camp
+to store, or on something lying on the ground to pick it up. A feather lies on the ground
+wherever it is found, so it takes no time: a press picks it up, and keeping
+the key pressed while walking picks up every feather that comes in reach.
+What the player dropped needs a press each, so keeping the key pressed on
+the fruit beside it does not put it straight back in the pack.
 
 What camp keeps is called **camp**, not "the store": `store` is the verb for
 putting something there, and winter brings a shop. `world.store` is the code
@@ -76,7 +77,7 @@ name for it, because `world.camp` is already the tile it stands on.
 
 A press at camp stores the whole pack. Camp sells nothing: feathers and
 shells wait there with the fruit and the sticks, and everything is sold in
-winter. Holding the key there opens the transfer panel instead: the pack on
+winter. A long press there opens the transfer panel instead: the pack on
 one side, camp on the other, `W`/`S` for the cursor, the arrow keys to move
 one either way, `Shift` for the whole kind, `E` to close. The clock runs
 while it is open.
@@ -84,11 +85,11 @@ while it is open.
 The key that opens the panel closes it: `E` or `Space`, and `Esc` as well --
 the browser leaves full screen on `Esc` whatever we do, and a key that drops
 full screen while leaving the panel up would be the worse surprise. The panel
-ignores auto-repeats, which is what lets the same key both open it (held) and
-close it (pressed afresh): the key that opened it is still down when it
-appears, and every repeat of that hold would otherwise shut it at once. The
-interact key is also ignored by the world until it has been released once
-after the panel closes, or the hold would start over.
+ignores auto-repeats, which is what lets the same key both open it (a long
+press) and close it (a fresh press): the key that opened it is still down
+when it appears, and every repeat of that long press would otherwise shut it
+at once. The world also ignores the action key until it has been released
+once after the panel closes, or the long press would start over.
 
 `X` throws every item of the selected kind on the ground, one to a tile, and
 `C` moves the selection on to the next kind in the pack. The pack is the
@@ -99,8 +100,8 @@ ground survives a winter; camp keeps the lot.
 B opens the build menu: a bridge tile, and the well once it is known, with
 what each costs.
 The number keys choose, B or Esc closes, and Esc with the menu down puts the
-build away again. E never builds on its own: with something chosen, holding E
-builds it on the tile ahead, and the pill beside Tools says what is being
+build away again. E never builds on its own: with something chosen, keeping E
+pressed builds it on the tile ahead, and the pill beside Tools says what is being
 built. The clock runs while the menu is open, and a choice does not survive
 the summer.
 
@@ -128,7 +129,7 @@ from a driver.
 
 Press `` ` `` in the running game, or open with `?debug=1`. It has a seed box
 with regenerate (`[` and `]` step the seed), a 1x–10x time scale, a tile
-grid, a freeze that holds hydration and the clock, a switch for the map in
+grid, a freeze that stops hydration and the clock, a switch for the map in
 the corner (off only to measure what it costs), a hydration slider that sets
 hydration (with the freeze on, it stays there),
 click-to-teleport, and a
@@ -196,8 +197,8 @@ pattern -- and if it is stale, save the file again with a real edit.
   placement, the map file round trip with the resource table and wells and
   every way it refuses a bad one, every action in the loop and every way it
   refuses, felling, the well, the build menu's contents and what it
-  refuses, storing everything at camp, the tap against the hold that opens
-  the transfer panel and every move through it, dropping with its spill and
+  refuses, storing everything at camp, the press against the long press that
+  opens the transfer panel and every move through it, dropping with its spill and
   refusal, the selected kind, picking up, what camp and the ground keep over
   a winter, next summer, the winter model and the world applying it, the
   shop by family level with its frosted line, the list filling from the top,
@@ -208,13 +209,14 @@ pattern -- and if it is stale, save the file again with a real edit.
   every row of the table and the economy, the fog's radius and the seen
   circle, the seen mask over a walk, a drink, a teleport, a winter and a
   save, the map picture by ground class with its fruit trees and drinking
-  spots, the corner map shrinking as the player runs dry, the whole map's
-  fade and its landmarks, the pointer to water with its hold, the whole
+  spots, the corner map shrinking as the player becomes dehydrated, the whole
+  map's fade and its landmarks, the pointer to water and how long it stays on
+  one spring, the whole
   map's size, and the debug overlay's arithmetic.
   The build menu's, the transfer panel's, the winter screen's and the map
   widget's markup have no test: there is no DOM in the test run, so they are
-  checked over the protocol instead, holding keys with `autoRepeat` set as a real keyboard
-  does. So is how a dropped item looks, in both packs.
+  checked over the protocol instead, keeping keys down with `autoRepeat` set
+  as a real keyboard does. So is how a dropped item looks, in both packs.
 - `npm run map:check <file>` passes on any map file there is. There are none
   by default: testing is on seeds, and the layout's own tests sweep a spread
   of them. Run the checker after editing a file by hand.

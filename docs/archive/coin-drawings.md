@@ -64,7 +64,7 @@ it.
 ........
 ```
 
-**`rim`** — six across, with the rim darker than the face it holds, to read
+**`rim`** — six across, with the rim darker than the face inside it, to read
 as a struck coin. The face is 2x2, which is not enough to be a face.
 
 ```

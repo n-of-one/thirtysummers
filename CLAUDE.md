@@ -9,8 +9,8 @@ the game and the code is in `docs/`, indexed by
 
 - Starting work: [docs/current/PLAN.md](docs/current/PLAN.md), then the file
   of the milestone being built.
-- Changing code: [docs/architecture.md](docs/architecture.md). Its rules hold
-  for every change.
+- Changing code: [docs/architecture.md](docs/architecture.md). Its rules apply
+  to every change.
 - Running, testing, debugging or measuring the game:
   [docs/development.md](docs/development.md).
 - Proposing or changing a mechanic: [docs/design/](docs/design/README.md) and
@@ -22,16 +22,42 @@ the game and the code is in `docs/`, indexed by
 
 ## Keeping the docs
 
-- `docs/design/` holds settled mechanics, `docs/design/ideas.md` what is not
+- `docs/design/` has settled mechanics, `docs/design/ideas.md` what is not
   decided, `docs/rationale/` the reasons, `docs/archive/` what was dropped
   with one line of why, and `docs/current/` the step being built.
-- Docs hold the current state. No dated minutes and no history of ideas. Git
+- Docs describe the current state. No dated minutes and no history of ideas. Git
   has the history.
 - When a milestone is accepted, delete its file and mark it done in the
   plan's table. What was learned building it goes into
   `docs/rationale/technical.md`.
 - When a step ends, what it settled moves into design/, rationale/ or
   archive/, and `docs/current/` is rewritten for the next step.
+
+## Writing the docs
+
+Game words are defined in [docs/design/README.md](docs/design/README.md)
+under *Words*. How to write the rest:
+
+- *Hold* is not a word for an input or an action. Write *action*, *press*,
+  *long press* or *keep pressed*. For containing, showing or being, use the
+  plain verb: *has*, *shows*, *is*.
+- *Shape* only in its literal sense: a geometric shape, or how the code is
+  structured. For a design, say what changes.
+- *Dehydrated*, not *dry*, for a character low on hydration. *Dry* stays
+  for ground far from water.
+- Put the subject first. Not "On what the game is, design/ wins" or "What
+  pushes the family outward is depletion", but "design/ decides what the
+  game is" and "Depletion pushes the family outward".
+- One meaning per word in a passage. *Back* cannot mean both "grows back"
+  and "returns to the layout" in the same paragraph.
+- In design prose, explain a code name or leave it out: the rows, the
+  layout, the table, a node.
+- Full sentences with a verb, not strings of fragments.
+- Everyday phrasing, not literary. "Even thinner", not "thinner still";
+  "every kind except dense", not "all but the dense kind"; "one and a half
+  times as long", not "half as long again".
+- Brief is good. Too brief is when a reader needs the history or the code
+  to follow a sentence.
 
 ## Working agreement
 
@@ -47,11 +73,11 @@ the game and the code is in `docs/`, indexed by
 - Never commit the Minifantasy art. It is a paid licence, and
   `public/assets/minifantasy/` is gitignored.
 - `public/maps/*.txt` are played blind. Do not read a map file to someone
-  who is about to play it, and do not describe its layout. The same holds
-  for a seed someone is about to walk. `public/maps/README.md` is the safe
+  who is about to play it, and do not describe its layout. The same goes
+  for a seed someone is about to play. `public/maps/README.md` is the safe
   half: how a file is made and which seed it came from, not what is in it.
 - There are no map files by default. Testing is on seeds, since every seed
-  holds the table, and a dump into `public/maps/` is made only when a map is
+  gives a map that matches the table, and a dump into `public/maps/` is made only when a map is
   worth freezing: a playtest with someone else, or one kept across a change
   to the generator. Do not regenerate files after every generator change.
 
@@ -76,17 +102,16 @@ approval, so keep the work where it is visible.
   arguments, and no `cd` prefix, since the working directory is already the
   project root.
 - Change files with the editing tools, never with `sed -i`, a heredoc, or a
-  script that rewrites a file. Two reasons, and the second is the one that
-  keeps being forgotten: one named path can be checked where a shell rewrite
-  cannot, and every such command costs Erik an approval, while the editing
-  tools cost none. This holds however small the edit is -- a one-character
-  change is a reason to use the editing tool, not an excuse to reach for
-  `sed`.
-- Read files with the Read tool and search them with the Grep and Glob tools,
-  never with `cat`, `sed -n`, `head`, `grep` or `find` through the shell. The
-  reason is the same one: a shell command costs Erik an approval and the
-  dedicated tools cost none. The shell is for running things -- `npm`, `git`,
-  the driver scripts -- not for looking at the tree.
+  script that rewrites a file. An edit through Edit or Write names one path
+  and shows its change, so it can be checked; a shell rewrite cannot, even
+  when it runs without a prompt. This applies however small the edit is -- a
+  one-character change is a reason to use the editing tool, not an excuse to
+  reach for `sed`. `.claude/settings.json` denies `sed -i` and `find` with
+  `-exec` or `-delete`.
+- Read a file with the Read tool. To search, use the Grep and Glob tools when
+  the session has them, and otherwise `grep`, `find`, `ls`, `wc` or `sed -n`
+  on in-project paths: `.claude/settings.json` allows those, so they cost no
+  approval. Keep each one a single plain command, as below.
 - One command per call, and nothing in it the harness cannot read literally.
   `$?`, other shell expansions, and several commands strung together with
   `&&` or `;` make the call unverifiable, and then it costs Erik an approval.

@@ -11,8 +11,8 @@ Everything about the game and the code. Four folders and two loose files.
 | [architecture.md](architecture.md) | How the code is shaped: the rules every change keeps, the stack, a map of the modules. |
 | [development.md](development.md) | How to run, test, debug and measure the game. |
 
-On what the game is, design/ wins over current/. On what gets built now, and
-with which numbers, current/ decides.
+design/ decides what the game is, and wins when current/ disagrees with it.
+current/ decides what gets built now, and with which numbers.
 
 When a milestone is accepted, its file is deleted and the plan's table marks
 it done. When a step ends, what it learned moves out: settled mechanics into
@@ -41,7 +41,7 @@ the history.
   defines the words.
 - [design/map-arc.md](design/map-arc.md), [design/summer.md](design/summer.md)
   and [design/winter.md](design/winter.md) are the game, aspect by aspect.
-- [design/ideas.md](design/ideas.md) holds open questions, parked ideas and
+- [design/ideas.md](design/ideas.md) has open questions, parked ideas and
   the first design notes on spirits.
 - [rationale/technical.md](rationale/technical.md) says why the code is built
   the way it is.

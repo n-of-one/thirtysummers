@@ -13,10 +13,11 @@ npm run dev        # then open localhost:5173, which rolls a seed for you
 ```
 
 The bare address picks a seed under 1000 and shows it in the address bar.
-`?seed=<n>` walks a particular one, and `?map=<name>` a file if one was made.
-Note the seed, or the file, with the entry, so the same walk can be repeated.
-A seed is only the same map until the generator changes; a dump of it,
-`npm run map -- <n> > public/maps/<name>.txt`, keeps it across that.
+`?seed=<n>` loads a particular seed, and `?map=<name>` loads a map file if
+one was made. Write the seed, or the file, in the entry, so the same map can
+be played again. A seed gives the same map only until the generator
+changes. To keep a map across a change, save it as a file with
+`npm run map -- <n> > public/maps/<name>.txt`.
 
 Play it blind. Do not open a map file, and leave the debug overlay shut
 until the session is over. The seed box and the teleport are for building,
@@ -28,7 +29,7 @@ not for playing.
 **Watched by** nobody · **Build**: M10 as its file described it.
 
 Written up from Erik's notes on the session rather than at the keyboard, so it
-is shorter than the template asks for and holds only what he said.
+is shorter than the template asks for and has only what he said.
 
 **What happened.**
 

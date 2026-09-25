@@ -19,7 +19,7 @@ in [development.md](development.md).
   moving" reads a flag the tick wrote, never a diff between draws.
 - **Relative imports carry an explicit `.ts` extension**, so the same source
   runs under Vite, Vitest and bare `node --experimental-strip-types`.
-- **`src/config.ts` holds every tunable number**, each marked `[DOC]` (from
+- **`src/config.ts` has every tunable number**, each marked `[DOC]` (from
   `docs/design/` or `docs/current/five-summers.md`) or `[GUESS]` (tune
   freely). Numbers do not belong in logic.
 - **One art pixel is one size, everywhere in the world, and always on the art
@@ -87,7 +87,7 @@ in [development.md](development.md).
   `seenCount`, every tile the family has seen in any summer, marked round
   the player's tile after each move, `transferTarget()` with `putAway` and
   `takeOut` for the transfer panel, and `availableAction`, the one query that
-  decides what the interact key does. Between summers it owns the family's
+  decides what the action key does. Between summers it owns the family's
   total, the list and whether the next summer is tired: `winterInput()` is
   what the winter screen opens on, `endWinter()` applies what was chosen
   there, and `nextSummer()` lets the winter have its way with the map first
@@ -118,7 +118,7 @@ in [development.md](development.md).
   first three summers onto the landscape -- the stream round camp, the near
   ring, the feather field across the stream, the shell field behind its copse
   -- and is what `World.fromSeed` and `npm run map` build; `rows.ts` measures
-  whether a map holds that table, economy included, and is shared by the
+  whether a map matches that table, economy included, and is shared by the
   layout's tests and `npm run map:check`. `reachability.ts` has `nearRing`,
   the near ring worked out from the map, so a hand-edited file keeps the
   rule that everything inside it is back every year.
@@ -128,7 +128,7 @@ in [development.md](development.md).
   `targetMarker.ts` outlines the tile a tool would act on. `camera.ts`,
   `scrollWindow.ts` (no Pixi, so testable) and `placements.ts` (what stands
   where, as data) sit under both layers.
-- **`src/render/packs/`** holds the `AssetPack` interface, the autotile
+- **`src/render/packs/`** has the `AssetPack` interface, the autotile
   masks, the code-drawn placeholder pack, and the Minifantasy loader with
   its sheet table. Art the sheets do not have -- the feather, the sapling, a
   dropped item on its shadow -- is built there as pixels, never by scaling a
@@ -138,32 +138,33 @@ in [development.md](development.md).
   `index.html`; `edgeArrow` and `anchorPosition` are its geometry, pure.
   `mapPicture.ts` is the valley as seen, a colour a tile, with drinking
   spots, fruit trees and camp marked and no resource nodes, and the fade the
-  whole map takes as the player runs dry, all but its landmarks.
-  `mapWidget.ts` draws it two ways: as a circle round the player in the top
-  right, with the hydration bar under it, the circle shrinking to what the
-  player sees as they run dry and a pointer on its rim to the nearest seen
+  whole map takes as the player becomes dehydrated, until only its landmarks
+  are left. `mapWidget.ts` draws it two ways: as a circle round the player in
+  the top right, with the hydration bar under it, the circle shrinking to what
+  the player sees as they become dehydrated and a pointer on its rim to the
+  nearest seen
   water; or as the whole valley that M puts in place of the tile view. It
   redraws only when the player's tile, the seen count, the fade's step or the
   ground it shows changes. M10.5's winter screen is meant to draw the same
   picture larger.
   `buildMenu.ts` is the menu B opens: it draws `world.buildOptions()` and
   reports the choice back, and never writes simulation state itself.
-  `transferPanel.ts` is the panel a held interact key opens at camp; the
-  world announces it in the log, and every move goes back through
+  `transferPanel.ts` is the panel a long press of the action key opens at
+  camp; the world announces it in the log, and every move goes back through
   `world.putAway` and `world.takeOut`. `winter.ts` is the winter screen the
-  end of a summer opens: it holds only the player's choices and the list's
+  end of a summer opens: it keeps only the player's choices and the list's
   unticked boxes, draws every number from `sim/winter.ts`, and hands the
   choices back for `world.endWinter`. It also shows the save link and the
   summer in numbers. The list and the start-of-summer notice
   are part of the HUD model.
-  `view.ts` scales the one wrapper that holds everything on screen.
+  `view.ts` scales the one wrapper that contains everything on screen.
 - **`src/input/`, `src/debug/`, `src/main.ts`, `src/frameClock.ts`** are the
   keyboard and pause, the debug overlay, the wiring, and the fixed-step
   clock.
 - **`scripts/`** are `npm run map` and `npm run map:check`.
 - **`tests/`** are Vitest. `stubPack.ts` is an `AssetPack` that draws
   nothing and records everything, so both layers run headless.
-- **`public/maps/`** holds dumps of particular seeds, editable by hand, and
+- **`public/maps/`** has dumps of particular seeds, editable by hand, and
   is empty but for its README: testing is on seeds, and a file is made only
   when a map is worth freezing.
   **`public/assets/minifantasy/`** is the art, gitignored.

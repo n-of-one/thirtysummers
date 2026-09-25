@@ -112,7 +112,7 @@ every concave corner, so bends fill out to rectangles and the river swells.
 
 **Fords have to be repaired around.** Ford carving cuts a one-tile line through
 the water, which thins the stream on both sides of the cut, often back to a
-single tile. Thickening therefore runs again afterwards with the crossings held
+single tile. Thickening therefore runs again afterwards with the crossings left
 out, or the repair fills in the very thing it is repairing around.
 
 **The four-frame river art was tried and abandoned.** `RiverCurves.png` is a
@@ -167,7 +167,7 @@ number of them before it is ever a sprite.
 **Snapping, and why it is render-only.** Props sit at fixed positions so snapping
 them to the art grid is free. The player cannot be snapped while moving: the
 camera pans smoothly behind it, and quantising only the player makes the two
-fight: the sprite holds still for a frame or two while the camera drifts, so it
+fight: the sprite stays still for a frame or two while the camera drifts, so it
 visibly slides backwards. At rest there is nothing to fight, so each axis eases
 onto the grid, **always in the direction it was last travelling**, so a step
 forward is never rounded back into a step that did not happen.
@@ -192,7 +192,7 @@ that alone reads as a snap.
 QoL milestone the canvas followed the window, so a laptop saw fewer tiles
 than a full HD screen, the fog was sized for full HD, and a playtest on one
 screen said nothing about another. Now the game is drawn at `VIEW_W × VIEW_H`
-logical pixels, and one wrapper holds the canvas, the grid, the
+logical pixels, and one wrapper contains the canvas, the grid, the
 dusk, the fog, the HUD, the cards and the debug panel, so one CSS transform
 scales them all to fit, with black bars where the window's shape differs.
 The transform also makes the wrapper the containing block of the
@@ -306,7 +306,7 @@ too, since it is the time of day and not a warning.
 The first version peaked at 0.6, which play found too faint; it is 0.8 now.
 A dawn at the start of a summer, the same effect in reverse, was tried and
 dropped in review: the evening is the one that means something. Measured over
-the middle of the view with hydration held full: mean luminance 119 at
+the middle of the view with hydration kept full: mean luminance 119 at
 midday, 101 halfway through the dusk and 82 at the end, red over blue 2.32,
 3.06 and 4.81. With the layer hidden, screenshots from the end and from a
 minute earlier are identical.
@@ -328,14 +328,14 @@ because `world.camp` is the tile. The stored fruit carries across summers like
 the gold, so the summary reads it from the store rather than counting the log.
 
 **Material is its own flag, not a camp rule.** Winter asks "is this something
-a build is paid in" to decide what is held back from the sale. That used to
+a build is paid in" to decide what is kept out of the sale. That used to
 be read off `atCamp === "keep"`, the table entry that left material in the
 pack. When camp began taking everything, `keep` went, and the question needed
 a field of its own: `material` in `sim/resources.ts`.
 
 **The backpack says what is in it.** The count alone (`6/10`) does not tell you
 whether you are carrying the fruit or the bridge materials you need. The pill
-reads `Backpack 6/10  fruit 2, ore 3, vine 1`, listing only kinds actually held
+reads `Backpack 6/10  fruit 2, ore 3, vine 1`, listing only kinds actually carried
 and `empty` otherwise.
 
 **The HUD reads a plain object.** `hudModel(world)` turns simulation state into
@@ -357,12 +357,12 @@ drift.
 **One press, one action.** The first version banked the ore at camp and then,
 with the pack now empty and the key still down, started picking the node beside
 the camp. A press that resolves as a tap is spent until the key comes back up.
-Harvesting deliberately does not spend it, so one continuous hold still clears a
-patch of ore without tapping once per node. A test covers both halves, because
+Harvesting deliberately does not spend it, so keeping the key pressed still
+clears a patch of ore without tapping once per node. A test covers both halves, because
 they pull in opposite directions.
 
 **Banking wins at camp, but only while carrying something to bank.** Making
-the camp always take the interact key would make a node growing next to it
+the camp always take the action key would make a node growing next to it
 unharvestable. The three-way choice (bank with ore or fruit, else harvest
 what is in reach, else say there is nothing to bank) is one query, `availableAction`, which the HUD prompt and
 the keypress both read. They cannot disagree about what E does, because they ask
@@ -373,7 +373,7 @@ reach resets the harvest to zero. Keeping partial progress would make
 `HARVEST_TIME` a formality you could pay in instalments while doing something
 else.
 
-**A refusal is said once.** Holding E with a full backpack emits one
+**A refusal is said once.** Keeping E pressed with a full backpack emits one
 `backpackFull` on the press rather than one per tick, which is 60 toasts a
 second. Everything one-shot (banking, and every refusal) is edge-triggered
 against the previous tick's input, which works with the fixed timestep because
@@ -381,7 +381,7 @@ every tick inside a frame sees the same input object.
 
 **Ties in `nearestNodeWithin` break on the lower id.** Standing exactly between
 two nodes would otherwise pick a different one each tick, reset the progress
-every time, and make the hold impossible to finish.
+every time, and make the action impossible to finish.
 
 **One table describes a resource.** `sim/resources.ts` gives each kind its
 glyph, the ground it grows on, the slots it takes, its price, whether it comes
@@ -409,17 +409,17 @@ pocket is made of has cost the player nothing.
 
 **A kind can be found lying rather than growing.** `lies` in the resource
 table makes a node draw with the dropped art and finish on a press instead of
-a hold, which is one flag rather than a second kind of thing on the map: the
-feather is still a node, so replenishment, the map format and the economy
-rows never learn about it. A held key takes a lying kind the moment it comes
-in reach, so a feather field is swept on one hold, as a row of fruit is. It
-was a press per feather at first, and the field across the stream was a
-chore of presses. A dropped item stays a press each and spends the key: with
-a held key sweeping those too, holding E on the fruit beside a pile dropped
-to make room put the pile straight back in the pack.
+an action that takes time. That is one flag rather than a second kind of thing
+on the map: the feather is still a node, so replenishment, the map format and
+the economy rows never learn about it. A key kept pressed takes a lying kind the
+moment it comes in reach, so a feather field is swept in one go, as a row of
+fruit is. It was a press per feather at first, and the field across the stream
+was a chore of presses. A dropped item stays a press each and spends the key:
+when a pressed key swept those too, keeping E pressed on the fruit beside a
+pile dropped to make room put the pile straight back in the pack.
 
 **The pack also remembers the order it was filled in.** `Inventory` keeps a
-list of the kinds it holds beside the counts, appended as a kind arrives and
+list of the kinds it has beside the counts, appended as a kind arrives and
 pruned as one runs out, and the strip and the drop key's cycling both read
 it. Drawing the strip from the resource table instead let a kind picked up
 later jump in front of one already on screen, which no game with slots does.
@@ -460,23 +460,23 @@ to maintain against every spring dug and every stream bridged.
 press with anything in the pack puts all of it in; a press with an empty pack
 takes back what fits, in table order. Anything finer is the transfer panel.
 
-**A press acts on the release where a hold means something else.** At camp and
-a cache the tap stores the load and holding opens the panel. A tap that fired
-on the press would have stored the load before the hold could become a hold, so
-the world keeps it as `pendingTap` and carries it out when the key comes up,
-unless the hold has run out and opened the panel first. Walking away mid-press
-drops it, like walking away from a cut.
+**A press acts on the release where a long press means something else.** At
+camp and a cache a press stores the load and a long press opens the panel. A
+press that fired on the way down would have stored the load before it could
+become a long press, so the world keeps it as `pendingTap` and carries it out
+when the key comes up, unless the long press has run its time and opened the
+panel first. Walking away mid-press drops it, like walking away from a cut.
 
-**A held key repeats, and a panel opened by holding it must ignore that.** The
-first version closed the transfer panel on the interact key. Holding the key
-opens the panel, the browser keeps sending keydowns for as long as it is held,
-and the first of them after the panel appeared shut it: from a real keyboard it
-could never be opened. CDP does not repeat keys unless told to, so the protocol
-tests had not seen it. The panel now ignores `KeyboardEvent.repeat`, which lets
-the key that opened it close it on a fresh press, and `main.ts` keeps the
-interact key from the world until it has been let go once after the panel
-closes, or the hold would start again and reopen it. The tests now hold keys
-with `autoRepeat` set. Escape was tried as the only close key and was worse:
+**A key kept down repeats, and a panel opened by a long press must ignore
+that.** The first version closed the transfer panel on the action key. A long
+press opens the panel, the browser keeps sending keydowns for as long as the
+key is down, and the first of them after the panel appeared shut it: from a
+real keyboard it could never be opened. CDP does not repeat keys unless told
+to, so the protocol tests had not seen it. The panel now ignores
+`KeyboardEvent.repeat`, which lets the key that opened it close it on a fresh
+press, and `main.ts` keeps the action key from the world until it has been let
+go once after the panel closes, or the long press would start again and reopen
+it. The tests now keep keys down with `autoRepeat` set. Escape was tried as the only close key and was worse:
 the browser takes it to leave full screen first.
 
 **Dropped items are a list on the world, like the caches.** A kind and a tile
@@ -494,11 +494,11 @@ fields and gives up past 25 combinations; three action types against
 in code nobody had touched. It is written out one arm per build now.
 
 **A new seed is built in place.** Until M6 it reloaded the page. Rebuilding means
-new render layers, because each one holds the map it was built with, and that is
+new render layers, because each one keeps the map it was built with, and that is
 what the debug overlay needed anyway; the layers are cheap to build and
 destroying them releases their sprite pools. What made the reload tempting was
 the bookkeeping around it rather than the layers: the HUD and the renderer both
-hold cursors into `world.events`, and a fresh log with a stale cursor swallows
+keep cursors into `world.events`, and a fresh log with a stale cursor swallows
 the new world silently.
 
 ## The debug overlay
@@ -513,7 +513,7 @@ The same scaled seconds go to the camera and the animations, not just to the
 simulation. A 10x world drawn with 1x frame times reads as the player sliding
 around inside a view that cannot keep up.
 
-**Freeze is a flag on `World`, pushed every frame.** It holds hydration and the
+**Freeze is a flag on `World`, pushed every frame.** It stops hydration and the
 clock, the two things that run down on their own, and nothing else: the player
 still walks, works and drinks. It could as easily have been a rate the overlay
 zeroed, but then "the numbers stopped" would live in the renderer, and `sim/`
@@ -525,7 +525,7 @@ would have left it thawed.
 **The readout is padded to a fixed width.** Unpadded, the line was 131 to 133
 characters depending on where the player was standing, and the columns walked
 sideways every frame, measured at 1041, 1025 and 1033 painted pixels within one
-second of walking. Each field is now padded to the longest value it can hold, so
+second of walking. Each field is now padded to the longest value it can have, so
 the line is 116 characters whatever is happening. The padding is non-breaking
 spaces and the fields are separated by ordinary ones: under `white-space:
 pre-wrap` that makes the gaps between fields the only places the line can wrap,
@@ -570,15 +570,16 @@ is 81 pixels below the drawn feet. Q does the same.
 
 ## The discovery test
 
-**Three actions, one shape.** Harvesting, cutting a thicket and laying a bridge
-tile are all a hold on the same key: progress builds while the key is down and
-the target stays in reach, and is thrown away the moment either stops being
-true. They are one code path with a table of durations, because the alternative,
-three nearly identical loops, is three places to fix the next thing learned
-about how a hold should feel. What differs between them is only what happens at
-the end, which is where they are actually different.
+**Three actions, one code path.** Harvesting, cutting a thicket and laying a
+bridge tile are all actions that take time, on the same key: progress builds
+while the key is down and the target stays in reach, and is thrown away the
+moment either stops being true. They are one code path with a table of
+durations, because the alternative, three nearly identical loops, is three
+places to fix the next thing learned about how an action should feel. They
+differ only in what happens at the end, which is where they are actually
+different.
 
-The hold is keyed by a string, `node:7` or `tile:31,44`, rather than by a number.
+The action in progress is keyed by a string, `node:7` or `tile:31,44`, rather than by a number.
 A node id and a tile index are both small integers and would otherwise collide,
 which would let walking from a node onto a thicket tile of the same number
 inherit the node's progress.
@@ -594,7 +595,7 @@ Two versions came before it. The first took the nearest tile of the right
 kind, and the M8 playtest found where that fails: in the middle of a bridge
 tile, the next stream tile along and the ones beside the bridge are all one
 tile away, so the target flipped as the player crossed the tile's centre and
-the hold restarted. The second chose among the tiles in reach the one nearest
+the action restarted. The second chose among the tiles in reach the one nearest
 a point a tile ahead, which fixed the centre, but reach is measured from the
 player: walking onto the last bridge tile, the tile ahead only came into reach
 0.4 of the way across, and until then the marker sat on the stream beside the
@@ -607,19 +608,19 @@ Harvesting and drinking stay nearest to the player. Nodes and springs are
 sparse, and one is picked by standing at it.
 
 **Picking beats cutting when both are in reach.** A vine growing against the
-thicket that walls it in is still a vine, and a player holding E next to one
+thicket that walls it in is still a vine, and a player pressing E next to one
 means to pick it. The order in `availableAction` is bank, harvest, cut, build,
 and one query answers both what the prompt says and what the key does.
 
-**A bridge tile is paid for at the end of the hold, and checked again there.**
+**A bridge tile is paid for at the end of the action, and checked again there.**
 The materials are verified when the action is offered and spent when it
-completes, because a hold can start with a stick in the pack and finish without
+completes, because an action can start with a stick in the pack and finish without
 one: lay a tile, keep the key down, and the next tile begins with an empty
 pack. Paying is all-or-nothing for the same reason.
 
 **A summer keeps its map and its log.** "Next summer" is not a new world: the
 terrain, the gold and the backpack survive, every node regrows, the stats refill
-and the clock restarts. The event log is not cleared either, so readers holding a
+and the clock restarts. The event log is not cleared either, so readers with a
 cursor into it carry on rather than replay, which is why `Hud.reset` takes the
 cursor to resume from, and why the summary counts up from the last
 `summerStarted` rather than from the beginning. A regenerate passes 0, because
@@ -639,8 +640,8 @@ rather than pale when the action is right here but cannot be paid for.
 The outline carries no progress. A fill over the tile was tried first and
 lightened a thicket until it read as already cut; a bar along the tile's
 bottom edge replaced it, and was then dropped in review, because the prompt
-under the player already fills as the hold runs and two progress bars for one
-hold is one too many.
+under the player already fills as the action runs, and two progress bars for
+one action is one too many.
 
 Harvesting is deliberately not marked. A node is a sprite standing where it is
 and the prompt already names it, so an outline would be a second answer to a
@@ -694,7 +695,8 @@ property worth keeping from the hand-edited era.
 charges one for a thicket tile and nothing for walkable ground, with the stream
 and the saplings opened or not. A thin ring and a twelve-tile wall are then told
 apart by the depth of the cut rather than by their coordinates, which is what
-lets the same check hold a generated map and an edited one to the same table.
+lets the same check test a generated map and an edited one against the same
+table.
 Each row of the table is one entry: fruit and feathers on foot, vines waded to
 and sticks behind thin thicket, springs on both banks, ore only across the
 water, a field behind the copse, shells too far
@@ -712,7 +714,7 @@ one would simply never be found. Every row is written as what opens when one
 particular thing is done, and not before.
 
 **The tests found two bugs the checker could not.** The rows ask whether the
-map holds the chain; they do not ask whether each thing is where it should be.
+map has the chain; they do not ask whether each thing is where it should be.
 Scattering the near ring's fruit over the whole ring put some of it inside the
 walled stand, visible from outside and unreachable in the first summer, and
 scattering sticks inside the stand let the stand's own saplings box one in,
@@ -759,16 +761,16 @@ ordinary nodes, and what ties them together is only that they were placed
 together. A node with a count on it was the other way, and it wanted a field on
 `ResourceNode`, a yield on `ResourceDef`, a save version and a rule for
 targeting a node on an impassable tile -- all to buy standing still while the
-holds repeat. Separate nodes also behave better with two slots left: you take
+actions repeat. Separate nodes also behave better with two slots left: you take
 what fits and the rest is still on the ground.
 
 The cost is that nothing downstream can ask which tree a fruit belongs to. The
 layout's own test therefore finds a tree the way a player does, by clustering
 the fruit and looking for the trunk that touches all of it. That works because
-the clusters are held `NEAR_RING_SPACING` apart and a canopy is under three
+the clusters are kept `NEAR_RING_SPACING` apart and a canopy is under three
 tiles across, so a knot of fruit is never ambiguous. Had the spacing been
 tighter the test could not have been written at all, which is worth knowing
-before the ring's shape changes.
+before the ring's layout changes.
 
 **Where a fruit hangs is decided by how the sprite is drawn, not by the grid.**
 A tree is three tiles wide and four tall, anchored at the foot of its trunk, so
@@ -830,7 +832,7 @@ when the camera crosses a tile boundary, and the player cutting a path is
 standing still. `TileLayer.invalidate` is the ground's version of the prop
 layer's, and `main.ts` calls both on a `cut` or a `built` event.
 
-Measuring that it works needed the water animation held still: the ripple
+Measuring that it works needed the water animation kept still: the ripple
 advances every 0.45 seconds and refills the whole pool when it does, which
 silently stood in for the invalidate and made the check pass with the call
 removed. With the frame index pinned, removing the call leaves the cut tile drawn
@@ -881,7 +883,7 @@ Moving about inside one tile never counts.
 
 **The save keeps wear that differs from what the map started with.** The map
 starts some underbrush part-way worn from the noise, so storing every nonzero
-count would put thousands of tiles in a URL. `worn` holds only what walking
+count would put thousands of tiles in a URL. `worn` keeps only what walking
 changed, against a copy of the starting wear taken when the world is built,
 and restoring starts from that copy.
 
@@ -970,19 +972,20 @@ tree is one. The layout hangs fruit on the eight tiles round a trunk and keeps
 every other tree two tiles off, so a tree tile with a fruit node beside it is a
 fruit tree, and the map marks it whether or not the fruit is picked.
 
-**The dry fade is mixed in linear light, as a cube.** The eye judges
+**The dehydration fade is mixed in linear light, as a cube.** The eye judges
 brightness roughly as the cube root of the light, so a straight mix of the
-colour numbers seems to hold on and then fall away at the end. The brightness
-falls evenly with hydration, the light as its cube, and the mix is done after
-undoing the screen's gamma. It moves in 25 steps so the whole map redraws a
-few dozen times as the player runs dry rather than every frame.
+colour numbers seems to stay bright and then drop away at the end. The
+brightness falls evenly with hydration, the light as its cube, and the mix is
+done after undoing the screen's gamma. It moves in 25 steps, so the whole map
+redraws a few dozen times as the player becomes dehydrated rather than every
+frame.
 
 **The pointer to water takes the first cell outside the circle.** Rounding a
 point a fixed distance out along the bearing leaves a gap of blank cells on
 the diagonals, where the circle's stepped edge is furthest in. Stepping out
 along the bearing until a cell is outside the circle puts the pointer against
 the edge whichever way it points, and on the spot's own cell as it comes
-within reach. The spot it holds is widget state, kept until another is
+within reach. The spot it points at is widget state, kept until another is
 `MAP_POINTER_HOLD_TILES` nearer, since two springs on a bank take turns being
 nearest.
 
@@ -1005,8 +1008,8 @@ snap direction, the assumption that the walk sheet had two facings. Sheet layout
 are decoded from pixels rather than from documentation.
 
 **What has no unit test gets a protocol test.** There is no DOM in the test run,
-so the build menu is driven as a player drives it: B, a number key, E held until
-the world changes, with the prompts and the pill read back from the page. The
+so the build menu is driven as a player drives it: B, a number key, E kept
+pressed until the world changes, with the prompts and the pill read back from the page. The
 five-summer run is the same idea at length, playing five summers on each shipped
 map with real keystrokes and reading back that each row opened. Taking the axe
 out of the year table makes summer 2 fail there, which is what says the run

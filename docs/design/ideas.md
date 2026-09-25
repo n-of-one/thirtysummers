@@ -13,10 +13,10 @@ one up means refining it into a design document first. Rejected ideas are in
   resources sit near it.
 - How town strength carries into the next map's outpost. Perhaps a stronger
   town makes an outpost with better benefits in the next map's winters.
-- What family levels unlock beyond the shop, upkeep's shape and the camp
-  site: the heir's starting stats or tools, more from the grave.
-- What else changes with age besides summer length. Walking speed and the
-  length of a hold are the candidates. Old characters drink less and tire
+- What family levels unlock beyond the shop, what upkeep is paid in, and
+  the camp site: the heir's starting stats or tools, more from the grave.
+- What else changes with age besides summer length. Walking speed and how
+  long actions take are the candidates. Old characters drink less and tire
   more, young ones the reverse.
 - How the grave is placed and how burial works, and what a visit gives.
   It was one max stamina; with stamina gone it could be seconds on the
@@ -53,15 +53,20 @@ one up means refining it into a design document first. Rejected ideas are in
   and 3, and not taken: trails and a camp that moves were taken instead.
 - **The cart, two summers earlier.** Bought with gold alone in winter 2, since
   hauling is what breaks in summer 2 and the cart is the designed answer to
-  hauling. Held back as the reserve lever: if trails and a moved camp do not
+  hauling. Kept in reserve: if trails and a moved camp do not
   fix years 2 and 3, this is the next thing to try, and summers 4 and 5 then
   need a new opening.
 - **The cache as the rung below the cart.** Cheap, stationary, built from
   sticks in an early summer, replaced by the cart later. It was parked because
-  two things that nearly do one job is one too many to learn, which only holds
-  while both exist at once.
+  two things that nearly do one job is one too many to learn, and that is only
+  true while both exist at once.
 - **Someone who carries.** A dog, or the child once there is one, following at
   a distance with a few slots of their own.
+- **Eating fruit for speed.** Eating a fruit gives a short burst of speed,
+  for a moment that matters, such as a full pack and a minute left. Fruit is
+  winter food, so every fruit eaten is one fewer stored at camp, and each
+  time the choice is: eat it now, or keep it for winter. Planned as M13 in
+  [../current/m13-fruit.md](../current/m13-fruit.md).
 - **Fruit that spoils in the pack.** Food becomes the first trip's job and
   money the last trip's, which shapes the order of a summer without adding
   work to it.
@@ -97,8 +102,9 @@ one up means refining it into a design document first. Rejected ideas are in
 - **A generator that varies the table itself**, rather than laying the same
   arrangement out per seed as `worldgen/layout.ts` now does: a different
   number of pockets, barriers in another order, the near ring somewhere
-  other than round camp. What is built holds the table on every seed; what
-  is open is whether the table is the only shape worth holding.
+  other than round camp. What is built now lays out the same table on every
+  seed. What is open is whether that table is the only layout worth
+  building.
 - **Outside testers**, once the concept is fleshed out further.
 - **A high-fantasy setting**, to see what it offers over low fantasy.
 

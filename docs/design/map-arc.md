@@ -1,32 +1,32 @@
 # The arc of a map
 
-What one map is, from the first summer of the first character to the road
-out to the next map.
+This document describes one map, from the first summer of the first
+character to the road out to the next map.
 
-## The shape
+## What a map is
 
 A map is a valley with a town at one edge. Your family lives at the camp
 between the town and the wild, and spends its lives opening the valley up:
 collecting in summer, buying and surviving in winter, and building the
 structures that turn the wild into something the town can use. A map lasts
 as many lives as it takes. It ends when the family has finished every
-domain the valley holds and built the road to the next valley, with a town
+domain in the valley and built the road to the next valley, with a town
 strong enough to send an outpost ahead.
 
-Nothing rushes this. There is no cap on the number of generations. A new 
+Nothing rushes this. There is no limit on the number of generations. A new
 player learns the game at their own pace on the first map.
 
 ## A life
 
 A character starts at 15 and dies at 45: thirty summers. Summers are short
-in youth, longest at the physical peak, and shorten again in decline, which
-is the age curve made visible in the one number every summer is measured
-by. The three phases of a life are:
+in youth, longest at the physical peak, and shorter again in decline. So the
+age curve shows in the one number every summer is measured by: its length.
+The three phases of a life are:
 
-- **Youth, summers 1 to 10.** Building up the basics. The first tools, the
-  first paths, the first bridge. And scouting: the sites a structure could
-  stand on are behind barriers, and a valley holds more of them than one
-  life can build, so youth is spent finding out what this valley could
+- **Youth, summers 1 to 10.** Building up the basics: the first tools, the
+  first paths, the first bridge. And scouting: the sites where a structure
+  could stand are behind barriers, and a valley has more of them than one
+  life can build on, so youth is spent finding out what this valley could
   become.
 - **Peak, summers 10 to 20.** Building structures. Choosing which, then
   preparing the map and the economy for it, then the tasks themselves.
@@ -53,7 +53,7 @@ from a few possible sites. Some are explicit sub-structures, such as the
 rails for the mine carts, the road to the site, the camp the workers live
 in, the supplies that reach it. The people who work a finished structure
 are never seen. The player builds the thing that does the work, and the
-grinding is theirs.
+hard work of building it is the player's.
 
 A finished structure pays out at once, and what it pays is new play, never
 a multiplier. The mine's ore is the metal for tools that break barriers no
@@ -84,29 +84,30 @@ map's winters, is decided later.
 
 ## Winter, upkeep and the family
 
-Gold and resources cannot be stockpiled across winters. Every winter has
-its upkeep: food and gold that must be paid to get through it. Upkeep
-rises as structures are built, because the works have to be supplied, and
-that is by design. Rising upkeep forces more efficient income, which
-forces new logistics, which is what keeps a life's play changing.
+Gold does not carry over from one winter to the next. Every winter has its
+upkeep: food and gold that must be paid to get through it. Upkeep rises as
+structures are built, because the people working them have to be supplied,
+and that is by design. Rising upkeep forces better income, which forces new
+logistics, and that keeps a life's play changing.
 
-Gold to spare, after upkeep, goes to the family. The family has levels,
-each needing more surplus than the last, accumulated over the summers. A
-level opens the shop's next rows, moves upkeep from fruit toward rent, and at
-one of them the family can pick camp up and move it. A
+Gold left over after upkeep goes to the family. The family has levels, and
+each level needs more saved-up gold than the last, added up over the
+summers. A level opens more of the shop and moves upkeep from fruit toward
+rent, and one of the levels lets the family pack up camp and move it. A
 stronger family gives the heir a better start, in stats or in tools, or
 more from visiting the grave.
 
-**Camp moves within a life, not only between them.** Once the family can
-afford to, a winter can pitch camp on ground the family has walked, and every
-walk of the summers after it is shorter. It costs what a camp is made of, and
-it costs the old ring, because the ground that comes back every summer is
-whatever the camp reaches without crossing water. So a life has its own small
-version of the move the heir makes, and the heir's move is the same act at a
-larger scale. A family that misses upkeep does not lose
-the run. It gains no strength that winter and plays the next summer tired,
-enough to make upkeep a priority the year after, never enough to end a
-life.
+**Camp moves within a life, not only between lives.** Once the family can
+afford it, camp can be pitched in winter on ground the family has walked,
+and every walk in the summers after it is shorter. It costs the material a
+camp is made of. It also costs the old ring, because the ground that comes
+back every summer is whatever camp can reach without crossing water. So a
+life has its own small version of the move the heir makes, and the heir's
+move is the same thing on a larger scale.
+
+A family that misses upkeep does not lose the run. It gains no strength
+that winter and plays the next summer tired. That is enough to make upkeep
+a priority the year after, and never enough to end a life.
 
 So the two strengths are kept apart. Town strength comes from structures.
 Family strength comes from spare gold.
@@ -115,7 +116,7 @@ Family strength comes from spare gold.
 
 The map wears. Everything built decays a little each winter, faster for
 poorer work: a cut path lasts a winter, a trodden trail a few, gravel
-longer, paving longer still, a stick bridge a couple of winters, a log
+longer, paving even longer, a stick bridge a couple of winters, a log
 bridge many, stone for good. Harsh years may wear things faster. Nothing
 announces what broke; the player meets the damage in play. Repair is
 cheaper than building.
@@ -145,10 +146,10 @@ the burial works are not designed yet.
 The second youth is meant to be faster than the first, and to feel like a
 power trip rather than a chore: the map is known, the roads are half
 there, the camp stands where the parent reached in year eight, and the new
-structure's yield is waiting. What the second youth re-experiences is the
-body: short summers, choosing which of the parent's roads
-matters. What it skips is the exploration of the middle. What it gains is
-the outer ring of the valley, which the first life never reached.
+structure's yield is waiting. The second youth goes through short summers
+again, and chooses which of the parent's roads matter. It skips exploring
+the middle of the valley, and it gains the outer ring, which the first life
+never reached.
 
 ## What ends a map
 

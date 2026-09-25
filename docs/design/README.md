@@ -1,12 +1,12 @@
 # Design
 
-What thirtysummers will eventually be, one document per aspect. Each says
-what the game is in that respect, in prose, so it can be read in one sitting.
-They are not minutes. The reasons are in
-[../rationale/design.md](../rationale/design.md), rejected ideas in
-[../archive/decided-against.md](../archive/decided-against.md). What the step
-being built now takes from this, and the numbers it uses, is in
-[../current/five-summers.md](../current/five-summers.md).
+This folder describes what thirtysummers will eventually be, one document
+per aspect. Each one describes the game from that angle, in prose, so it can
+be read in one sitting. They are not minutes. The reasons are in
+[../rationale/design.md](../rationale/design.md), and rejected ideas in
+[../archive/decided-against.md](../archive/decided-against.md).
+[../current/five-summers.md](../current/five-summers.md) says which parts
+the step being built now uses, and with which numbers.
 
 | Document | Aspect |
 |---|---|
@@ -42,10 +42,10 @@ earn its place.
 
 **Winter has more.** Selling, paying and buying only make sense if the
 player can follow the sums, so winter shows numbers that summer would
-leave out. They are kept from turning winter into a spreadsheet by
-pictures the player already knows from summer. The icons of the things
-they carried, and of what happened to them, go beside the numbers, so a
-winter reads as the summer before it being paid out.
+leave out. Pictures the player already knows from summer keep winter from
+turning into a spreadsheet. The icons of the things they carried, and of
+what happened to them, go beside the numbers, so a winter reads as the
+summer before it being paid out.
 
 The test for any number on screen: does the player need it to decide
 something, or to understand how the game works? If not, show a picture of
@@ -60,8 +60,15 @@ In-game words, not game-design words.
   winter, and it is the counter the player sees.
 - A **life** is thirty summers, from 15 to 45. A **generation** is one life.
   The next life is the **heir**'s.
-- **Hydration** is the one bar. A **tired** summer is the one after a
-  missed upkeep.
+- **Hydration** is the one bar. A character low on it is **dehydrated**. A
+  **tired** summer is the one after a missed upkeep.
+- The **action key** (E) does an **action** on what is in front of the
+  character. Some actions are instant, such as picking up a dropped item.
+  Others take time, such as cutting, felling, bridging, drinking and
+  gathering, and the key stays pressed until they finish; the time an action
+  takes is its price. A **press** at camp or the cart stores the whole pack,
+  and a **long press** opens the transfer panel. Keeping the key pressed in a
+  feather field picks up every feather in reach.
 - **Upkeep** is what a winter costs, in fruit and gold; its gold is
   **rent**. The **shop** is what the town sells. **Camp** is also what is
   kept there: to **store** something is to put it at camp or in the cart,
