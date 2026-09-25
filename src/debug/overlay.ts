@@ -3,7 +3,6 @@ import { isTypingTarget } from "../input/keyboard.ts";
 import type { Camera } from "../render/camera.ts";
 import type { Facing, TerrainKind } from "../sim/types.ts";
 import { formatClock, need } from "../ui/hud.ts";
-
 /**
  * Where to put the one-tile grid background so its lines land on real tile
  * boundaries.
@@ -117,6 +116,8 @@ export interface DebugOptions {
   teleport(screenX: number, screenY: number): boolean;
   /** The canvas host. Clicks on it teleport; clicks on the panel do not. */
   clickTarget: HTMLElement;
+  /** Set hydration to this, for looking at what running dry does without waiting for it. */
+  setHydration?(hydration: number): void;
   /** Start with the panel up. `?debug=1` does; otherwise the key opens it. */
   open?: boolean;
   root?: ParentNode;
@@ -155,6 +156,8 @@ export class DebugOverlay {
   private readonly speedValue: HTMLElement;
   private readonly gridToggle: HTMLInputElement;
   private readonly freezeToggle: HTMLInputElement;
+  private readonly hydration: HTMLInputElement;
+  private readonly hydrationValue: HTMLElement;
   private readonly hint: HTMLElement;
   private readonly hintText: string;
   private readonly keyTarget: EventTarget;
@@ -202,6 +205,12 @@ export class DebugOverlay {
     mapToggle.addEventListener("change", () => {
       this.mapShown = mapToggle.checked;
     });
+    this.hydration = need(root, "#debug-hydration");
+    this.hydrationValue = need(root, "#debug-hydration-value");
+    this.hydration.addEventListener("input", () => {
+      options.setHydration?.(Number(this.hydration.value));
+    });
+    this.hydration.addEventListener("change", () => this.hydration.blur());
     options.clickTarget.addEventListener("click", this.onClick);
     this.keyTarget.addEventListener("keydown", this.onKeyDown);
   }
@@ -219,7 +228,7 @@ export class DebugOverlay {
    * nobody can see it, and building the line every frame for nobody is the one
    * cost the overlay would otherwise charge a normal summer.
    */
-  update(camera: Camera, readout: () => string): void {
+  update(camera: Camera, readout: () => string, hydration = 0): void {
     if (!this.grid.hidden) {
       this.grid.style.backgroundPosition =
         `${gridOffset(camera.leftPx)}px ${gridOffset(camera.topPx)}px`;
@@ -227,6 +236,10 @@ export class DebugOverlay {
     if (!this.open) return;
     const line = readout();
     if (this.readout.textContent !== line) this.readout.textContent = line;
+    // The slider follows hydration as it drains, except while it is held.
+    const value = String(Math.round(hydration));
+    if (document.activeElement !== this.hydration && this.hydration.value !== value) this.hydration.value = value;
+    if (this.hydrationValue.textContent !== value) this.hydrationValue.textContent = value;
   }
 
   /** Show the seed a world was actually built from, after a regenerate. */

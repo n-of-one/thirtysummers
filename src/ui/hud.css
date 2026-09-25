@@ -72,7 +72,6 @@ html, body {
   image-rendering: pixelated;
 }
 #map[hidden] { display: none; }
-
 /* The whole map, opened with M in place of the tile view. The world, the
    fog, the dusk and what hangs off the player go; the list, the pack, the
    bar and the clock stay, painted over the map. */

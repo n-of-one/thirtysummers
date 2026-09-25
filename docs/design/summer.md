@@ -222,7 +222,8 @@ some summer. Everything else is blank. It fills over a life, and it is the one
 record of where the family has been.
 
 It shows the terrain and the things that stand in it: ground and water,
-walls, camp, bridges, wells, and the landmarks. Trails are not drawn: worn
+walls, camp, bridges, every place to drink -- springs and wells alike -- and
+the landmarks. Trails are not drawn: worn
 underbrush is still underbrush until it is walked into grass. A
 fruit tree is one of those, marked in the colour of its fruit whether or not
 the fruit is picked, because a tree worth coming back to is a place. What
@@ -232,6 +233,12 @@ the question the exploring is made of. It sits in a corner, small, and costs
 no time to look at. A key swaps the view for the whole valley as the family
 has seen it, with the list and the pack still over it; the summer does not
 stop for it, so looking is still paid for in time.
+
+**Thirst takes the map as well as the view.** As the fog closes in, the map
+in the corner shrinks to what the player can see, and the whole valley fades
+until only its landmarks are left: the river, the thickets, the places to
+drink, the fruit trees and camp. A dry player can still find water and the
+way round, but not the ground between.
 
 **Landmarks are what the map is read by.** A valley of the same grass cannot
 be remembered, so each part of it has one thing that is nothing but itself: a

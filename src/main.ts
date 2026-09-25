@@ -308,6 +308,10 @@ const overlay = new DebugOverlay({
     return true;
   },
   clickTarget: stage,
+  // Reads `world` when moved rather than now, because a regenerate replaces it.
+  setHydration: (hydration) => {
+    world.stats.hydration = hydration;
+  },
   open: params.has("debug"),
 });
 
@@ -460,7 +464,7 @@ app.ticker.add(({ deltaMS }) => {
   map.update(world);
   wholeMap.hidden = !mapOpen;
   wholeMap.update(world);
-  overlay.update(camera, readout);
+  overlay.update(camera, readout, world.stats.hydration);
 });
 
 console.log(

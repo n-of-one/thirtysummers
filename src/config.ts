@@ -311,6 +311,19 @@ export const BUILD_CANCEL_KEY = "escape";
  * MAP_KEY. Odd, so the player's tile is the middle cell.
  */
 export const MAP_DIAMETER_TILES = 57;
+/**
+ * [GUESS] Where the corner map, shrinking as the player runs dry, has caught
+ * up with what the player sees. It starts closing with the fog at
+ * HYDRATION_FOG_THRESHOLD, a whole ring at a time, meets the seen radius here,
+ * and follows it below.
+ */
+export const MAP_SHRINK_CATCH_UP_HYDRATION = 25;
+/**
+ * [GUESS] Steps the whole map fades in as the player runs dry, from the fog's
+ * threshold to none, so it is redrawn this many times rather than every frame.
+ * 25 is a step every 2% of hydration, two seconds of draining.
+ */
+export const MAP_DRY_FADE_STEPS = 25;
 /** [GUESS] Logical pixels between the map and the corner of the view. A multiple of the art pixel, 4. */
 export const MAP_MARGIN_PX = 16;
 /**
@@ -346,7 +359,8 @@ export const MAP_COLORS = {
   thicket: 0x4d3b2c,
   bridge: 0xa07a48,
   camp: 0xf2d06e,
-  well: 0x8fd6f2,
+  /** Anywhere to drink: a spring in the reeds or a well, one colour, since they do one thing. */
+  drink: 0x8fd6f2,
   player: 0xffffff,
 } as const;
 

@@ -59,7 +59,9 @@ an art pixel. It is the one part of the HUD the rule covers, and
    easy ground, rough ground, dense underbrush, mud, water, trees and saplings,
    rock and thicket, and bridges. Only the terrain: a trail's stages of wear
    are not drawn, so worn underbrush is underbrush until it is walked into
-   grass. Wells and camp on top; room
+   grass. Every drinking spot on top, a spring in the reeds as much as a
+   well, in one light blue, since where to drink is what a thirsty player
+   looks at the map for; camp on top too; room
    for M10.4's landmarks. A fruit tree is a landmark, drawn as a 2 by 2 block
    in the fruit colour from its trunk, always, picked or not. It is found as a
    tree tile with a fruit node on one of its eight neighbours, which is how the
@@ -90,6 +92,28 @@ an art pixel. It is the one part of the HUD the rule covers, and
    clock and the tools stay, painted over it. M again closes it. Nothing
    pauses for it: the clock runs and the player can walk with it open, the
    same as the build menu. M while paused only resumes.
+7. **The corner map shrinks as the player runs dry.** Otherwise a dry player
+   navigates by it while the fog has closed in, which undoes what the fog is
+   for. `minimapRadius` in `ui/mapWidget.ts`: radius 28 down to the fog's
+   threshold (50%), then closing a whole ring at a time to meet what the
+   player sees -- the seen radius -- at `MAP_SHRINK_CATCH_UP_HYDRATION` (25%,
+   radius 9), and following it below, down to 4 at 0%. A drink puts it back
+   at once, as it does the fog. The debug panel's hydration slider, with the
+   freeze on, holds it at any point to look at.
+
+   Tried and dropped: shrinking from 75% to meet the seen radius at 50%, and
+   the real fog's gradient laid over the map, which only showed where the
+   player had come from while new ground at the map's edge stayed sharp.
+8. **The whole map fades as the player runs dry, all but its landmarks.**
+   Down to the fog's threshold it is whole; below it every tile fades towards
+   the unseen blank, and at 0% only the landmarks are left: the river and its
+   bridges, thicket, drinking spots, fruit trees and camp. So a dry player
+   still finds the water and the way round, but not the ground between. The
+   fall is even to the eye, not in the numbers: the eye judges brightness
+   roughly as the cube root of the light, so the light falls as the cube of
+   the brightness, mixed in linear light (`fade` and `dryBrightness` in
+   `ui/mapPicture.ts`). It moves in `MAP_DRY_FADE_STEPS` (25) steps, a redraw
+   every 2% of hydration.
 
 ## Tests
 
@@ -117,6 +141,9 @@ an art pixel. It is the one part of the HUD the rule covers, and
   back from the page.
 - Frame time over a summer at 10x with the widget on and off, so the redraw
   cost is a number and not an opinion.
+- The corner map's circle read back from the canvas at hydrations from 100 to
+  0, set with the debug slider: 28 down to 50%, the seen radius rounded from
+  25% down.
 - M pressed as a real key: the whole map's size and place read back, the tile
   view hidden and the HUD shown, a walk with it open that moves the player and
   redraws the map, M again restoring the view, and M while paused only

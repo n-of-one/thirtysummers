@@ -1,12 +1,35 @@
 import * as C from "../config.ts";
+import { seenRadiusTiles } from "../sim/stats.ts";
 import type { World } from "../sim/world.ts";
-import { mapMarks, tileColour } from "./mapPicture.ts";
+import { dryBrightness, fade, isLandmark, mapMarks, tileColour } from "./mapPicture.ts";
 
 /**
  * Where a map is drawn: the circle round the player in the corner, or the
  * whole valley in place of the tile view, which `MAP_KEY` opens.
  */
 export type MapLayout = "corner" | "whole";
+
+/** The corner map's circle radius, in tiles: the player's tile and this many either side. */
+const MAP_RADIUS = (C.MAP_DIAMETER_TILES - 1) / 2;
+
+/**
+ * How many tiles of circle the corner map draws round the player's tile, at a
+ * hydration.
+ *
+ * A dry player could otherwise navigate by the map while the fog has closed
+ * in, which undoes what the fog is for. So the whole circle down to the fog's
+ * threshold, then closing a whole ring at a time to meet what the player sees
+ * -- the seen radius -- at `MAP_SHRINK_CATCH_UP_HYDRATION`, and following that
+ * below it: from there the map is never a better guide than the eyes.
+ */
+export function minimapRadius(hydration: number): number {
+  const from = C.HYDRATION_FOG_THRESHOLD;
+  const meet = C.MAP_SHRINK_CATCH_UP_HYDRATION;
+  if (hydration >= from) return MAP_RADIUS;
+  if (hydration < meet) return Math.round(seenRadiusTiles(hydration));
+  const target = seenRadiusTiles(meet);
+  return Math.round(target + ((MAP_RADIUS - target) * (hydration - meet)) / (from - meet));
+}
 
 /**
  * A map of the valley as the family has seen it, drawn from `mapPicture.ts`.
@@ -44,6 +67,8 @@ export class MapWidget {
   private dirty = true;
   /** Frames drawn, for measuring what the widget costs. */
   draws = 0;
+  /** The corner map's circle radius as last cut, in tiles. */
+  private circle = MAP_RADIUS;
 
   constructor(
     parent: HTMLElement,
@@ -80,15 +105,7 @@ export class MapWidget {
     let top: number;
     if (this.layout === "corner") {
       perTile = art;
-      // The same rule `markCircle` marks by: a cell's offset from the middle
-      // cell, in whole tiles, within the radius. So the seen circle sits in
-      // it cell for tile.
-      const c = Math.floor(width / 2);
-      for (let y = 0; y < height; y++) {
-        for (let x = 0; x < width; x++) {
-          this.inside[y * width + x] = (x - c) ** 2 + (y - c) ** 2 <= c * c ? 1 : 0;
-        }
-      }
+      this.cut(this.circle);
       // Top right, on the art grid, whatever the margin says. What sits
       // under it -- the hydration bar -- is placed from where it ends.
       left = Math.floor((this.view.width - C.MAP_MARGIN_PX - width * perTile) / art) * art;
@@ -106,6 +123,28 @@ export class MapWidget {
       top: `${top}px`,
     });
     this.dirty = true;
+  }
+
+  /**
+   * Draw the corner's cells out to `radius` tiles from the middle one and no
+   * further: the same rule the seen circle is marked by, a cell's offset in
+   * whole tiles, so the circle's edge is tiles in or out.
+   */
+  private cut(radius: number): void {
+    this.circle = radius;
+    const c = Math.floor(this.width / 2);
+    for (let y = 0; y < this.height; y++) {
+      for (let x = 0; x < this.width; x++) {
+        this.inside[y * this.width + x] = (x - c) ** 2 + (y - c) ** 2 <= radius * radius ? 1 : 0;
+      }
+    }
+    this.dirty = true;
+  }
+
+  /** Shrink the corner's circle as the player runs dry: cut it to its radius when that has changed. */
+  private applySight(hydration: number): void {
+    const radius = minimapRadius(hydration);
+    if (radius !== this.circle) this.cut(radius);
   }
 
   get hidden(): boolean {
@@ -156,18 +195,24 @@ export class MapWidget {
       }
     }
     this.seenEvents = events.length;
+    if (this.layout === "corner") this.applySight(world.stats.hydration);
     if (this.hidden) return;
 
-    const key = `${px},${py},${world.seenCount}`;
+    // The whole map fades as the player runs dry, all but its landmarks; the
+    // corner shrinks instead.
+    const brightness = this.layout === "whole" ? dryBrightness(world.stats.hydration) : 1;
+    const key = `${px},${py},${world.seenCount},${brightness}`;
     if (key === this.drawnKey && !this.dirty) return;
     this.drawnKey = key;
     this.dirty = false;
-    this.draw(world, ox, oy, px - ox, py - oy);
+    this.draw(world, ox, oy, px - ox, py - oy, brightness);
   }
 
-  private draw(world: World, ox: number, oy: number, playerX: number, playerY: number): void {
+  private draw(world: World, ox: number, oy: number, playerX: number, playerY: number, brightness: number): void {
     const marks = mapMarks(world);
     const unseen = abgr(C.MAP_COLORS.unseen);
+    // A handful of colours on a map, so each is faded once a drawing.
+    const faded = new Map<number, number>();
     for (let y = 0; y < this.height; y++) {
       for (let x = 0; x < this.width; x++) {
         const i = y * this.width + x;
@@ -175,7 +220,12 @@ export class MapWidget {
           this.pixels[i] = 0;
           continue;
         }
-        const colour = tileColour(world, marks, ox + x, oy + y);
+        let colour = tileColour(world, marks, ox + x, oy + y);
+        if (colour !== null && brightness < 1 && !isLandmark(world, marks, ox + x, oy + y)) {
+          const was = colour;
+          colour = faded.get(was) ?? fade(was, brightness);
+          faded.set(was, colour);
+        }
         this.pixels[i] = colour === null ? unseen : abgr(colour);
       }
     }

@@ -129,7 +129,9 @@ from a driver.
 Press `` ` `` in the running game, or open with `?debug=1`. It has a seed box
 with regenerate (`[` and `]` step the seed), a 1x–10x time scale, a tile
 grid, a freeze that holds hydration and the clock, a switch for the map in
-the corner (off only to measure what it costs), click-to-teleport, and a
+the corner (off only to measure what it costs), a hydration slider that sets
+hydration (with the freeze on, it stays there),
+click-to-teleport, and a
 fixed-width readout of the numbers the frame was drawn with. Regenerating reseeds in place. Keys typed
 into the panel do not move the player. Only `` ` `` closes it: `Esc` belongs
 to the transfer panel and the build menu, and in the seed box it only lets go

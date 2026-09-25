@@ -138,7 +138,8 @@ in [development.md](development.md).
   `index.html`; `edgeArrow` and `anchorPosition` are its geometry, pure.
   `mapPicture.ts` is the valley as seen, a colour a tile, with fruit trees
   marked and no resource nodes; `mapWidget.ts` draws it either as a circle round the player in
-  the top right, with the hydration bar under it, or as the whole valley that M puts in place of the tile
+  the top right, with the hydration bar under it and the circle shrinking to
+  what the player sees as they run dry, or as the whole valley that M puts in place of the tile
   view, and redraws only when the player's tile, the seen count or the ground
   it shows changes. M10.5's winter screen is meant to draw
   the same picture larger.
