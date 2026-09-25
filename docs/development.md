@@ -107,10 +107,12 @@ the summer.
 Cutting, felling and building act on the tile next to the player's in the
 direction last walked, and only that tile. The axe and the cart are bought in
 winter, once the family's level opens them.
+M swaps the view for the whole map of what has been seen, and back; the
+clock runs and the player can walk while it is up.
 P pauses, and so does the window losing focus; any key resumes, and does
 nothing else. At camp an "End summer" button under the player, or Q, ends the
 summer early.
-The Full screen button in the top right gives the view the whole screen.
+The Full screen button in the top left gives the view the whole screen.
 
 The end of a summer opens the winter screen: what came home and what it
 sells for, upkeep, the shop from winter 2 on, and the family, with the save
@@ -126,7 +128,8 @@ from a driver.
 
 Press `` ` `` in the running game, or open with `?debug=1`. It has a seed box
 with regenerate (`[` and `]` step the seed), a 1x–10x time scale, a tile
-grid, a freeze that holds hydration and the clock, click-to-teleport, and a
+grid, a freeze that holds hydration and the clock, a switch for the map in
+the corner (off only to measure what it costs), click-to-teleport, and a
 fixed-width readout of the numbers the frame was drawn with. Regenerating reseeds in place. Keys typed
 into the panel do not move the player. Only `` ` `` closes it: `Esc` belongs
 to the transfer panel and the build menu, and in the seed box it only lets go
@@ -191,9 +194,11 @@ ones.
   worn by walking with their speeds, their save and their winters, dense
   underbrush that never wears, underbrush stages from the forest noise, the
   near ring measured from the map, the layout pass over several seeds against
-  every row of the table and the economy, and the debug overlay's arithmetic.
-  The build menu's, the transfer panel's and the winter screen's markup have
-  no test: there is no DOM in the test run, so they are checked over the
+  every row of the table and the economy, the fog's radius and the seen
+  circle, the seen mask over a walk, a drink, a teleport, a winter and a
+  save, the map picture by ground class, and the debug overlay's arithmetic.
+  The build menu's, the transfer panel's, the winter screen's and the map
+  widget's markup have no test: there is no DOM in the test run, so they are checked over the
   protocol instead, holding keys with `autoRepeat` set as a real keyboard
   does. So is how a dropped item looks, in both packs.
 - `npm run map:check <file>` passes on any map file there is. There are none

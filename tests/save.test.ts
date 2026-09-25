@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import * as C from "../src/config.ts";
 import { NO_INPUT, type InputState } from "../src/input/keyboard.ts";
 import { formatMap } from "../src/sim/mapfile.ts";
-import { decodeSave, encodeSave, SaveError } from "../src/sim/save.ts";
+import { decodeSave, encodeSave, SaveError, type SaveState } from "../src/sim/save.ts";
 import { summarise } from "../src/sim/summary.ts";
 import { World } from "../src/sim/world.ts";
 import { layoutSummerWorld } from "../src/sim/worldgen/layout.ts";
@@ -89,6 +89,8 @@ describe("a saved game", () => {
     expect(saved.summary).toEqual(summary);
     expect(state(restored, summary)).toEqual(state(world, summary));
     expect(restored.dropped).toEqual(world.dropped);
+    expect(restored.seen).toEqual(world.seen);
+    expect(restored.seenCount).toBe(world.seenCount);
   });
 
   it("goes on through the winter the same as the game it was saved from", () => {
@@ -110,6 +112,9 @@ describe("a saved game", () => {
     const text = encodeSave(world.snapshot(summarise(world)));
     expect(() => World.fromSeed(1338).restore(decodeSave(text))).toThrow(SaveError);
     expect(() => decodeSave("not a save")).toThrow(SaveError);
+    // A version 3 save has no seen tiles, and would bring the map back blank.
+    const old = { ...world.snapshot(summarise(world)), v: 3 };
+    expect(() => decodeSave(encodeSave(old as unknown as SaveState))).toThrow(SaveError);
   });
 
   it("is short enough to sit in a URL", () => {

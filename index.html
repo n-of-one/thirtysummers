@@ -19,11 +19,9 @@
 
     <div id="hud">
       <div class="hud-corner hud-tl">
-        <div class="bar" id="bar-hydration">
-          <div class="bar-fill"></div>
-          <span class="bar-label">Hydration</span>
-          <span class="bar-value">100%</span>
-        </div>
+        <div class="clock"><span id="clock-time">5:00</span><small>left in summer</small></div>
+        <div class="pill" id="year-pill">Year <b id="year-count">1</b></div>
+        <button id="fullscreen">Full screen</button>
       </div>
 
       <!-- The list ticked in winter: a box per unfinished line, across the top. -->
@@ -32,10 +30,13 @@
       <!-- Which summer this is, until the first step. -->
       <div class="start-notice" id="start-notice" hidden></div>
 
+      <!-- Under the map in the corner, which MapWidget places top right. -->
       <div class="hud-corner hud-tr">
-        <div class="clock"><span id="clock-time">5:00</span><small>left in summer</small></div>
-        <div class="pill" id="year-pill">Year <b id="year-count">1</b></div>
-        <button id="fullscreen">Full screen</button>
+        <div class="bar" id="bar-hydration">
+          <div class="bar-fill"></div>
+          <span class="bar-label">Hydration</span>
+          <span class="bar-value">100%</span>
+        </div>
       </div>
 
       <!-- The pack, bottom centre: a cell per slot, filled with what is in it. -->
@@ -178,6 +179,7 @@
         <label>Speed <input type="range" id="debug-speed" /><b id="debug-speed-value"></b></label>
         <label><input type="checkbox" id="debug-grid" /> Grid</label>
         <label><input type="checkbox" id="debug-freeze" /> Freeze hydration and clock</label>
+        <label><input type="checkbox" id="debug-map" checked /> Map</label>
         <span class="debug-hint">click the map to teleport &middot; [ ] steps the seed &middot; ` closes</span>
       </div>
       <div id="debug-readout"></div>

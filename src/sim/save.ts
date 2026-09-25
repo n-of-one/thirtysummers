@@ -16,7 +16,7 @@ import type { Recipe, ResourceKind, ResourceNode, Tool, Vec2 } from "./types.ts"
  * tiles it was never about.
  */
 export interface SaveState {
-  v: 3;
+  v: 4;
   fingerprint: string;
   year: number;
   elapsedSec: number;
@@ -44,6 +44,8 @@ export interface SaveState {
    * starts with comes from the same seed again.
    */
   worn: [number, number][];
+  /** The tiles the family has seen, as run lengths from `seen.ts`: unseen, seen, unseen... */
+  seen: number[];
   wells: [number, number][];
   dropped: [ResourceKind, number, number][];
   /** The summer in numbers, for the winter screen: the event log is not saved. */
@@ -51,11 +53,11 @@ export interface SaveState {
 }
 
 /**
- * The format's version. 3 since trails: a version 2 save has no wear, and
- * would come back with every half-worn tile forgotten. 2 was camp no longer
+ * The format's version. 4 since the map: a version 3 save has no seen tiles,
+ * and would come back with the map in the corner blank. 3 was trails, and 2 camp no longer
  * selling.
  */
-const VERSION = 3;
+const VERSION = 4;
 
 /**
  * A short hash of a map as it came: its terrain, its nodes and its camp. Two

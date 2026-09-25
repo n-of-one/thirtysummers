@@ -34,7 +34,9 @@ in [development.md](development.md).
   to read as "flat": all of it is out, however tidy the arithmetic looks, and it
   does not become acceptable because one sprite is small or far from the eye.
   The HUD, the prompts and the menus are not world art and are exempt: they are
-  the HTML overlay, and they scale with the view.
+  the HTML overlay, and they scale with the view. The one exception is the
+  map in the corner, which is a picture of the world and keeps the rule: a
+  tile is one art pixel, and its corner is on the art grid.
 - **Tile rendering is bound to view size, not map size.** A sprite pool
   covers the view plus a margin, repositioned and re-textured as the camera
   moves.
@@ -81,7 +83,9 @@ in [development.md](development.md).
   everything: `world.step(dt, input)`, the tools and recipes owned, the wells
   and what is stored at camp, the items dropped on the ground and the
   selected kind the drop key throws, the wear the player's feet leave on
-  underbrush with `trodden()` for the renderer to read, `transferTarget()` with `putAway` and
+  underbrush with `trodden()` for the renderer to read, `seen` and
+  `seenCount`, every tile the family has seen in any summer, marked round
+  the player's tile after each move, `transferTarget()` with `putAway` and
   `takeOut` for the transfer panel, and `availableAction`, the one query that
   decides what the interact key does. Between summers it owns the family's
   total, the list and whether the next summer is tired: `winterInput()` is
@@ -94,7 +98,10 @@ in [development.md](development.md).
   shop's table, each item with the family level that unlocks it), `list.ts`
   (the list's lines and how they fill from the top), `economy.ts` (the
   perfect player, played over a map's counts through `winter.ts`),
-  `stats.ts`, `resources.ts` (the resource table: glyph, ground, slots,
+  `stats.ts` (hydration, and `sightRadiusTiles`, the one radius the fog is
+  drawn from and the seen circle is marked from), `seen.ts` (which tiles a
+  circle marks, and the seen mask as run lengths for the save),
+  `resources.ts` (the resource table: glyph, ground, slots,
   price, whether it comes back outside the near ring, what camp does with it,
   whether it is building material), `inventory.ts` (slots, and camp with no
   limit), `player.ts` (collision, per-axis moving flags, the heading),
@@ -129,6 +136,12 @@ in [development.md](development.md).
 - **`src/ui/`** is the HUD and the view. `hudModel(world)` turns state into
   plain numbers and `Hud.update` writes them into the markup in
   `index.html`; `edgeArrow` and `anchorPosition` are its geometry, pure.
+  `mapPicture.ts` is the valley as seen, a colour a tile, with fruit trees
+  marked and no resource nodes; `mapWidget.ts` draws it either as a circle round the player in
+  the top right, with the hydration bar under it, or as the whole valley that M puts in place of the tile
+  view, and redraws only when the player's tile, the seen count or the ground
+  it shows changes. M10.5's winter screen is meant to draw
+  the same picture larger.
   `buildMenu.ts` is the menu B opens: it draws `world.buildOptions()` and
   reports the choice back, and never writes simulation state itself.
   `transferPanel.ts` is the panel a held interact key opens at camp; the

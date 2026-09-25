@@ -221,12 +221,17 @@ the screen, and it holds only ground that has been on screen at some point in
 some summer. Everything else is blank. It fills over a life, and it is the one
 record of where the family has been.
 
-It shows the shape of the land and the things that stand in it: ground and
-water, walls, camp, bridges, wells, the worn trails, and the landmarks. It
-does not show what there is to pick. Remembering that the far bank had
+It shows the terrain and the things that stand in it: ground and water,
+walls, camp, bridges, wells, and the landmarks. Trails are not drawn: worn
+underbrush is still underbrush until it is walked into grass. A
+fruit tree is one of those, marked in the colour of its fruit whether or not
+the fruit is picked, because a tree worth coming back to is a place. What
+there is to pick is not shown. Remembering that the far bank had
 feathers on it is the player's, and a map that marked every node would answer
-the question the exploring is made of. It is not a screen and it is never
-opened: it sits there, small, and costs no time to look at.
+the question the exploring is made of. It sits in a corner, small, and costs
+no time to look at. A key swaps the view for the whole valley as the family
+has seen it, with the list and the pack still over it; the summer does not
+stop for it, so looking is still paid for in time.
 
 **Landmarks are what the map is read by.** A valley of the same grass cannot
 be remembered, so each part of it has one thing that is nothing but itself: a

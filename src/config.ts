@@ -128,14 +128,22 @@ export const DRINK_OFFER_BELOW = 90;
  */
 export const HYDRATION_FOG_THRESHOLD = 50;
 /**
- * [GUESS] Radius of the clear circle round the player from full hydration down
- * to the threshold, as a share of half the view's width, so it keeps its shape
- * whatever size the view is. 0.3 is 288 logical pixels, 9 tiles, in full HD at
- * TILE 32...
+ * [GUESS] Radius of the clear circle round the player, in tiles, from full
+ * hydration down to the threshold. In tiles rather than a share of the view,
+ * because what is seen is the simulation's to know, and it does not know the
+ * view: 9 is 288 logical pixels, 0.3 of half the width in full HD...
  */
-export const FOG_MAX_RADIUS_SHARE = 0.3;
+export const FOG_MAX_RADIUS_TILES = 9;
 /** [GUESS] ...and at zero hydration. */
 export const FOG_MIN_RADIUS_TILES = 2.5;
+/**
+ * [GUESS] How far past the fog's clear radius a tile still counts as seen, for
+ * the map: 14/9 of it, 14 tiles at full hydration, where the fade is well on
+ * its way to black but the ground can still be made out. The corner map is
+ * that circle and nothing round it, so its size follows: see
+ * MAP_DIAMETER_TILES.
+ */
+export const SEEN_RADIUS_MUL = 14 / 9;
 /**
  * [GUESS] The colour the fog darkens to. Pure black meets the black bars round
  * the view without a seam; 0x080a07 is the near-black it used to be.
@@ -145,8 +153,8 @@ export const FOG_COLOR = 0x000000;
  * [GUESS] How the fog darkens outside the clear radius, as
  * [distance as a multiple of the radius, opacity from 0 to 1] pairs, in order
  * outwards. Clear up to 1, then the stops, and fully opaque from the last stop
- * on, whatever its opacity says. With FOG_MAX_RADIUS_SHARE at 0.3 the side
- * edges of the view are at about 3.3 of the widest radius and its corners at
+ * on, whatever its opacity says. With FOG_MAX_RADIUS_TILES at 9 the side
+ * edges of full HD are at about 3.3 of the widest radius and its corners at
  * about 3.8, so every stop below is inside the view. Settled in play: a long,
  * even fade to black at 1.9. Tried before it, with the radius at 0.87, where
  * the side edges were at 1.15:
@@ -292,6 +300,55 @@ export const END_SUMMER_KEY = "q";
 export const BUILD_MENU_KEY = "b";
 /** The key that drops what is being built, along with the menu key itself. */
 export const BUILD_CANCEL_KEY = "escape";
+
+// ------------------------------------------------------------------ map ----
+
+/**
+ * [GUESS] Tiles across the map in the corner, a circle round the player: the
+ * player's tile and 28 either side, twice the radius of the circle marked seen
+ * at full hydration. What is being taken in fills the middle; the ring round
+ * it is ground seen before, or blank. The rest of the valley is behind
+ * MAP_KEY. Odd, so the player's tile is the middle cell.
+ */
+export const MAP_DIAMETER_TILES = 57;
+/** [GUESS] Logical pixels between the map and the corner of the view. A multiple of the art pixel, 4. */
+export const MAP_MARGIN_PX = 16;
+/**
+ * The key that swaps the tile view for the whole map and back, as
+ * `KeyboardEvent.key`, lower case. The clock runs and the player can walk
+ * while it is open: it is a way of looking, not a pause.
+ */
+export const MAP_KEY = "m";
+/**
+ * [GUESS] Most art pixels a tile the whole map is drawn at. It takes the most
+ * that fit the view, and more than 3 would make a tile look like a sprite.
+ */
+export const MAP_WHOLE_MAX_ART_PX = 3;
+/**
+ * [GUESS] The map's colours, coarse on purpose: the shape of the land, not its
+ * art. A colour per terrain, and trails are not drawn: worn underbrush is
+ * underbrush until it is walked into grass. Resource nodes are not drawn, but
+ * a fruit tree is, as a landmark.
+ */
+export const MAP_COLORS = {
+  /** Inside the circle, never seen. */
+  unseen: 0x16150f,
+  grass: 0x6f8f46,
+  underbrush: 0x4f6c38,
+  denseUnderbrush: 0x3a522e,
+  mud: 0x6b5838,
+  stream: 0x3d6f9e,
+  /** Trees and saplings: the woods are most of the valley's shape. */
+  tree: 0x263a22,
+  /** A fruit tree, as a 2 by 2 block from its trunk, picked or not. */
+  fruitTree: 0xd9503c,
+  rock: 0x5a5a5c,
+  thicket: 0x4d3b2c,
+  bridge: 0xa07a48,
+  camp: 0xf2d06e,
+  well: 0x8fd6f2,
+  player: 0xffffff,
+} as const;
 
 // ---------------------------------------------------------- interaction ----
 

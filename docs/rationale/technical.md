@@ -268,8 +268,11 @@ The first version moved the gradient's centre instead, which repainted a
 full-screen gradient every frame. Now the gradient is repainted only when the
 radius crosses a 4px step, which happens only while hydration is below the
 threshold. The view is ringed from the start. The widest ring is
-`FOG_MAX_RADIUS_SHARE` of the view's half width, so it keeps its shape at any
-view size.
+`FOG_MAX_RADIUS_TILES`, in tiles and worked out in the simulation, because
+the map in the corner marks what is seen from the same radius and the
+simulation does not know the view. It was a share of the view's half width
+before, which kept its shape at any `?view=`; now a smaller view shows more
+of the fog's edge.
 
 **The fog's shape is in config, and settled in play.** `FOG_COLOR` and
 `FOG_STOPS`, a list of [multiple of the radius, opacity] pairs, are written

@@ -26,7 +26,8 @@ import {
   moveWithCollision,
   type Player,
 } from "./player.ts";
-import { Stats } from "./stats.ts";
+import { markCircle, packSeen, unpackSeen } from "./seen.ts";
+import { seenRadiusTiles, Stats } from "./stats.ts";
 import { BUILDS } from "./types.ts";
 import type { TileMap } from "./tilemap.ts";
 import type { TerrainDef } from "./terrain.ts";
@@ -210,6 +211,20 @@ export class World {
    */
   readonly wear: Uint8Array;
   /**
+   * Every tile the family has seen, in any summer, 1 a tile: what the map in
+   * the corner draws. Kept across winters and saved. The array is never
+   * replaced; see `seen.ts` for what counts as seen.
+   */
+  readonly seen: Uint8Array;
+  /** How many tiles of {@link seen} are set, so a reader can tell it grew without scanning it. */
+  seenCount = 0;
+  /**
+   * The tile the seen circle was last marked from, and the widest radius
+   * marked from it. A shrinking circle round the same tile shows nothing new,
+   * so a tick marks only when the tile changes or a drink widens the circle.
+   */
+  private seenFrom = { x: -1, y: -1, radius: 0 };
+  /**
    * The kind the drop key throws away, or null with an empty pack.
    *
    * Read through {@link dropKind}, which is what keeps it honest: the moment
@@ -301,8 +316,11 @@ export class World {
     // trail wears on.
     this.startWear = generated.underbrushStages?.slice() ?? new Uint8Array(this.map.width * this.map.height);
     this.wear = this.startWear.slice();
+    this.seen = new Uint8Array(this.map.width * this.map.height);
     this.original = this.map.clone();
     this.fingerprint = fingerprint(this.map, this.nodes, this.camp);
+    // Camp is seen before the first step.
+    this.markSeen();
   }
 
   /** The map as it came, which a save is written against. */
@@ -328,7 +346,7 @@ export class World {
       if (this.wear[i] !== this.startWear[i]) worn.push([i, this.wear[i]!]);
     }
     return {
-      v: 3,
+      v: 4,
       fingerprint: this.fingerprint,
       year: this.year,
       elapsedSec: this.elapsedSec,
@@ -346,6 +364,7 @@ export class World {
       felled: [...this.felledIn],
       cut: [...this.cutTiles],
       worn,
+      seen: packSeen(this.seen),
       wells: this.springs.filter((s) => s.well).map((s) => [s.x, s.y]),
       dropped: this.dropped.map((d) => [d.kind, d.x, d.y]),
       summary,
@@ -385,6 +404,8 @@ export class World {
     for (const i of state.cut) this.cutTiles.add(i);
     this.wear.set(this.startWear);
     for (const [i, count] of state.worn) this.wear[i] = count;
+    this.seenCount = unpackSeen(state.seen, this.seen);
+    this.seenFrom = { x: -1, y: -1, radius: 0 };
     this.year = state.year;
     this.elapsedSec = state.elapsedSec;
     this.awayAtEnd = state.awayAtEnd;
@@ -663,6 +684,7 @@ export class World {
     // a fresh press, not mid-cut.
     this.interactSpent = true;
     this.pendingTap = null;
+    this.markSeen();
     this.record({ type: "summerStarted", year: this.year, tired: this.tired });
   }
 
@@ -924,7 +946,23 @@ export class World {
     this.player.moving = false;
     this.stopHarvesting();
     this.pendingTap = null;
+    // Where it lands, and nothing between: the distance was not walked.
+    this.markSeen();
     return true;
+  }
+
+  /**
+   * Mark the seen circle round the player's tile, if the tile has changed or
+   * the circle has widened since the last time. Called after every move.
+   */
+  private markSeen(): void {
+    const x = Math.floor(this.player.x);
+    const y = Math.floor(this.player.y);
+    const radius = seenRadiusTiles(this.stats.hydration);
+    const from = this.seenFrom;
+    if (x === from.x && y === from.y && radius <= from.radius) return;
+    this.seenFrom = { x, y, radius };
+    this.seenCount += markCircle(this.seen, this.map.width, this.map.height, x, y, radius);
   }
 
   /** Terrain the player is currently standing on. */
@@ -1000,6 +1038,8 @@ export class World {
     if (this.ended) return;
     this.movePlayer(dt, input);
     this.interact(dt, input);
+    // After the interact, so a drink widens the circle on the tick it lands.
+    this.markSeen();
     this.drops(input);
     this.held = { interact: input.interact, drop: input.drop, dropSwitch: input.dropSwitch };
     if (!this.frozen) {

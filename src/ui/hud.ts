@@ -3,6 +3,7 @@ import type { SummerSummary } from "../sim/summary.ts";
 import type { Amounts, Inventory } from "../sim/inventory.ts";
 import { fillList, type ListPart, type ListRow } from "../sim/list.ts";
 import { lies, RESOURCE_KINDS, RESOURCES } from "../sim/resources.ts";
+import { sightRadiusTiles } from "../sim/stats.ts";
 import type { Icons } from "../render/packs/icons.ts";
 import type { BlockedReason, Build, ResourceKind, Vec2, WorldEvent } from "../sim/types.ts";
 import { BRIDGE_COST, BUILD_COST, type Action, type World } from "../sim/world.ts";
@@ -429,8 +430,7 @@ export function startNoticeText(world: World): string | null {
     : head;
 }
 
-/** `viewWidth` is the logical view's width, which the fog is sized against. */
-export function hudModel(world: World, viewWidth: number = C.VIEW_W): HudModel {
+export function hudModel(world: World): HudModel {
   const { stats, inventory } = world;
   const homeward = world.remainingSec < C.HOMEWARD_SEC;
   const atCamp = world.atCamp;
@@ -457,7 +457,7 @@ export function hudModel(world: World, viewWidth: number = C.VIEW_W): HudModel {
     duskAlpha: duskAlpha(world.remainingSec),
     year: world.year,
     atCamp,
-    fogRadiusPx: fogRadiusPx(stats.hydration, viewWidth),
+    fogRadiusPx: sightRadiusTiles(stats.hydration) * C.TILE,
     prompt: promptFor(world),
   };
 }
@@ -467,21 +467,6 @@ function amountsOf(inventory: Inventory): Amounts {
   const amounts: Amounts = {};
   for (const kind of RESOURCE_KINDS) amounts[kind] = inventory.count(kind);
   return amounts;
-}
-
-/**
- * How far the player can see before the dark begins, in logical pixels.
- *
- * The view is always ringed. Fog is the only cost of running dry, so it has to
- * be felt: the widest circle down to the threshold, then one that shrinks
- * linearly to a few tiles at zero. The widest is a share of the view's half
- * width, so the ring keeps its shape whatever size the view is.
- */
-export function fogRadiusPx(hydration: number, viewWidth: number = C.VIEW_W): number {
-  const share = Math.min(Math.max(hydration, 0) / C.HYDRATION_FOG_THRESHOLD, 1);
-  const widest = (viewWidth / 2) * C.FOG_MAX_RADIUS_SHARE;
-  const narrowest = C.FOG_MIN_RADIUS_TILES * C.TILE;
-  return narrowest + (widest - narrowest) * share;
 }
 
 /**

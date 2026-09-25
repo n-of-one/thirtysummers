@@ -142,6 +142,8 @@ export class DebugOverlay {
   timeScale = C.TIME_SCALE_MIN;
   /** Hold hydration and the clock where they are. The frame loop reads this too. */
   frozen = false;
+  /** Draw the map in the corner. Off only to measure what it costs; the frame loop reads it. */
+  mapShown = true;
   /** Is the panel up? Closing it hides the panel, not what it was set to. */
   open = false;
 
@@ -195,6 +197,10 @@ export class DebugOverlay {
     });
     this.freezeToggle.addEventListener("change", () => {
       this.frozen = this.freezeToggle.checked;
+    });
+    const mapToggle = need<HTMLInputElement>(root, "#debug-map");
+    mapToggle.addEventListener("change", () => {
+      this.mapShown = mapToggle.checked;
     });
     options.clickTarget.addEventListener("click", this.onClick);
     this.keyTarget.addEventListener("keydown", this.onKeyDown);

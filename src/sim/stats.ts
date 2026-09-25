@@ -27,3 +27,21 @@ export class Stats {
     this.hydration = Math.max(0, this.hydration - C.HYDRATION_DRAIN * dt);
   }
 }
+
+/**
+ * How far the player can see before the dark begins, in tiles.
+ *
+ * The view is always ringed. Fog is the only cost of running dry, so it has to
+ * be felt: the widest circle down to the threshold, then one that shrinks
+ * linearly to a few tiles at zero. The HUD draws the fog from it, and the map
+ * marks what is seen from it, so the two cannot disagree.
+ */
+export function sightRadiusTiles(hydration: number): number {
+  const share = Math.min(Math.max(hydration, 0) / C.HYDRATION_FOG_THRESHOLD, 1);
+  return C.FOG_MIN_RADIUS_TILES + (C.FOG_MAX_RADIUS_TILES - C.FOG_MIN_RADIUS_TILES) * share;
+}
+
+/** How far round the player a tile counts as seen, for the map: past the clear circle, into the fade. */
+export function seenRadiusTiles(hydration: number): number {
+  return sightRadiusTiles(hydration) * C.SEEN_RADIUS_MUL;
+}

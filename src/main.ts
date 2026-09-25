@@ -18,6 +18,7 @@ import { summarise, type SummerSummary } from "./sim/summary.ts";
 import { World } from "./sim/world.ts";
 import { BuildMenu } from "./ui/buildMenu.ts";
 import { Hud, hudModel } from "./ui/hud.ts";
+import { MapWidget } from "./ui/mapWidget.ts";
 import { TransferPanel } from "./ui/transferPanel.ts";
 import { bindFullscreenButton, FixedView, parseViewParam } from "./ui/view.ts";
 import { WinterScreen } from "./ui/winter.ts";
@@ -134,6 +135,15 @@ const keyboard = new Keyboard();
 // winter screen's rows. Without the licensed art each kind is a flat chip.
 const icons = await loadIcons();
 const hud = new Hud(document, view.size, icons);
+// Art pixels the same size the world's are drawn at. The whole map is in the
+// HUD too, first, so the list and the pack are painted over it.
+const hudRoot = document.querySelector<HTMLDivElement>("#hud")!;
+const map = new MapWidget(hudRoot, "corner", C.TILE / pack.tileSize, view.size);
+const wholeMap = new MapWidget(hudRoot, "whole", C.TILE / pack.tileSize, view.size);
+const viewRoot = document.querySelector<HTMLDivElement>("#view")!;
+/** The whole map is up in place of the tile view. The clock runs on. */
+let mapOpen = false;
+wholeMap.hidden = true;
 const pause = new Pause(
   document.querySelector<HTMLDivElement>("#paused")!,
   window,
@@ -161,6 +171,13 @@ const winter = new WinterScreen(icons);
 addEventListener("keydown", (e) => {
   if (e.key.toLowerCase() !== C.END_SUMMER_KEY || e.repeat || isTypingTarget(e.target)) return;
   if (!pause.paused && world.atCamp) world.endSummer();
+});
+// The whole map in place of the tile view, and back. After the pause's
+// listener, so the key that resumes does nothing else.
+addEventListener("keydown", (e) => {
+  if (e.key.toLowerCase() !== C.MAP_KEY || e.repeat || isTypingTarget(e.target) || pause.paused) return;
+  mapOpen = !mapOpen;
+  viewRoot.classList.toggle("is-map-open", mapOpen);
 });
 bindFullscreenButton(document.querySelector<HTMLButtonElement>("#fullscreen")!);
 
@@ -198,6 +215,8 @@ function regenerate(nextSeed: number): void {
   seenEvents = 0;
   summaryShown = false;
   hud.reset();
+  map.reset();
+  wholeMap.reset();
   overlay.setSeed(seed);
   exposeGame();
 
@@ -260,6 +279,8 @@ function nextSummer(): void {
   transfer.close();
   summaryShown = false;
   hud.reset(seenEvents);
+  map.reset(seenEvents);
+  wholeMap.reset(seenEvents);
   tiles.invalidate();
   props.invalidate();
   camera.centreOn(world.player);
@@ -297,6 +318,8 @@ function exposeGame(): void {
     view,
     pause,
     hud,
+    map,
+    wholeMap,
     buildMenu,
     transfer,
     winter,
@@ -428,11 +451,15 @@ app.ticker.add(({ deltaMS }) => {
   // camp, so the HUD needs the one thing the simulation cannot tell it: where
   // those are in the view.
   hud.update(
-    hudModel(world, view.size.width),
+    hudModel(world),
     camera.toScreen(world.player),
     world.events,
     camera.toScreen(world.camp),
   );
+  map.hidden = !overlay.mapShown || mapOpen;
+  map.update(world);
+  wholeMap.hidden = !mapOpen;
+  wholeMap.update(world);
   overlay.update(camera, readout);
 });
 
@@ -441,6 +468,6 @@ console.log(
     `${world.map.width}x${world.map.height} | ${world.nodes.length} nodes | ` +
     `renderer ${app.renderer.name} | WASD move, ` +
     `E/Space gather, drink, cut, fell, build, bank and pick up (hold at camp ` +
-    `for the transfer panel), X drop, C switch, B build menu, P pause, ` +
+    `for the transfer panel), X drop, C switch, B build menu, M map, P pause, ` +
     `\` debug panel | view ${view.size.width}x${view.size.height} at x${view.scale}`,
 );

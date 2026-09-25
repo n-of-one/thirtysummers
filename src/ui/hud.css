@@ -59,10 +59,34 @@ html, body {
 }
 
 .hud-corner { position: absolute; display: flex; flex-direction: column; gap: 8px; }
-.hud-tl { top: 14px; left: 14px; }
-.hud-tr { top: 14px; right: 14px; align-items: flex-end; }
+.hud-tl { top: 14px; left: 14px; align-items: flex-start; }
+/* Under the map in the corner: MapWidget sets --map-bottom to where it ends. */
+.hud-tr { top: calc(var(--map-bottom, 0px) + 8px); right: 14px; align-items: flex-end; }
 .hud-bl { bottom: 14px; left: 14px; flex-direction: row; }
 .hud-br { bottom: 14px; right: 14px; align-items: flex-end; }
+
+/* The map in the corner. Placed and sized by MapWidget on the art grid: a
+   pixel a tile, blown up without smoothing, so every tile is one art pixel. */
+#map {
+  position: absolute;
+  image-rendering: pixelated;
+}
+#map[hidden] { display: none; }
+
+/* The whole map, opened with M in place of the tile view. The world, the
+   fog, the dusk and what hangs off the player go; the list, the pack, the
+   bar and the clock stay, painted over the map. */
+#map-whole {
+  position: absolute;
+  image-rendering: pixelated;
+}
+#map-whole[hidden] { display: none; }
+#view.is-map-open #stage,
+#view.is-map-open #fog,
+#view.is-map-open #dusk,
+#view.is-map-open #grid,
+#view.is-map-open #player-anchor,
+#view.is-map-open #camp-arrow { visibility: hidden; }
 
 .bar {
   position: relative;

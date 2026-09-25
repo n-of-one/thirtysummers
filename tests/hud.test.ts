@@ -2,12 +2,12 @@ import { describe, expect, it } from "vitest";
 import * as C from "../src/config.ts";
 import { NO_INPUT } from "../src/input/keyboard.ts";
 import { Inventory } from "../src/sim/inventory.ts";
+import { sightRadiusTiles } from "../src/sim/stats.ts";
 import { TileMap } from "../src/sim/tilemap.ts";
 import { World } from "../src/sim/world.ts";
 import {
   anchorPosition,
   edgeArrow,
-  fogRadiusPx,
   formatClock,
   hudModel,
   duskAlpha,
@@ -16,8 +16,8 @@ import {
   toastFor,
 } from "../src/ui/hud.ts";
 
-/** The fog's widest ring in the configured view, in logical pixels. */
-const WIDEST = (C.VIEW_W / 2) * C.FOG_MAX_RADIUS_SHARE;
+/** The fog's widest ring, in logical pixels. */
+const WIDEST = C.FOG_MAX_RADIUS_TILES * C.TILE;
 
 function world(): World {
   const map = new TileMap(8, 8);
@@ -87,8 +87,8 @@ describe("hudModel", () => {
     expect(hudModel(w).fogRadiusPx).toBe(WIDEST);
     w.stats.hydration = 10;
     expect(hudModel(w).hydrationWarn).toBe(true);
-    expect(hudModel(w).fogRadiusPx).toBe(fogRadiusPx(10));
-    expect(fogRadiusPx(10)).toBeLessThan(WIDEST);
+    expect(hudModel(w).fogRadiusPx).toBe(sightRadiusTiles(10) * C.TILE);
+    expect(hudModel(w).fogRadiusPx).toBeLessThan(WIDEST);
   });
 
   it("shows the first summer's list: a row per amount, collected and at camp, gold in feathers", () => {
@@ -328,28 +328,6 @@ describe("the end-summer button", () => {
     w.player.x = 1.5;
     w.player.y = 1.5;
     expect(hudModel(w).atCamp).toBe(true);
-  });
-});
-
-describe("fogRadiusPx", () => {
-  it("rings the view at its widest from full hydration down to the threshold", () => {
-    expect(fogRadiusPx(100)).toBe(WIDEST);
-    expect(fogRadiusPx(C.HYDRATION_FOG_THRESHOLD)).toBe(WIDEST);
-  });
-
-  it("sizes the widest ring by the view, so it keeps its shape at any size", () => {
-    expect(fogRadiusPx(100, 1920) / 960).toBeCloseTo(fogRadiusPx(100, 1280) / 640, 10);
-    expect(fogRadiusPx(100, 1920)).toBe(960 * C.FOG_MAX_RADIUS_SHARE);
-  });
-
-  it("closes from the widest circle to a few tiles at zero", () => {
-    expect(fogRadiusPx(C.HYDRATION_FOG_THRESHOLD - 1e-9)).toBeCloseTo(WIDEST, 3);
-    expect(fogRadiusPx(0)).toBe(C.FOG_MIN_RADIUS_TILES * C.TILE);
-  });
-
-  it("shrinks steadily as hydration falls", () => {
-    const radii = [35, 25, 15, 5, 0].map((h) => fogRadiusPx(h));
-    for (let i = 1; i < radii.length; i++) expect(radii[i]).toBeLessThan(radii[i - 1]!);
   });
 });
 
