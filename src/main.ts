@@ -174,10 +174,19 @@ addEventListener("keydown", (e) => {
 });
 // The whole map in place of the tile view, and back. After the pause's
 // listener, so the key that resumes does nothing else.
+// On the whole map, a debug button draws every tile, seen or not, without
+// marking any of them seen.
+const mapReveal = document.querySelector<HTMLButtonElement>("#map-reveal")!;
+mapReveal.addEventListener("click", () => {
+  wholeMap.revealAll = !wholeMap.revealAll;
+  mapReveal.classList.toggle("is-on", wholeMap.revealAll);
+  mapReveal.blur();
+});
 addEventListener("keydown", (e) => {
   if (e.key.toLowerCase() !== C.MAP_KEY || e.repeat || isTypingTarget(e.target) || pause.paused) return;
   mapOpen = !mapOpen;
   viewRoot.classList.toggle("is-map-open", mapOpen);
+  mapReveal.hidden = !mapOpen;
 });
 bindFullscreenButton(document.querySelector<HTMLButtonElement>("#fullscreen")!);
 

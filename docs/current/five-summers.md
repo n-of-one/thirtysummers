@@ -124,7 +124,7 @@ walking speed instead of 40%. Easy ground is walked as fast as ever.
   head of the valley at the top, walled by rock. The river runs its whole
   length in a ravine, and cliff keeps everyone off it. It runs through a
   lake at the fork. The far bank, across the river, is closed in these five
-  summers. [m10-6a-valley.md](m10-6a-valley.md) has the plan.
+  summers. The plan it is laid out from is `VALLEY` in `src/config.ts`.
 - **The stream** comes off a waterfall on the west wall, crosses the valley
   floor and falls into the lake. It is the first barrier, with springs along
   both banks. Camp's side of it is the near ring. Across it is the open bank.

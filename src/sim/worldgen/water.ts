@@ -180,7 +180,8 @@ const SQUARES = [
  * points give. Filling can create new pinches at the edges of what it filled, so
  * this runs to a fixed point; in practice that is one or two passes.
  *
- * Rock is never overwritten, so the map border stays sealed, and neither is
+ * Rock is never overwritten, so the map border stays sealed, nor is cliff, so
+ * the river never widens into the ravine that walls it, and neither is
  * anything in `keep` -- which is how a ford already cut through the water
  * survives a second pass.
  */
@@ -188,7 +189,10 @@ export function thickenStream(map: TileMap, z = 0, keep?: ReadonlySet<number>): 
   const grid = new Grid(map.width, map.height);
   const isStream = (x: number, y: number) => map.get(x, y, z) === "stream";
   const takeable = (x: number, y: number) =>
-    grid.contains(x, y) && map.get(x, y, z) !== "rock" && !keep?.has(grid.index(x, y));
+    grid.contains(x, y) &&
+    map.get(x, y, z) !== "rock" &&
+    map.get(x, y, z) !== "cliff" &&
+    !keep?.has(grid.index(x, y));
   const cells = (sx: number, sy: number) =>
     [
       [sx, sy],

@@ -13,7 +13,8 @@ export type TerrainKind =
   | "thicket"
   | "bridge"
   | "sapling"
-  | "denseUnderbrush";
+  | "denseUnderbrush"
+  | "cliff";
 
 /** Every kind that is gathered. What each one is, is in `resources.ts`. */
 export type ResourceKind = "fruit" | "feather" | "stick" | "vine" | "ore" | "log" | "shell";

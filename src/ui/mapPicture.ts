@@ -22,6 +22,7 @@ const GROUND: Record<TerrainKind, number> = {
   tree: MAP_COLORS.tree,
   sapling: MAP_COLORS.tree,
   rock: MAP_COLORS.rock,
+  cliff: MAP_COLORS.cliff,
   thicket: MAP_COLORS.thicket,
   bridge: MAP_COLORS.bridge,
 };
@@ -133,12 +134,22 @@ function toSrgb(l: number): number {
   return Math.round(Math.min(Math.max(s, 0), 1) * 255);
 }
 
-/** The colour of tile (x, y) as `0xrrggbb`, or null where the family has not been, or off the map. */
-export function tileColour(world: World, marks: ReadonlyMap<number, number>, x: number, y: number): number | null {
+/**
+ * The colour of tile (x, y) as `0xrrggbb`, or null where the family has not
+ * been, or off the map. `all` draws the tiles not seen as well, for the debug
+ * view of the whole valley; what has been seen is not touched.
+ */
+export function tileColour(
+  world: World,
+  marks: ReadonlyMap<number, number>,
+  x: number,
+  y: number,
+  all = false,
+): number | null {
   const { width, height } = world.map;
   if (x < 0 || y < 0 || x >= width || y >= height) return null;
   const i = y * width + x;
-  if (world.seen[i] === 0) return null;
+  if (world.seen[i] === 0 && !all) return null;
   const mark = marks.get(i);
   if (mark !== undefined) return mark;
   return GROUND[world.map.get(x, y)];

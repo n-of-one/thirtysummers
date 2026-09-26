@@ -2,7 +2,7 @@ import { Container, Sprite } from "pixi.js";
 import { TILE } from "../config.ts";
 import type { TileMap } from "../sim/tilemap.ts";
 import type { TerrainKind } from "../sim/types.ts";
-import { E, N, NE, NW, S, SE, SW, W } from "./packs/autotile.ts";
+import { CLIFF_FALLS, CLIFF_FALLS_E, CLIFF_FALLS_W, CLIFF_S2, CLIFF_S3, E, N, NE, NW, S, SE, SW, W } from "./packs/autotile.ts";
 import type { AssetPack } from "./packs/pack.ts";
 import { tileHash } from "./packs/pack.ts";
 import type { Camera } from "./camera.ts";
@@ -21,9 +21,68 @@ import { ScrollWindow } from "./scrollWindow.ts";
  */
 export function surfaceOf(kind: TerrainKind): TerrainKind {
   if (kind === "tree" || kind === "thicket" || kind === "denseUnderbrush") return "underbrush";
+  // Water runs straight to the cliff's foot, with no bank against it: the
+  // cliff draws the edge.
+  if (kind === "cliff") return "stream";
   // A sapling stands on open grass, which is what felling it leaves.
   if (kind === "sapling") return "grass";
   return kind;
+}
+
+/**
+ * A cliff tile's mask, which is not a same-ground mask like every other.
+ *
+ * A cliff is the edge of the valley floor above the river, and what it looks
+ * like depends on where the water is, not on where more cliff is: the floor
+ * and the cliff are one high surface, and the river is what is cut out of it.
+ * So a bit is set for each neighbour that is not water. {@link CLIFF_S2} and
+ * {@link CLIFF_S3} say whether the water is two and three tiles south, since a
+ * face is three tiles tall and each tile is one row of it.
+ */
+export function cliffMask(map: TileMap, x: number, y: number, z = 0): number {
+  const high = (dx: number, dy: number) => map.get(x + dx, y + dy, z) !== "stream";
+  let mask = 0;
+  if (high(0, -1)) mask |= N;
+  if (high(1, 0)) mask |= E;
+  if (high(0, 1)) mask |= S;
+  if (high(-1, 0)) mask |= W;
+  if (high(1, -1)) mask |= NE;
+  if (high(1, 1)) mask |= SE;
+  if (high(-1, 1)) mask |= SW;
+  if (high(-1, -1)) mask |= NW;
+  if (!high(0, 2)) mask |= CLIFF_S2;
+  if (!high(0, 3)) mask |= CLIFF_S3;
+  if (isFalls(map, x, y, z)) {
+    mask |= CLIFF_FALLS;
+    if (isFalls(map, x - 1, y, z)) mask |= CLIFF_FALLS_W;
+    if (isFalls(map, x + 1, y, z)) mask |= CLIFF_FALLS_E;
+  }
+  return mask;
+}
+
+/**
+ * Is the cliff tile at (x, y) part of the falls: the first stream straight
+ * above it, through no more than the face's three tiles of cliff?
+ *
+ * What tells the stream from the river is its bank: along the row of the
+ * water above, the first tile past the water is walkable ground on one side
+ * or the other. The river has cliff on both.
+ */
+function isFalls(map: TileMap, x: number, y: number, z: number): boolean {
+  if (map.get(x, y, z) !== "cliff") return false;
+  for (let up = 1; up <= 3; up++) {
+    const wy = y - up;
+    const kind = map.get(x, wy, z);
+    if (kind === "cliff") continue;
+    if (kind !== "stream") return false;
+    for (const step of [-1, 1]) {
+      let wx = x;
+      for (let n = 0; n < 4 && map.get(wx, wy, z) === "stream"; n++) wx += step;
+      if (map.isPassable(wx, wy, z)) return true;
+    }
+    return false;
+  }
+  return false;
 }
 
 /** How far a trail has worn the tile at (x, y, z): 0 for not at all. */
@@ -122,6 +181,7 @@ export class TileLayer {
    * not punch a hole in the forest floor it is standing on.
    */
   private mask(x: number, y: number, kind: TerrainKind): number {
+    if (kind === "cliff") return cliffMask(this.map, x, y, this.z);
     const surface = surfaceOf(kind);
     const same = (dx: number, dy: number) =>
       surfaceOf(this.map.get(x + dx, y + dy, this.z)) === surface;

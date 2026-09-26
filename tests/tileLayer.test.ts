@@ -2,8 +2,22 @@ import { describe, expect, it } from "vitest";
 import { Sprite } from "pixi.js";
 import { TILE } from "../src/config.ts";
 import { Camera } from "../src/render/camera.ts";
-import { E, N, NE, NW, S, SE, SW, W } from "../src/render/packs/autotile.ts";
-import { TileLayer } from "../src/render/tileLayer.ts";
+import {
+  CLIFF_FALLS,
+  CLIFF_FALLS_E,
+  CLIFF_FALLS_W,
+  CLIFF_S2,
+  CLIFF_S3,
+  E,
+  N,
+  NE,
+  NW,
+  S,
+  SE,
+  SW,
+  W,
+} from "../src/render/packs/autotile.ts";
+import { cliffMask, TileLayer } from "../src/render/tileLayer.ts";
 import { TileMap } from "../src/sim/tilemap.ts";
 import type { TerrainKind } from "../src/sim/types.ts";
 import { StubPack } from "./stubPack.ts";
@@ -217,5 +231,74 @@ describe("thicket", () => {
     expect(call.mask & E).toBe(E);
     // ...and still ends where the open grass begins.
     expect(call.mask & W).toBe(0);
+  });
+});
+
+describe("cliff", () => {
+  /** A column of `rows`, top to bottom, at x = 5 on grass; a string is the whole row. */
+  const column = (rows: readonly (TerrainKind | string)[]): TileMap => {
+    const map = new TileMap(12, 12);
+    for (let y = 0; y < 12; y++) for (let x = 0; x < 12; x++) map.set(x, y, "grass");
+    rows.forEach((kind, y) => {
+      if (kind.includes(" ")) {
+        kind.split(" ").forEach((k, x) => map.set(x, y, k as TerrainKind));
+      } else {
+        map.set(5, y, kind as TerrainKind);
+      }
+    });
+    return map;
+  };
+
+  it("says which neighbours are ground, not which are cliff", () => {
+    const map = column(["grass", "cliff", "stream"]);
+    const mask = cliffMask(map, 5, 1);
+    // Grass above and cliff-free sides are ground; the water below is not.
+    expect(mask & N).toBe(N);
+    expect(mask & E).toBe(E);
+    expect(mask & S).toBe(0);
+  });
+
+  it("tells each row of a face how far the water is below it", () => {
+    const map = column(["grass", "cliff", "cliff", "cliff", "stream"]);
+    expect(cliffMask(map, 5, 3) & S).toBe(0);
+    expect(cliffMask(map, 5, 2) & CLIFF_S2).toBe(CLIFF_S2);
+    expect(cliffMask(map, 5, 1) & CLIFF_S3).toBe(CLIFF_S3);
+    expect(cliffMask(map, 5, 1) & CLIFF_S2).toBe(0);
+  });
+
+  it("marks the falls under the first stream, and not under the river", () => {
+    // The stream, three across with grass beside it, over three rows of cliff.
+    const falls = column([
+      "grass grass grass stream stream stream grass grass grass grass grass grass",
+      "grass grass grass cliff cliff cliff grass grass grass grass grass grass",
+      "grass grass grass cliff cliff cliff grass grass grass grass grass grass",
+      "grass grass grass cliff cliff cliff grass grass grass grass grass grass",
+      "stream stream stream stream stream stream stream stream stream stream stream stream",
+    ]);
+    const left = cliffMask(falls, 3, 2);
+    const middle = cliffMask(falls, 4, 2);
+    const right = cliffMask(falls, 5, 2);
+    for (const mask of [left, middle, right]) expect(mask & CLIFF_FALLS).toBe(CLIFF_FALLS);
+    expect(left & (CLIFF_FALLS_W | CLIFF_FALLS_E)).toBe(CLIFF_FALLS_E);
+    expect(middle & (CLIFF_FALLS_W | CLIFF_FALLS_E)).toBe(CLIFF_FALLS_W | CLIFF_FALLS_E);
+    expect(right & (CLIFF_FALLS_W | CLIFF_FALLS_E)).toBe(CLIFF_FALLS_W);
+
+    // The river: the same, but walled in by cliff on both sides of the water.
+    const river = column([
+      "grass grass cliff stream stream stream cliff grass grass grass grass grass",
+      "grass grass cliff cliff cliff cliff cliff grass grass grass grass grass",
+      "grass grass cliff cliff cliff cliff cliff grass grass grass grass grass",
+      "grass grass cliff cliff cliff cliff cliff grass grass grass grass grass",
+      "stream stream stream stream stream stream stream stream stream stream stream stream",
+    ]);
+    expect(cliffMask(river, 4, 2) & CLIFF_FALLS).toBe(0);
+  });
+
+  it("lets water run to the cliff's foot with no bank against it", () => {
+    const map = column(["grass", "cliff", "stream", "stream"]);
+    const { pack, layer } = scene(map);
+    layer.update(cameraAt(5.5, 2.5));
+    const water = pack.groundCalls.find((c) => c.kind === "stream" && c.mask & S)!;
+    expect(water.mask & N).toBe(N);
   });
 });

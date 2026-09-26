@@ -71,7 +71,7 @@ in [development.md](development.md).
 |---|---|
 | Projection | Top-down orthogonal. Z-levels, when they come, are discrete stacked layers viewed one at a time. |
 | Movement | Free and continuous, with a tile grid underneath for collision and terrain cost. |
-| Map | 168×168 tiles generated, inside a rock border 20 thick so the camera can stay centred at the edge of play; 200×180 for a laid-out map, with a rock border 2 thick. `TILE = 32` logical px, 8px source art at 4× scale. |
+| Map | 168×168 tiles generated, inside a rock border 20 thick so the camera can stay centred at the edge of play. A laid-out map is the valley plan turned and scaled, about 312×465 at `VALLEY.scale` 1.3, with 24 tiles of rock round the floor. `TILE = 32` logical px, 8px source art at 4× scale. |
 | View | A fixed logical view of `VIEW_W × VIEW_H`, 1920×1080, scaled to fit the window in steps of 1/8 with black bars. |
 | HUD | HTML/CSS overlay on top of the canvas. |
 | Art | Minifantasy, behind a swappable pack layer. |
@@ -116,18 +116,21 @@ in [development.md](development.md).
   starting trail stage, dense underbrush, trees and mud), stream thickening
   and fords, a flood fill from camp, resources
   scattered by terrain, springs on the bank. `worldgen.ts` says what order the
-  steps run in, and why. On top of that, `layout.ts` stamps the table of the
-  first three summers onto the landscape -- the stream round camp, the near
-  ring, the feather field across the stream, the shell field behind its copse
-  -- and is what `World.fromSeed` and `npm run map` build. `brambleBay.ts`
+  steps run in, and why. `valley.ts` lays the valley out for a seed as masks:
+  the plan in `VALLEY` turned and scaled, the river and the lake, the first
+  stream ending in its falls, the ponds, the cliff, camp's part and camp.
+  `layout.ts` paints the landscape over those masks and lays the table on it,
+  and is what `World.fromSeed` and `npm run map` build. In M10.6a it lays the
+  near ring's food only; the fields come back in M10.6b. `brambleBay.ts`
   finds and lays down the near ring's bramble bay, the sticks behind
-  brambles. `rows.ts` measures
+  brambles, and is not called until M10.6b. `rows.ts` measures
   whether a map matches that table, economy included, and is shared by the
   layout's tests and `npm run map:check`. `reachability.ts` has `nearRing`,
   the near ring worked out from the map, so a hand-edited file keeps the
   rule that everything inside it is back every year.
 - **`src/render/`** is Pixi only. `tileLayer.ts` is the culled, autotiled
-  ground. `propLayer.ts` is the y-sorted props and player, with pixel
+  ground; a cliff tile's mask is its own, `cliffMask`, which says where the
+  water is rather than where more cliff is. `propLayer.ts` is the y-sorted props and player, with pixel
   snapping. `silhouette.ts` redraws the player where a canopy covers them.
   `targetMarker.ts` outlines the tile a tool would act on. `camera.ts`,
   `scrollWindow.ts` (no Pixi, so testable) and `placements.ts` (what stands

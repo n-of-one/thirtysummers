@@ -55,6 +55,10 @@ export const SHEETS = {
    * butt together with no seam.
    */
   brushStencil: `${SWAMP}/Tileset/GrassLinkToForgottenPlains/Minifantasy_MurkySwampGrassToGrass.png`,
+  /** The waterfall, three layers of four frames each: see WATERFALL. */
+  fallsGround: `${FP}/Tileset/River/Waterfall/Minifantasy_ForgottenPlainsWaterfallGroundLayer.png`,
+  fallsDrop: `${FP}/Tileset/River/Waterfall/Minifantasy_ForgottenPlainsWaterfallDropLayer.png`,
+  fallsSplash: `${FP}/Tileset/River/Waterfall/Minifantasy_ForgottenPlainsWaterfallSplashEffectLayer.png`,
 } as const;
 
 export const T = 8; // source tile size
@@ -176,6 +180,58 @@ export const BRUSH_STENCIL = {
 export const BRIDGE_PLANK = {
   horizontal: [2, 6],
   vertical: [2, 2],
+} as const;
+
+/**
+ * The ravine's edge, cut from the one-level earth plateau on the tileset: the
+ * plus-shaped piece whose outline starts at (268, 64). Every entry is the
+ * top-left pixel of an 8x8 cut, read off the pixels.
+ *
+ * The plus is a raised block seen from the south: a black outline and a brown
+ * lip where it ends to the north, a strip of its side where it ends east or
+ * west, and a face where it ends to the south. The valley floor is the block,
+ * and the river is what is cut out of it, so a cliff tile takes the piece for
+ * the side the water is on.
+ *
+ * `face` is the face, three tiles tall: the plus's own is 12 pixels, and the
+ * waterfall drops 20, so its middle rows are repeated to make it as deep.
+ * `faceRows` lists the plus's rows, top to bottom, that make the 24 rows of a
+ * face: four of grass above it, two of its ragged top edge, sixteen of the
+ * face, and its bottom two. `faceColumns` is where a column of face is cut:
+ * with the water to its west, straight, and with the water to its east.
+ */
+export const CLIFF = {
+  rimN: [292, 64],
+  convexNW: [284, 64],
+  convexNE: [308, 64],
+  sideW: [268, 88],
+  sideE: [324, 88],
+  concaveNW: [284, 80],
+  concaveNE: [308, 80],
+  concaveSW: [284, 104],
+  concaveSE: [308, 104],
+  faceColumns: { west: 284, straight: [292, 300], east: 308 },
+  faceRows: [
+    112, 113, 114, 115, 116, 117, 118, 119, 120, 121, 122, 123, 124, 125, 118, 119, 120, 121, 122, 123, 124, 125,
+    126, 127,
+  ],
+  /** The water under an edge's clear pixels: the water block's middle tile. */
+  under: [208, 32],
+} as const;
+
+/**
+ * Where the first stream falls into the lake: the waterfall's three layers,
+ * each four frames `frameStep` apart. A frame's stream is `width` pixels wide
+ * from column `left`, and the drop starts at row `dropTop`. Its first rows,
+ * above that, are the stream still running, which lines up with the top of a
+ * face's `faceRows`, grass and all, at `faceOffset` rows down the frame.
+ */
+export const WATERFALL = {
+  frames: 4,
+  frameStep: 32,
+  left: 8,
+  width: 24,
+  faceOffset: 16,
 } as const;
 
 /** Half or quarter of a tile, named by where in the tile it sits. */

@@ -17,7 +17,7 @@ describe("the terrain table", () => {
     // The grid stores indices into this order, so anything inserted rather
     // than appended silently rewrites every map file ever dumped.
     // The spring was the last, and removing the last entry moves no index.
-    expect(TERRAIN_ORDER.slice(-4)).toEqual(["thicket", "bridge", "sapling", "denseUnderbrush"]);
+    expect(TERRAIN_ORDER.slice(-5)).toEqual(["thicket", "bridge", "sapling", "denseUnderbrush", "cliff"]);
   });
 
   it("gives every terrain, resource, the camp and the well a distinct glyph", () => {

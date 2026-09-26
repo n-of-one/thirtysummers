@@ -1,7 +1,24 @@
 import { ImageSource, Rectangle, Texture } from "pixi.js";
 import { RESOURCE_KINDS } from "../../sim/resources.ts";
 import type { Facing, ResourceKind, TerrainKind } from "../../sim/types.ts";
-import { autotileIndex, E, FILL, N, S, TILE_COUNT, W } from "./autotile.ts";
+import {
+  autotileIndex,
+  CLIFF_FALLS,
+  CLIFF_FALLS_E,
+  CLIFF_FALLS_W,
+  CLIFF_S2,
+  CLIFF_S3,
+  E,
+  FILL,
+  N,
+  NE,
+  NW,
+  S,
+  SE,
+  SW,
+  TILE_COUNT,
+  W,
+} from "./autotile.ts";
 import { DROPPED_ART_SHARE, DROPPED_SHADOW_ALPHA } from "./pack.ts";
 import type { AssetPack, AssetPackSource, Bounds, PropSprite } from "./pack.ts";
 import {
@@ -9,6 +26,7 @@ import {
   BLOCK_TILES,
   BRIDGE_PLANK,
   BRUSH_STENCIL,
+  CLIFF,
   DIRT_NARROW,
   FEATHER_COLORS,
   FEATHER_PIXELS,
@@ -27,6 +45,7 @@ import {
   TRODDEN_TINTS,
   turnPixels,
   WALK_ROWS,
+  WATERFALL,
   type NarrowTile,
   type SheetName,
 } from "./minifantasy.sheets.ts";
@@ -223,6 +242,8 @@ class MinifantasyPack implements AssetPack {
   private readonly troddenBrush: Texture[][][];
   private readonly dirt: Texture[];
   private readonly stone: Texture[];
+  /** The ravine's edge, built as each case is first drawn. See `cliff`. */
+  private readonly cliffs = new Map<string, Texture>();
   private readonly water: Texture[][];
   /** The two plank decks, [horizontal, vertical]. See BRIDGE_PLANK. */
   private readonly bridge: Texture[];
@@ -599,11 +620,83 @@ class MinifantasyPack implements AssetPack {
       }
       case "rock":
         return this.stone[autotileIndex(mask)]!;
+      case "cliff":
+        return this.cliff(mask, variant, frame);
       case "stream": {
         const frames = this.water[frame % this.water.length]!;
         return frames[autotileIndex(mask)]!;
       }
     }
+  }
+
+  /**
+   * A tile of the ravine's edge, from its cliff mask (see `cliffMask` in
+   * tileLayer.ts): the plateau's piece for the side the water is on, over the
+   * water where the piece is clear. Built once per case and kept.
+   *
+   * A tile with water straight below it within three tiles is a row of the
+   * face, counted from the water up. The face is cut at its west end where
+   * the water is west as well, and at its east end likewise. A face tile with
+   * the first stream above it is the falls, which the waterfall's layers draw
+   * instead, one column of three.
+   */
+  private cliff(mask: number, variant: number, frame: number): Texture {
+    const low = (bit: number) => (mask & bit) === 0;
+    // How far up the face this tile is: 1 with the water straight below it,
+    // 3 at the top, and 0 for a tile that is not part of a face.
+    const row = low(S) ? 1 : mask & CLIFF_S2 ? 2 : mask & CLIFF_S3 ? 3 : 0;
+    const falls = row > 0 && (mask & CLIFF_FALLS) !== 0;
+    const column = !falls ? 0 : !(mask & CLIFF_FALLS_W) ? 0 : !(mask & CLIFF_FALLS_E) ? 2 : 1;
+    const key = falls
+      ? `falls ${row} ${column} ${frame % WATERFALL.frames}`
+      : `${mask & 0xff} ${row} ${row > 0 ? variant % 2 : 0}`;
+    const had = this.cliffs.get(key);
+    if (had) return had;
+
+    const [canvas, ctx] = pixelCanvas(T, T);
+    const tiles = this.sheets.tiles.pixels.canvas;
+    const cut = (sx: number, sy: number, dx = 0, dy = 0, w = T, h = T) =>
+      ctx.drawImage(tiles, sx, sy, w, h, dx, dy, w, h);
+    cut(...CLIFF.under);
+
+    // The eight of the face's 24 rows this tile shows: the first eight for
+    // the top of the face, the last eight for the tile above the water.
+    const faceRows = CLIFF.faceRows.slice((3 - row) * T, (4 - row) * T);
+    if (falls) {
+      const sx = (frame % WATERFALL.frames) * WATERFALL.frameStep + WATERFALL.left + column * T;
+      const top = WATERFALL.faceOffset + (3 - row) * T;
+      for (const layer of [this.sheets.fallsGround, this.sheets.fallsDrop, this.sheets.fallsSplash]) {
+        ctx.drawImage(layer.pixels.canvas, sx, top, T, T, 0, 0, T, T);
+      }
+    } else if (row > 0) {
+      // A column of face, cut at an end where the water wraps round it.
+      const { west, straight, east } = CLIFF.faceColumns;
+      for (let x = 0; x < T; x++) {
+        const sx = low(W) && x < T / 2 ? west + x : low(E) && x >= T / 2 ? east + x : straight[variant % 2]! + x;
+        faceRows.forEach((sy, y) => cut(sx, sy, x, y, 1, 1));
+      }
+    } else if (low(N)) {
+      const [sx, sy] = low(W) ? CLIFF.convexNW : low(E) ? CLIFF.convexNE : CLIFF.rimN;
+      cut(sx, sy);
+    } else if (low(W)) {
+      cut(...CLIFF.sideW);
+    } else if (low(E)) {
+      cut(...CLIFF.sideE);
+    } else if (low(NW)) {
+      cut(...CLIFF.concaveNW);
+    } else if (low(NE)) {
+      cut(...CLIFF.concaveNE);
+    } else if (low(SW)) {
+      cut(...CLIFF.concaveSW);
+    } else if (low(SE)) {
+      cut(...CLIFF.concaveSE);
+    } else {
+      // No water beside it at all: the floor's own grass.
+      ctx.drawImage(tiles, (BLOCK.grass[0] + 1) * T, (BLOCK.grass[1] + 1) * T, T, T, 0, 0, T, T);
+    }
+    const texture = this.fromCanvas(canvas);
+    this.cliffs.set(key, texture);
+    return texture;
   }
 
   trodden(stage: number, mask: number, variant: number): Texture {

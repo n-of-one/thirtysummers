@@ -24,8 +24,7 @@ the history.
 
 - [current/PLAN.md](current/PLAN.md) is the status and order of the
   milestones, the chores, and what happens at the end of each milestone.
-- [current/m10-6a-valley.md](current/m10-6a-valley.md),
-  [current/m10-6b-fields.md](current/m10-6b-fields.md),
+- [current/m10-6b-fields.md](current/m10-6b-fields.md),
   [current/m10-7-camp.md](current/m10-7-camp.md) and
   [current/m10-8-upkeep.md](current/m10-8-upkeep.md) are what is left of the
   changes that answer the first playtest of the first three years, built and

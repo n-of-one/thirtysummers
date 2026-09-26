@@ -3,10 +3,10 @@ import { RESOURCES } from "../resources.ts";
 import { mulberry32, type Rng } from "../rng.ts";
 import type { TileMap } from "../tilemap.ts";
 import type { ResourceKind, ResourceNode, TerrainKind, Vec2 } from "../types.ts";
-import { carveBrambleBay, findBrambleBay } from "./brambleBay.ts";
 import { nearRing, reachableFrom } from "./reachability.ts";
 import { placeSprings } from "./springs.ts";
 import { keepStagesOnUnderbrush, paintTerrain } from "./terrain.ts";
+import { planValley } from "./valley.ts";
 import { thickenStream } from "./water.ts";
 import type { GeneratedWorld } from "../worldgen.ts";
 
@@ -17,13 +17,14 @@ import type { GeneratedWorld } from "../worldgen.ts";
  * produces: each summer has to open exactly one thing, and each barrier has to
  * be short in the one currency the summer before supplied. So the landscape is
  * the generator's -- its woods, its mud, its thinning tree line -- and this
- * pass stamps the table onto it: the half circle of stream round camp, the
- * near ring inside it, the feather field across the stream, and the shell
- * field behind its copse. The dry pocket comes back with M12.
+ * pass lays the table onto it: the valley of `valley.ts`, with the river in
+ * its ravine, the first stream off the west wall, the ponds, and camp's part
+ * of the valley, the near ring.
  *
- * Positions are jittered and the whole arrangement is mirrored by the seed, so
- * two seeds are not the same walk, while every seed still holds the same
- * chain. `worldgen/rows.ts` is what says whether a given map does.
+ * M10.6a builds the valley with only the near ring's food in it. The bramble
+ * bay, the vines' pocket, the feather field, the copse and the shells come
+ * back in M10.6b, and `worldgen/rows.ts` marks the rows that check them as
+ * off until then. The dry pocket comes back with M12.
  *
  * A map file in public/maps is a dump of this pass, made when a map is worth
  * freezing and editable by hand afterwards: the file is the format, not this
@@ -31,172 +32,61 @@ import type { GeneratedWorld } from "../worldgen.ts";
  */
 export function layoutSummerWorld(seed: number): GeneratedWorld {
   const rng = mulberry32(seed ^ 0x5a17);
-  const W = C.LAYOUT_W;
-  const H = C.LAYOUT_H;
-  const jitter = (n: number) => Math.round((rng() * 2 - 1) * n);
+  const plan = planValley(seed);
+  const { width: W, height: H, camp } = plan;
 
-  // The generator's landscape without its own stream: this map's water is the
-  // one stream the table asks for, and its only walls are the ones placed
-  // below. The noise paints no walls of its own.
-  const camp: Vec2 = { x: Math.floor(W / 2) + jitter(6) + 0.5, y: H - C.CAMP_FROM_BOTTOM + 0.5 };
-  const cx = Math.floor(camp.x);
-  const cy = Math.floor(camp.y);
-  const R = C.NEAR_RING_RADIUS;
-  // The near ring grows by its own settings, more open than the valley: inside
-  // the half circle the stream will take, and the strip below camp between
-  // its two legs. The band of bank along the stream hides the change.
+  // The near ring grows by its own settings, more open than the valley:
+  // camp's part, as the plan lays it out. The cliff and the first stream's
+  // banks are where the two meet.
   const groundFor = (x: number, y: number): C.GroundSettings =>
-    (y <= cy ? Math.hypot(x - camp.x, y - camp.y) < R : Math.abs(x - camp.x) < R) ? C.RING_GROUND : C.GROUND;
+    plan.ring[y * W + x] ? C.RING_GROUND : C.GROUND;
 
+  // The generator's landscape without its own stream: this map's water is
+  // the plan's, and its only walls are the rock and the cliff laid below.
   const underbrushStages = new Uint8Array(W * H);
   const moisture = new Float32Array(W * H);
   const forest = new Float32Array(W * H);
-  const map = paintTerrain(
-    seed,
-    mulberry32(seed),
-    W,
-    H,
-    C.LAYOUT_BORDER,
-    underbrushStages,
-    false,
-    moisture,
-    forest,
-    groundFor,
-  );
+  const map = paintTerrain(seed, mulberry32(seed), W, H, 0, underbrushStages, false, moisture, forest, groundFor);
 
-  const stamp = new Stamp(map, W, H);
-  // Which side the copse is on. The pockets take the other, so the summers
-  // pull the player across the map rather than round one corner of it.
-  const side = rng() < 0.5 ? -1 : 1;
-
-  const at = (dx: number, dy: number): Vec2 => ({ x: cx + dx, y: cy + dy });
-  const featherField = at(jitter(10), -(R + C.FEATHER_FIELD_BEYOND + jitter(4)));
-  const shellField = at(
-    side * (C.SHELL_FIELD_SIDE + jitter(8)),
-    -(R + C.SHELL_FIELD_BEYOND + jitter(6)),
-  );
-  // The vines' pocket sits well off the line out of camp, on the far side
-  // from the copse. This is only where its last resort goes.
-  const UP = -Math.PI / 2;
-  const mudPocket = polar(camp, 0.62 * R, UP + side * (0.9 + rng() * 0.5));
-
-  // The clearings each pocket and field is worked in, before anything is
-  // walled off, so a wall is never drawn over its own field.
+  const stamp = new Stamp(map);
+  // The mountains round the valley, camp's clearing, then the water and the
+  // ravine's edge, which nothing is drawn over.
+  for (let y = 0; y < H; y++) {
+    for (let x = 0; x < W; x++) {
+      if (!plan.floor[y * W + x]) map.set(x, y, "rock");
+    }
+  }
   stamp.disc(camp, 0, C.CAMP_CLEARING, "grass");
-  stamp.disc(featherField, 0, C.FEATHER_FIELD_RADIUS, "grass");
-  stamp.disc(shellField, 0, C.SHELL_FIELD_RADIUS, "grass");
-
-  // The first stream: a half circle above camp, run down to the bottom border
-  // so the near ring is closed, with both banks walkable for springs.
-  stamp.halfRing(camp, R, C.STREAM_HALF_WIDTH);
-  stamp.clearBanks(camp, R);
-
-  // The near ring's bramble bay, where the sticks lie: the edge of a wood
-  // that wraps furthest round open ground, anywhere in the ring, with
-  // brambles on the wood's floor round it. It goes down before the mud, so
-  // the mud keeps out.
-  const ring = nearRing(map, camp);
-  const bay = findBrambleBay(map, seed, rng, camp, ring, forest, moisture, underbrushStages);
-  carveBrambleBay(map, seed, camp, forest, underbrushStages, bay);
+  for (let y = 0; y < H; y++) {
+    for (let x = 0; x < W; x++) {
+      const i = y * W + x;
+      if (plan.river[i] || plan.stream[i] || plan.ponds[i]) map.set(x, y, "stream");
+      else if (plan.cliff[i]) map.set(x, y, "cliff");
+    }
+  }
+  thickenStream(map);
 
   // Mud where the water is: the noise only knew about moisture, and now the
-  // stream is in, the ground near it is wetter. Kept dry are the clearings
-  // and the bramble bay.
-  const wet = new Wet(map, moisture, ring, [
-    [camp, C.CAMP_CLEARING + 2],
-    [featherField, C.FEATHER_FIELD_RADIUS + 2],
-    [shellField, C.SHELL_FIELD_RADIUS + 2],
-    [bay.centre, bay.reach + 2],
-  ]);
-  wet.soak();
-  // The vines' pocket is the largest patch of that mud on its side of the
-  // ring, grown only if it is too small to hold them. Nothing walls it: the
-  // mud is a barrier that only costs time.
-  const pocket = wet.pocket(camp, R, side, mudPocket);
-
-  // The way in to the shell field: from the feather field, bending round to
-  // the copse, grass the whole way, and the one gap the underbrush round the
-  // copse leaves. It is drawn after the stream so the banks cannot wipe it.
-  // Nothing is laid from camp to the feather field: that walk is whatever the
-  // player's feet wear into the ground.
-  const bend = towards(shellField, featherField, C.ROUTE_BEND_FROM_FIELD);
-  stamp.line(featherField, bend, 1, "grass");
-  stamp.line(bend, shellField, 1, "grass");
-
-  // The copse that hides the shell field, and the underbrush round it that
-  // leaves the route the only grass in. Both go on after the route, so the
-  // wall of saplings is unbroken.
-  stamp.disc(
-    shellField,
-    C.SHELL_FIELD_RADIUS - 0.5,
-    C.SHELL_FIELD_RADIUS + C.COPSE_WALL - 0.5,
-    "sapling",
-  );
-  stamp.moat(
-    shellField,
-    C.SHELL_FIELD_RADIUS + C.COPSE_WALL,
-    C.SHELL_FIELD_RADIUS + C.COPSE_WALL + C.COPSE_MOAT,
-  );
-  stamp.disc(towards(shellField, featherField, C.HEDGE_FROM_FIELD), 0, C.HEDGE_RADIUS, "thicket");
-
-  thickenStream(map);
-  stamp.border();
+  // water is in, the ground near it is wetter. Camp's clearing is kept dry.
+  const ring = nearRing(map, camp);
+  new Wet(map, moisture, ring, [[camp, C.CAMP_CLEARING + 2]]).soak();
 
   const nodes = new Scatter(map, rng);
   const N = C.LAYOUT_NODES;
-  // Inside the ring, what is walled off is walled off: the first summer's
-  // fruit and feathers are out in the open where they can be walked to, and
-  // the bramble bay holds the sticks and nothing else.
-  const walled: readonly (readonly [Vec2, number])[] = [
-    [bay.centre, bay.reach + 1],
-    // Camp's own clearing: a tree planted against the fire would be four fruit
-    // that cost nothing to reach, and the ring's food is meant to be four
-    // stops out in it.
-    [camp, C.CAMP_CLEARING + 2],
-  ];
-  // The ring's food, before anything else is scattered, so the feathers keep
-  // their distance from the trees rather than the other way about.
-  nodes.plant(stamp, camp, R - 6, N.nearRingTrees, N.nearRingFruit, C.NEAR_RING_SPACING, cy, walled);
-  nodes.spread("feather", camp, R - 6, N.nearRingFeathers, C.NEAR_RING_SPACING, cy, walled);
-  // The sticks lie on the bramble bay's floor, as what the wood drops.
-  const floorReach = [...bay.floor].reduce(
-    (r, i) => Math.max(r, Math.hypot((i % W) - bay.centre.x, (i - (i % W)) / W - bay.centre.y)),
-    0,
-  );
-  nodes.spread(
-    "stick",
-    bay.centre,
-    floorReach + 0.5,
-    N.brambleBaySticks,
-    C.FIELD_SPACING,
-    undefined,
-    [],
-    (x, y) => bay.floor.has(y * W + x),
-  );
-  // Vines sit well inside the pocket's mud, never along its rim, so reaching
-  // one is always a wade rather than a step off the grass.
-  nodes.spread(
-    "vine",
-    pocket.centre,
-    pocket.radius,
-    N.pocketVines,
-    C.FIELD_SPACING,
-    undefined,
-    [],
-    (x, y) => pocket.tiles.has(y * W + x) && insideMud(map, x, y, C.MUD_VINE_INSET),
-  );
-  // Across the stream, and behind the copse.
-  const field = C.FEATHER_FIELD_RADIUS - 1;
-  nodes.plant(
-    stamp,
-    featherField,
-    field - 1,
-    N.featherFieldTrees,
-    N.featherFieldFruit,
-    C.NEAR_RING_SPACING,
-  );
-  nodes.spread("feather", featherField, field, N.featherFieldFeathers, C.FIELD_SPACING);
-  nodes.spread("shell", shellField, C.SHELL_FIELD_RADIUS - 1, N.shellFieldShells, C.FIELD_SPACING);
+  // Camp's own clearing: a tree planted against the fire would be four fruit
+  // that cost nothing to reach, and the ring's food is meant to be four stops
+  // out in it.
+  const walled: readonly (readonly [Vec2, number])[] = [[camp, C.CAMP_CLEARING + 2]];
+  // The ring's food, anywhere in camp's part and nowhere else. The trees go
+  // first, so the feathers keep their distance from the trees rather than
+  // the other way about.
+  const inRing = (x: number, y: number) => ring[y * W + x] === 1;
+  let reach = 0;
+  for (let i = 0; i < ring.length; i++) {
+    if (ring[i]) reach = Math.max(reach, Math.hypot((i % W) + 0.5 - camp.x, Math.floor(i / W) + 0.5 - camp.y));
+  }
+  nodes.plant(stamp, camp, reach, N.nearRingTrees, N.nearRingFruit, C.NEAR_RING_SPACING, undefined, walled, inRing);
+  nodes.spread("feather", camp, reach, N.nearRingFeathers, C.NEAR_RING_SPACING, undefined, walled, inRing);
 
   // Springs are placed from the finished map with the map file's own seed, so
   // a dump of this world and the world itself have the same drinking spots:
@@ -551,22 +441,13 @@ function polar(from: Vec2, distance: number, angle: number): Vec2 {
   };
 }
 
-/** The point `distance` from `from` on the way to `to`. */
-function towards(from: Vec2, to: Vec2, distance: number): Vec2 {
-  const away = Math.hypot(to.x - from.x, to.y - from.y) || 1;
-  return {
-    x: Math.round(from.x + ((to.x - from.x) / away) * distance),
-    y: Math.round(from.y + ((to.y - from.y) / away) * distance),
-  };
-}
-
 /**
- * Drawing on the map in the shapes the layout is made of, keeping the border
- * and the route out of harm's way.
+ * Drawing on the map in the shapes the layout is made of, keeping the route
+ * out of harm's way.
  *
- * The route is remembered as it is drawn, so the underbrush that seals the
- * copse cannot swallow the one way in, and a node is never scattered onto the
- * road itself.
+ * The route is remembered as it is drawn, so a node is never scattered onto
+ * the road itself. M10.6a lays no route; the way in to the shell field comes
+ * back with M10.6b.
  */
 class Stamp {
   readonly route = new Set<number>();
@@ -574,18 +455,13 @@ class Stamp {
   // run under bare `node --experimental-strip-types`, which cannot synthesise
   // the assignments a parameter property implies.
   private readonly map: TileMap;
-  private readonly w: number;
-  private readonly h: number;
 
-  constructor(map: TileMap, w: number, h: number) {
+  constructor(map: TileMap) {
     this.map = map;
-    this.w = w;
-    this.h = h;
   }
 
   private inside(x: number, y: number): boolean {
-    const b = C.LAYOUT_BORDER;
-    return x >= b && y >= b && x < this.w - b && y < this.h - b;
+    return x >= 0 && y >= 0 && x < this.map.width && y < this.map.height;
   }
 
   set(x: number, y: number, kind: TerrainKind): void {
@@ -606,80 +482,6 @@ class Stamp {
     }
   }
 
-  /** The upper half of a ring: the stream, run down to the bottom border. */
-  halfRing(centre: Vec2, radius: number, half: number): void {
-    for (let y = Math.floor(centre.y - radius - half - 1); y <= centre.y; y++) {
-      for (let x = Math.floor(centre.x - radius - half - 1); x <= centre.x + radius + half + 1; x++) {
-        const d = Math.hypot(x - centre.x, y - centre.y);
-        if (Math.abs(d - radius) <= half) this.set(x, y, "stream");
-      }
-    }
-    for (let y = Math.floor(centre.y); y < this.h; y++) {
-      for (let dx = -half; dx <= half; dx++) {
-        this.set(Math.round(centre.x - radius + dx), y, "stream");
-        this.set(Math.round(centre.x + radius + dx), y, "stream");
-      }
-    }
-  }
-
-  /**
-   * Both banks walkable, so springs can stand on either side: a spring is a
-   * reed bed on passable ground, and a wood grown to the water's edge would
-   * leave one side of the stream with nowhere to drink.
-   */
-  clearBanks(centre: Vec2, radius: number): void {
-    this.disc(centre, radius - 4, radius + 4, "underbrush");
-    this.halfRing(centre, radius, C.STREAM_HALF_WIDTH);
-    for (let y = Math.floor(centre.y); y < this.h; y++) {
-      for (const sign of [-1, 1]) {
-        for (let d = 2; d <= 4; d++) {
-          for (const x of [centre.x + sign * (radius + d), centre.x + sign * (radius - d)]) {
-            if (this.map.get(Math.round(x), y) === "tree") this.set(Math.round(x), y, "underbrush");
-          }
-        }
-      }
-    }
-  }
-
-  /**
-   * Grass a few tiles wide from a to b, remembered as the route.
-   *
-   * Water is left where it is: the route crosses the stream rather than
-   * draining it, and crossing it is the first summer's work.
-   */
-  line(a: Vec2, b: Vec2, half: number, kind: TerrainKind): void {
-    const steps = Math.ceil(Math.hypot(b.x - a.x, b.y - a.y));
-    for (let i = 0; i <= steps; i++) {
-      const x = Math.round(a.x + ((b.x - a.x) * i) / steps);
-      const y = Math.round(a.y + ((b.y - a.y) * i) / steps);
-      for (let dy = -half; dy <= half; dy++) {
-        for (let dx = -half; dx <= half; dx++) {
-          if (this.map.get(x + dx, y + dy) !== "stream") this.set(x + dx, y + dy, kind);
-          this.route.add((y + dy) * this.w + (x + dx));
-        }
-      }
-    }
-  }
-
-  /** Grass turned to underbrush in a band, leaving the route alone. */
-  moat(centre: Vec2, from: number, to: number): void {
-    for (let y = Math.floor(centre.y - to - 1); y <= centre.y + to + 1; y++) {
-      for (let x = Math.floor(centre.x - to - 1); x <= centre.x + to + 1; x++) {
-        const d = Math.hypot(x - centre.x, y - centre.y);
-        if (d < from || d > to) continue;
-        if (this.route.has(y * this.w + x)) continue;
-        if (this.map.get(x, y) === "grass") this.set(x, y, "underbrush");
-      }
-    }
-  }
-
-  border(): void {
-    for (let y = 0; y < this.h; y++) {
-      for (let x = 0; x < this.w; x++) {
-        if (!this.inside(x, y)) this.map.set(x, y, "rock");
-      }
-    }
-  }
 }
 
 /**
@@ -775,6 +577,8 @@ class Scatter {
    * tree is a place rather than a counted thing: some are worth the walk and
    * some are passed by. The rest of the arguments are `spread`'s, and hold the
    * trees apart the same way, so a field's food is stops rather than a clump.
+   * `allow` has the last word on the trunk's tile, which is how the ring's
+   * trees stay in camp's part.
    */
   plant(
     stamp: Stamp,
@@ -785,6 +589,7 @@ class Scatter {
     spacing: number,
     aboveY?: number,
     avoid: readonly (readonly [Vec2, number])[] = [],
+    allow: (x: number, y: number) => boolean = () => true,
   ): void {
     const share = this.share(count, fruit);
     // At each spacing, a trunk in dense underbrush first: a fruit tree stands
@@ -792,7 +597,7 @@ class Scatter {
     for (const at of [spacing, spacing * 0.6, 0]) {
       for (const denseOnly of [true, false]) {
         if (share.length === 0) return;
-        this.attemptTrees(stamp, centre, radius, share, at, aboveY, avoid, denseOnly);
+        this.attemptTrees(stamp, centre, radius, share, at, aboveY, avoid, denseOnly, allow);
       }
     }
   }
@@ -825,6 +630,7 @@ class Scatter {
     aboveY: number | undefined,
     avoid: readonly (readonly [Vec2, number])[],
     denseOnly: boolean,
+    allow: (x: number, y: number) => boolean,
   ): void {
     const count = share.length;
     for (let tries = 0; share.length > 0 && tries < count * 600; tries++) {
@@ -834,6 +640,7 @@ class Scatter {
       const y = Math.round(centre.y + Math.sin(angle) * at);
       if (aboveY !== undefined && y > aboveY) continue;
       if (avoid.some(([c, r]) => Math.hypot(x - c.x, y - c.y) <= r)) continue;
+      if (!allow(x, y)) continue;
       if (denseOnly && this.map.get(x, y) !== "denseUnderbrush") continue;
       if (!this.canopyOpen(stamp, x, y)) continue;
       if (this.placed.some((n) => Math.hypot(n.x - x - 0.5, n.y - y - 0.5) < spacing)) continue;

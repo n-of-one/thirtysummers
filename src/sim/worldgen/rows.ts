@@ -4,6 +4,7 @@ import { RESOURCES } from "../resources.ts";
 import type { TileMap } from "../tilemap.ts";
 import type { ResourceKind, ResourceNode } from "../types.ts";
 import { Grid, NEIGHBOURS_4 } from "./grid.ts";
+import { nearRing } from "./reachability.ts";
 import { thickenStream } from "./water.ts";
 import type { GeneratedWorld } from "../worldgen.ts";
 
@@ -33,6 +34,13 @@ export interface Row {
   ok: boolean;
   /** The numbers behind it, for a person reading the output. */
   detail: string;
+  /**
+   * A row about a field of the table: the bramble bay, the vines, the
+   * feather field, the copse and the shells, and the economy they pay for.
+   * M10.6a builds the valley without them, so these rows are off until
+   * M10.6b puts the fields back.
+   */
+  field?: true;
 }
 
 /** Most thicket a thin ring may take to cut through: "about three tiles". */
@@ -247,7 +255,7 @@ export function checkRows(world: GeneratedWorld): Row[] {
   // setting foot in mud, with water, thicket and saplings all crossed.
   const dry = fill(map, [Math.floor(world.camp.y) * map.width + Math.floor(world.camp.x)], (x, y) => {
     const kind = map.get(x, y);
-    return kind !== "mud" && kind !== "rock" && kind !== "tree";
+    return kind !== "mud" && kind !== "rock" && kind !== "cliff" && kind !== "tree";
   });
   const wadedTo = world.springs.filter(
     (s) => map.get(s.x, s.y) === "mud" || dry[s.y * map.width + s.x]! < 0,
@@ -288,6 +296,7 @@ export function checkRows(world: GeneratedWorld): Row[] {
     {
       summer: 1,
       label: "vines waded to, sticks behind thin thicket",
+      field: true,
       ok:
         count(onFoot, "vine") > 0 &&
         count(onFoot, "stick") === 0 &&
@@ -299,6 +308,7 @@ export function checkRows(world: GeneratedWorld): Row[] {
     {
       summer: 1,
       label: "the sticks lie in one bramble bay, in brambles about as deep all round",
+      field: true,
       ok:
         bay.floors === 1 &&
         bay.thinnest >= 2 &&
@@ -317,6 +327,7 @@ export function checkRows(world: GeneratedWorld): Row[] {
     {
       summer: 2,
       label: "feathers across the stream, no shells",
+      field: true,
       ok: count(across, "feather") > 0 && count(across, "shell") === 0,
       detail:
         `feathers ${describe(world, across.filter((n) => n.kind === "feather"), steps)}; ` +
@@ -325,6 +336,7 @@ export function checkRows(world: GeneratedWorld): Row[] {
     {
       summer: 3,
       label: "shells only behind the copse",
+      field: true,
       ok: count(farField, "shell") > 0 && count(nearRing, "shell") === 0 && count(across, "shell") === 0,
       detail: `shells ${describe(world, farField.filter((n) => n.kind === "shell"), steps)}`,
     },
@@ -337,6 +349,7 @@ export function checkRows(world: GeneratedWorld): Row[] {
     {
       summer: 0,
       label: "nothing but sticks in the bramble bay",
+      field: true,
       ok: inBay.length === 0 && springsInBay.length === 0,
       detail: `${inBay.length} other nodes, ${springsInBay.length} springs`,
     },
@@ -356,7 +369,10 @@ export function checkRows(world: GeneratedWorld): Row[] {
 
   const saplings = countTiles(map, felled, "sapling");
   return [
+    ...valleyRows(world, noBridge, felled, steps),
     ...rows,
+    // Every economy row counts what the fields hold, so all of them wait for
+    // the fields.
     ...economyRows({
       ringFruit: count(nearRing, "fruit"),
       ringFeathers: count(nearRing, "feather"),
@@ -365,8 +381,189 @@ export function checkRows(world: GeneratedWorld): Row[] {
       fieldFeathers: count(across, "feather"),
       shells: count(farField, "shell"),
       saplings,
-    }),
+    }).map((row) => ({ ...row, field: true as const })),
   ];
+}
+
+/**
+ * The valley's own rows (docs/current/five-summers.md, "The map"), measured from the map
+ * alone, so a file edited by hand is held to them too.
+ *
+ * `onFoot` is the cost map from camp with nothing bridged, and `felled` the
+ * one with every stream bridged and every sapling felled: the most the player
+ * can ever open. `steps` is the walk from the nearest spring.
+ */
+function valleyRows(world: GeneratedWorld, onFoot: Float64Array, felled: Float64Array, steps: Int32Array): Row[] {
+  const { map } = world;
+  const W = map.width;
+  const ring = nearRing(map, world.camp);
+  let ringWalkable = 0;
+  for (let i = 0; i < ring.length; i++) {
+    if (ring[i] && map.isPassable(i % W, Math.floor(i / W))) ringWalkable++;
+  }
+
+  // The river and the lake are the water with no walkable tile beside it:
+  // cliff and rock all round. A stream the player can reach has a bank.
+  const bodies = waterBodies(map);
+  const walled = bodies.filter((tiles) =>
+    tiles.every((i) =>
+      NEIGHBOURS_4.every(([dx, dy]) => {
+        const kind = map.get((i % W) + dx, Math.floor(i / W) + dy);
+        return kind === "stream" || !map.isPassable((i % W) + dx, Math.floor(i / W) + dy);
+      }),
+    ),
+  );
+  const reachedWalled = walled.filter((tiles) => tiles.some((i) => felled[i]! < Infinity));
+
+  // The fewest bridge tiles from camp onto walkable ground outside the ring.
+  const crossing = narrowestCrossing(world, ring);
+
+  // Water in the ring: every walkable tile of it within a walk of a spring,
+  // and somewhere outside it that is not, so thirst is still a thing there.
+  // Only ground the player gets to counts: a clearing shut in by trees is not
+  // a walk from anywhere. In the ring that means on foot, since ground only a
+  // bridge over a pond reaches is not ground anyone walks to.
+  let dryInRing = 0;
+  let farthestInRing = 0;
+  let dryOutside = 0;
+  for (let i = 0; i < ring.length; i++) {
+    if (!map.isPassable(i % W, Math.floor(i / W))) continue;
+    if ((ring[i] ? onFoot : felled)[i] === Infinity) continue;
+    const d = steps[i]!;
+    if (ring[i]) {
+      if (d < 0 || d > C.VALLEY.ringWaterReach) dryInRing++;
+      farthestInRing = Math.max(farthestInRing, d < 0 ? Infinity : d);
+    } else if (d > C.VALLEY.ringWaterReach) {
+      dryOutside++;
+    }
+  }
+
+  // The cliff's art has a piece for none of these: a cliff tile with water
+  // on three or four sides, a spike or a crumb; water straight above it and
+  // again within a face's height below, which leaves room for only the
+  // bottom of a face; and water to its west with more within two tiles east,
+  // where two banks' edges meet.
+  const water = (x: number, y: number) => map.get(x, y) === "stream";
+  const odd: string[] = [];
+  for (let y = 0; y < map.height; y++) {
+    for (let x = 0; x < W; x++) {
+      if (map.get(x, y) !== "cliff") continue;
+      const n = water(x, y - 1);
+      const s = water(x, y + 1);
+      const e = water(x + 1, y);
+      const w = water(x - 1, y);
+      let below = false;
+      for (let k = 1; k <= C.CLIFF_FACE_TILES && !below; k++) below = water(x, y + k);
+      // The falls are this, with the first stream above and the lake below,
+      // and the waterfall draws them. The stream is told from the river by
+      // its bank: along its row, walkable ground past the water.
+      const falls = n && [-1, 1].some((step) => {
+        let wx = x;
+        for (let k = 0; k < 4 && water(wx, y - 1); k++) wx += step;
+        return map.isPassable(wx, y - 1);
+      });
+      if (+n + +s + +e + +w >= 3 || (w && (e || water(x + 2, y))) || (n && below && !falls)) odd.push(`${x},${y}`);
+    }
+  }
+
+  return [
+    {
+      summer: 0,
+      label: "every cliff tile has a piece to draw it with",
+      ok: odd.length === 0,
+      detail: odd.length === 0 ? "none too thin" : `${odd.length} too thin, at ${odd.slice(0, 4).join(" ")}`,
+    },
+    {
+      summer: 1,
+      label: "the near ring is large enough to explore",
+      ok: ringWalkable >= C.VALLEY.ringMin,
+      detail: `${ringWalkable} walkable tiles, at least ${C.VALLEY.ringMin}`,
+    },
+    // One body: a river broken in two has ground between the pieces, and
+    // that ground is a way across.
+    {
+      summer: 0,
+      label: "the river and the lake are one, and never reached, whatever is bridged",
+      ok: walled.length === 1 && reachedWalled.length === 0,
+      detail: `${walled.length} walled water bodies, ${reachedWalled.length} reached`,
+    },
+    {
+      summer: 1,
+      label: `the first stream's narrowest crossing is ${C.FIRST_CROSSING_TILES} tiles`,
+      ok: crossing === C.FIRST_CROSSING_TILES,
+      detail: `${crossing} bridge tiles`,
+    },
+    {
+      summer: 1,
+      label: `the near ring is all within ${C.VALLEY.ringWaterReach} steps of a spring, and somewhere outside it is not`,
+      ok: dryInRing === 0 && dryOutside > 0,
+      detail: `farthest in the ring ${farthestInRing}, ${dryInRing} tiles too far; ${dryOutside} tiles outside too far`,
+    },
+  ];
+}
+
+/** The stream tiles, in 4-connected bodies of water, as `y * width + x`. */
+function waterBodies(map: TileMap): number[][] {
+  const W = map.width;
+  const seen = new Uint8Array(W * map.height);
+  const bodies: number[][] = [];
+  for (let start = 0; start < seen.length; start++) {
+    if (seen[start] || map.get(start % W, Math.floor(start / W)) !== "stream") continue;
+    seen[start] = 1;
+    const tiles = [start];
+    for (let head = 0; head < tiles.length; head++) {
+      const i = tiles[head]!;
+      for (const [dx, dy] of NEIGHBOURS_4) {
+        const x = (i % W) + dx;
+        const y = Math.floor(i / W) + dy;
+        if (x < 0 || y < 0 || x >= W || y >= map.height) continue;
+        const n = y * W + x;
+        if (seen[n] || map.get(x, y) !== "stream") continue;
+        seen[n] = 1;
+        tiles.push(n);
+      }
+    }
+    bodies.push(tiles);
+  }
+  return bodies;
+}
+
+/**
+ * The fewest stream tiles crossed on the way from camp to walkable ground
+ * outside the near ring, with everything that can be cut or felled opened:
+ * what the first bridge costs at its narrowest. Infinity if nothing gets out.
+ */
+function narrowestCrossing(world: GeneratedWorld, ring: Uint8Array): number {
+  const { map } = world;
+  const grid = new Grid(map.width, map.height);
+  const cost = new Float64Array(grid.size).fill(Infinity);
+  const start = grid.index(Math.floor(world.camp.x), Math.floor(world.camp.y));
+  const deque = new Int32Array(grid.size * 4 + 8);
+  let head = grid.size * 2;
+  let tail = head;
+  cost[start] = 0;
+  deque[tail++] = start;
+  while (head < tail) {
+    const idx = deque[head++]!;
+    const x = grid.xOf(idx);
+    const y = grid.yOf(idx);
+    if (!ring[idx] && map.isPassable(x, y)) return cost[idx]!;
+    for (const [dx, dy] of NEIGHBOURS_4) {
+      const nx = x + dx;
+      const ny = y + dy;
+      if (!grid.contains(nx, ny)) continue;
+      const kind = map.get(nx, ny);
+      const step =
+        kind === "stream" ? 1 : map.isPassable(nx, ny) || kind === "thicket" || kind === "sapling" ? 0 : Infinity;
+      if (step === Infinity) continue;
+      const n = grid.index(nx, ny);
+      if (cost[idx]! + step >= cost[n]!) continue;
+      cost[n] = cost[idx]! + step;
+      if (step === 0) deque[--head] = n;
+      else deque[tail++] = n;
+    }
+  }
+  return Infinity;
 }
 
 /** Tiles of `kind` the cost map reaches at all. */

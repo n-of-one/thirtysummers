@@ -4,7 +4,7 @@ import { TileMap } from "../src/sim/tilemap.ts";
 import type { TerrainKind } from "../src/sim/types.ts";
 import { World } from "../src/sim/world.ts";
 import { dryBrightness, fade, isLandmark, mapMarks, tileColour } from "../src/ui/mapPicture.ts";
-import { drinkPointer, drinkTarget, minimapRadius, nearDrinks, wholeArtPx } from "../src/ui/mapWidget.ts";
+import { drinkPointer, drinkTarget, minimapRadius, nearDrinks, wholeArtPx, wholePlacement } from "../src/ui/mapWidget.ts";
 import { seenRadiusTiles } from "../src/sim/stats.ts";
 
 const SIZE = 40;
@@ -197,6 +197,30 @@ describe("the whole map's size", () => {
   it("never goes past the cap, or below one art pixel", () => {
     expect(wholeArtPx(20, 20, 4, HD)).toBe(C.MAP_WHOLE_MAX_ART_PX);
     expect(wholeArtPx(2000, 2000, 4, HD)).toBe(1);
+  });
+});
+
+describe("where the whole map goes", () => {
+  const HD = { width: 1920, height: 1080 };
+  it("is centred on an axis where it fits", () => {
+    // The valley is 312 wide at 4 logical pixels a tile: 1248, which fits.
+    expect(wholePlacement(312, 465, 4, 4, HD, 0, 0).left).toBe(336);
+  });
+
+  it("puts the player in the middle on an axis where it does not, as far as its edges allow", () => {
+    // 465 tall is 1860, which does not fit 1080: the player's tile goes to the middle.
+    const middle = wholePlacement(312, 465, 4, 4, HD, 150, 232).top;
+    expect(middle + (232 + 0.5) * 4).toBeGreaterThanOrEqual(540 - 4);
+    expect(middle + (232 + 0.5) * 4).toBeLessThanOrEqual(540 + 4);
+    // At the top of the valley the map's top edge stays on the view's...
+    expect(wholePlacement(312, 465, 4, 4, HD, 150, 5).top).toBe(0);
+    // ...and at the bottom its bottom edge does, so the gorge is on screen.
+    expect(wholePlacement(312, 465, 4, 4, HD, 150, 460).top).toBe(1080 - 1860);
+  });
+
+  it("stays on the art grid", () => {
+    // A negative position leaves -0 over the grid, which is still on it.
+    for (let py = 0; py < 465; py += 7) expect(Math.abs(wholePlacement(312, 465, 4, 4, HD, 150, py).top % 4)).toBe(0);
   });
 });
 

@@ -49,6 +49,9 @@ export const TERRAIN: Record<TerrainKind, TerrainDef> = {
   // underbrush, and it never becomes a trail. Not a wall either, so the knife
   // has nothing to cut. It is what the ground is near trees.
   denseUnderbrush: def("denseUnderbrush", true, true, ";", UNDERBRUSH_SPEED_MUL),
+  // The edge of the ravine the river runs in: a wall, like rock. Nothing
+  // stands at the river's level, so the river is never reached.
+  cliff: def("cliff", false, false, "^"),
 };
 
 /** Stable id order -- the tile grid stores these indices, so do not reorder. */
@@ -63,6 +66,7 @@ export const TERRAIN_ORDER: readonly TerrainKind[] = [
   "bridge",
   "sapling",
   "denseUnderbrush",
+  "cliff",
 ];
 
 export const TERRAIN_ID: Record<TerrainKind, number> = Object.fromEntries(

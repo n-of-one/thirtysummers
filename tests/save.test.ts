@@ -38,9 +38,25 @@ function aimAt(world: World, kind: string): { x: number; y: number } {
   throw new Error(`no ${kind} to aim at`);
 }
 
-/** A summer with a bit of everything in it: picks, a cut, a fell, a bridge, a drop. */
+/**
+ * A summer with a bit of everything in it: picks, a cut, a fell, a bridge, a drop.
+ *
+ * The valley of M10.6a has no brambles and no copse until M10.6b brings the
+ * fields back, so a thicket tile and a sapling are planted in camp's clearing
+ * for the cut and the fell. The save records the change either way.
+ */
 function played(): World {
   const world = World.fromSeed(1337);
+  const cx = Math.floor(world.camp.x);
+  const cy = Math.floor(world.camp.y);
+  const has = (kind: string) => {
+    for (let y = 0; y < world.map.height; y++) {
+      for (let x = 0; x < world.map.width; x++) if (world.map.get(x, y) === kind) return true;
+    }
+    return false;
+  };
+  if (!has("thicket")) world.map.set(cx + 3, cy, "thicket");
+  if (!has("sapling")) world.map.set(cx - 3, cy, "sapling");
   world.tools.add("axe");
   for (const node of world.nodes.filter((n) => n.kind === "feather").slice(0, 12)) {
     world.teleport(node.x, node.y);

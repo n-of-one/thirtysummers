@@ -20,6 +20,25 @@ export const SE = 32;
 export const SW = 64;
 export const NW = 128;
 
+/**
+ * Two more bits for a cliff tile, whose mask means something else: its eight
+ * neighbour bits say which neighbours are ground rather than water, and these
+ * say whether the water is two or three tiles to the south. A cliff facing
+ * south shows a face three tiles tall, and these tell a tile which row of it
+ * it is.
+ */
+export const CLIFF_S2 = 256;
+export const CLIFF_S3 = 512;
+/**
+ * A cliff tile with the first stream directly north of it: the falls. The
+ * river runs between cliffs, so water with walkable ground beside it is the
+ * stream, and the cliff below it is where the stream drops into the lake.
+ */
+export const CLIFF_FALLS = 1024;
+/** The falls go on to the west of this tile, and to the east: which of their three columns it is. */
+export const CLIFF_FALLS_W = 2048;
+export const CLIFF_FALLS_E = 4096;
+
 /** Tile index used when a shape has no representation at all. */
 export const FILL = 4;
 

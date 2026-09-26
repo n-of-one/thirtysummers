@@ -16,7 +16,7 @@ function touchesStream(map: TileMap, x: number, y: number): boolean {
 /**
  * The tiles reached from camp without setting foot in mud, 1 each.
  *
- * Everything but mud and what nothing crosses, rock and grown trees, is
+ * Everything but mud and what nothing crosses, rock, cliff and grown trees, is
  * crossed: water, as if bridged, and thicket and saplings, as if cut and
  * felled. So what this rules out is only ground that mud closes off, whatever
  * the player can already do.
@@ -27,7 +27,7 @@ export function reachedDry(map: TileMap, camp: Vec2): Uint8Array {
   const open = (x: number, y: number) => {
     if (x < 0 || y < 0 || x >= W || y >= map.height) return false;
     const kind = map.get(x, y);
-    return kind !== "mud" && kind !== "rock" && kind !== "tree";
+    return kind !== "mud" && kind !== "rock" && kind !== "cliff" && kind !== "tree";
   };
   const start = Math.floor(camp.y) * W + Math.floor(camp.x);
   reached[start] = 1;

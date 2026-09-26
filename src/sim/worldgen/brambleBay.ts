@@ -58,8 +58,9 @@ export function findBrambleBay(
   const grid = new Grid(map.width, map.height);
   const R = C.NEAR_RING_RADIUS;
   let best: { at: Vec2; wrap: number; open: number; score: number } | null = null;
-  for (let y = C.LAYOUT_BORDER; y < camp.y; y += 2) {
-    for (let x = C.LAYOUT_BORDER; x < map.width - C.LAYOUT_BORDER; x += 2) {
+  // The ring keeps the scan off the rock round the valley.
+  for (let y = 0; y < camp.y; y += 2) {
+    for (let x = 0; x < map.width; x += 2) {
       const out = Math.hypot(x - camp.x, y - camp.y);
       if (out < C.BRAMBLE_BAY_FROM_CAMP || out > R - C.BRAMBLE_BAY_FROM_STREAM) continue;
       if (!ring[grid.index(x, y)] || !(forest[grid.index(x, y)]! < 0)) continue;

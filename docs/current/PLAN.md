@@ -131,6 +131,22 @@ the stream. It is split in two: M10.6a builds the valley with only the near
 ring's food in it, and M10.6b puts the fields back once the valley has been
 walked. The field tests are off in between.
 
+**M10.6a is done** (26 Sep). The valley generates in about 0.3 seconds a seed,
+312 by 465 tiles, and every valley row holds on the twenty test seeds: camp's
+part is 8,800 to 9,300 walkable tiles, the river and the lake are one walled
+body no bridge reaches, the first stream's narrowest crossing is 3, no tile
+of camp's part is more than 80 steps from a spring, and every cliff tile has
+a piece to draw it with. Camp's part needed two ponds for that, not one. The
+cliff is drawn with the plateau's pieces, and the stream falls into the lake
+over a waterfall onto a straight stretch of shore. The whole map on M cannot
+fit a valley this tall at one art pixel a tile, so it shows the part of the
+valley the player is in, with the list and the pack hidden, and a debug
+button that shows every tile. Questions for the next playtest: does the
+valley read as a place with a shape, not a map with a border? Is the cliff
+seen as a wall from every side? Does the waterfall draw the eye to the lake?
+Is camp's part the right size, and camp in the right place in it? Are the
+ponds found and used?
+
 | Milestone | What it adds | Status |
 |---|---|---|
 | Chores | a clean tree to build on | done |
@@ -144,7 +160,7 @@ walked. The field tests are off in between.
 | M10.3: the map | the map in the corner and the whole map on M, showing only ground that has been seen; what thirst does to both; the pointer to water | done |
 | M10.4: mud | more mud, most of it where the water is, the vines' patch taken from it | done |
 | M10.5: the bramble bay | the sticks in a clearing of a wood, closed by brambles; no saplings in the ring; the ring's own ground | done |
-| [M10.6a: the valley](m10-6a-valley.md) | a winding valley walled by rock, the river in a ravine, the lake at the fork, the stream off the west wall, ponds, camp in its part | designed |
+| M10.6a: the valley | a winding valley walled by rock, the river in a ravine, the lake at the fork, the stream off the west wall, ponds, camp in its part | done |
 | [M10.6b: the fields](m10-6b-fields.md) | the bramble bay, the vines, the feather field, the copse and the shells, placed in the valley; the field tests back on | not designed |
 | [M10.7: camp that moves](m10-7-camp.md) | a camp pitched on ground the family has walked, granted by a family level | not started |
 | [M10.8: upkeep by level](m10-8-upkeep.md) | a winter asked in fruit when poor and in rent when not | not started |

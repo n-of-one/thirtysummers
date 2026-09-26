@@ -95,6 +95,9 @@ html, body {
 #view.is-map-open #grid,
 #view.is-map-open #player-anchor,
 #view.is-map-open #camp-arrow { visibility: hidden; }
+/* The list and the pack would sit over the map, so they go while it is up. */
+#view.is-map-open #hud-list,
+#view.is-map-open #pack { visibility: hidden; }
 
 .bar {
   position: relative;
@@ -190,8 +193,12 @@ html, body {
 
 /* The controls in the HUD that take the mouse. */
 #end-summer,
-#fullscreen { pointer-events: auto; }
-#fullscreen { padding: 5px 12px; }
+#fullscreen,
+#map-reveal { pointer-events: auto; }
+#fullscreen,
+#map-reveal { padding: 5px 12px; }
+#map-reveal[hidden] { display: none; }
+#map-reveal.is-on { color: var(--gold); }
 
 #end-summer[hidden] { display: none; }
 kbd {

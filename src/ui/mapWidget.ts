@@ -113,7 +113,9 @@ export function drinkPointer(target: Vec2 | null, px: number, py: number): { dx:
  *   The player's tile is always the middle cell, so it moves a whole tile at a
  *   time, and its edge is tiles in or out, never a curve through a pixel.
  * - `whole` is the entire map at the most art pixels a tile that fit the view,
- *   up to `MAP_WHOLE_MAX_ART_PX`, centred.
+ *   up to `MAP_WHOLE_MAX_ART_PX`, centred. A map that does not fit even at
+ *   one art pixel a tile, as a whole valley does not, shows the part of it
+ *   round the player instead (see `wholePlacement`).
  *
  * It draws only when something it shows has changed: the player's tile, the
  * seen count, or the ground under a tile it shows. Everything else is a frame
@@ -140,6 +142,15 @@ export class MapWidget {
   private drinkTarget: Vec2 | null = null;
   /** The corner map's circle radius as last cut, in tiles. */
   private circle = MAP_RADIUS;
+  /** Logical pixels a tile, as the canvas was last sized. */
+  private perTile = 0;
+  /** Where the whole map's canvas was last put, so an unchanged frame writes no style. */
+  private placed = "";
+  /**
+   * Debug: draw every tile, seen or not. The seen mask is not touched, so
+   * turning it off shows the family's map again as it was.
+   */
+  revealAll = false;
 
   constructor(
     parent: HTMLElement,
@@ -192,6 +203,8 @@ export class MapWidget {
       left = Math.floor((this.view.width - width * perTile) / 2 / art) * art;
       top = Math.floor((this.view.height - height * perTile) / 2 / art) * art;
     }
+    this.perTile = perTile;
+    this.placed = "";
     Object.assign(this.canvas.style, {
       width: `${width * perTile}px`,
       height: `${height * perTile}px`,
@@ -199,6 +212,21 @@ export class MapWidget {
       top: `${top}px`,
     });
     this.dirty = true;
+  }
+
+  /**
+   * Put the whole map where the player is. A map that fits the view is centred
+   * in it; one too big for the view, which at one art pixel a tile a whole
+   * valley is, is placed on each axis it overhangs so the player's tile is in
+   * the middle, but never so far that its edge comes away from the view's.
+   */
+  private follow(px: number, py: number): void {
+    const { left, top } = wholePlacement(this.width, this.height, this.perTile, this.artPx, this.view, px, py);
+    const key = `${left},${top}`;
+    if (key === this.placed) return;
+    this.placed = key;
+    this.canvas.style.left = `${left}px`;
+    this.canvas.style.top = `${top}px`;
   }
 
   /**
@@ -275,11 +303,12 @@ export class MapWidget {
     this.seenEvents = events.length;
     if (this.layout === "corner") this.applySight(world.stats.hydration);
     if (this.hidden) return;
+    if (this.layout === "whole") this.follow(px, py);
 
     // The whole map fades as the player runs dry, all but its landmarks; the
     // corner shrinks instead.
     const brightness = this.layout === "whole" ? dryBrightness(world.stats.hydration) : 1;
-    const key = `${px},${py},${world.seenCount},${brightness}`;
+    const key = `${px},${py},${world.seenCount},${brightness},${this.revealAll}`;
     if (key === this.drawnKey && !this.dirty) return;
     this.drawnKey = key;
     this.dirty = false;
@@ -298,7 +327,7 @@ export class MapWidget {
           this.pixels[i] = 0;
           continue;
         }
-        let colour = tileColour(world, marks, ox + x, oy + y);
+        let colour = tileColour(world, marks, ox + x, oy + y, this.revealAll);
         if (colour !== null && brightness < 1 && !isLandmark(world, marks, ox + x, oy + y)) {
           const was = colour;
           colour = faded.get(was) ?? fade(was, brightness);
@@ -341,6 +370,28 @@ export function wholeArtPx(
 ): number {
   const fit = Math.floor(Math.min(view.width / (widthTiles * artPx), view.height / (heightTiles * artPx)));
   return Math.max(1, Math.min(C.MAP_WHOLE_MAX_ART_PX, fit));
+}
+
+/**
+ * Where the whole map's canvas goes, in logical pixels, on the art grid: on
+ * each axis, centred in the view if it fits, and otherwise with the player's
+ * tile as near the middle of the view as the map's edges allow.
+ */
+export function wholePlacement(
+  widthTiles: number,
+  heightTiles: number,
+  perTile: number,
+  artPx: number,
+  view: { width: number; height: number },
+  px: number,
+  py: number,
+): { left: number; top: number } {
+  const axis = (tiles: number, span: number, at: number) => {
+    const size = tiles * perTile;
+    const offset = size <= span ? (span - size) / 2 : Math.min(0, Math.max(span - size, span / 2 - (at + 0.5) * perTile));
+    return Math.floor(offset / artPx) * artPx;
+  };
+  return { left: axis(widthTiles, view.width, px), top: axis(heightTiles, view.height, py) };
 }
 
 /** `0xrrggbb` as an opaque pixel in the little-endian byte order `ImageData` is read in. */

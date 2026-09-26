@@ -257,6 +257,16 @@ function drawTerrain(g: Graphics, kind: TerrainKind, rng: Rng): void {
       speckle(g, rng, 6, [0x606060, 0x333331]);
       break;
 
+    // Bare earth where the valley drops to the river: brown, striped across
+    // like the face of a bank.
+    case "cliff":
+      g.rect(0, 0, S, S).fill(0x5e3e22);
+      for (let i = 0; i < 4; i++) {
+        g.rect(0, Math.floor(rng() * S), S, 1).fill(0x4a2f18);
+      }
+      speckle(g, rng, 6, [0x74502e, 0x3c2614]);
+      break;
+
     case "thicket": {
       // Denser and darker than underbrush, and drawn to the tile edges: what
       // makes underbrush read as passable is the ground showing through it.

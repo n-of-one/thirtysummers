@@ -205,8 +205,10 @@ pattern -- and if it is stale, save the file again with a real edit.
   a tired summer, three winters of the map changing on a small map, trails
   worn by walking with their speeds, their save and their winters, dense
   underbrush that never wears, underbrush stages from the forest noise, the
-  near ring measured from the map, the layout pass over several seeds against
-  every row of the table and the economy, the bramble bay with its even
+  near ring measured from the map, the valley plan and where it puts camp,
+  the cliff's mask with its face rows and its falls, the layout pass over
+  several seeds against every row of the table and the economy (the rows of
+  the fields are off until M10.6b), the bramble bay with its even
   brambles and the edited bramble bays its row must fail, a cut through them growing back over a
   winter, no saplings in the ring, the fog's radius and the seen
   circle, the seen mask over a walk, a drink, a teleport, a winter and a

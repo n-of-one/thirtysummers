@@ -32,12 +32,15 @@ for (const file of files) {
   }
 
   const rows = checkRows(world);
-  const ok = rows.every((row) => row.ok);
+  // The field rows are off until M10.6b puts the fields back: shown, but not
+  // what a map passes or fails on.
+  const ok = rows.every((row) => row.ok || row.field);
   if (!ok) failed++;
   console.log(`${file}  ${world.map.width}x${world.map.height}  ${ok ? "OK" : "FAIL"}`);
   for (const row of rows) {
     const label = row.summer > 0 ? `${row.summer}: ${row.label}` : row.label;
-    console.log(`  ${row.ok ? "ok  " : "FAIL"}  ${label.padEnd(50)} ${row.detail}`);
+    const mark = row.ok ? "ok  " : row.field ? "off " : "FAIL";
+    console.log(`  ${mark}  ${label.padEnd(50)} ${row.detail}`);
   }
   console.log();
 }

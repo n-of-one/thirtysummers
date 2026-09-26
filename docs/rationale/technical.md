@@ -677,10 +677,10 @@ Every complaint names the line and column.
 **The table is stamped on, not grown.** Noise does not produce a chain where
 each summer opens exactly one thing and each barrier is short in the one
 currency the summer before supplied. `worldgen/layout.ts` therefore paints the
-generator's landscape, takes its own streams and walls back out, and stamps the
-table onto it: the half circle of stream round camp, the near ring inside it,
-the ore field, the copse and the field it hides, the dry pocket, the wall into
-the last pocket, and the route a cart could run. The mud pocket was stamped
+generator's landscape, takes its own streams and walls back out, and lays the
+table onto it. It was a half circle of stream round camp with the fields
+stamped round it; it is now the valley (see *The valley*), and the fields
+come back into it with M10.6b. The mud pocket was stamped
 too, as a disc, until M10.4 took it from the landscape's own mud (see *Mud*),
 and so was the sapling stand, until M10.5 put the sticks in a bramble bay at
 the edge of the ring's own woods (see *The bramble bay*). What a map feels like to walk across is still the generator's; what it
@@ -800,6 +800,112 @@ walks, nearest-first from camp and back. A winter's fruit went from 150 tiles
 scattered to 91 at four trees of four, and to 113 at the uneven five -- the
 number that says the stops are choices again rather than a queue. Driving the
 real game for this would have measured the driver's pathfinding.
+
+## The valley
+
+**The valley is a plan, not noise.** A valley with three parts split by water
+has to hold the table on every seed, and noise does not make a river that
+closes camp's part off. The plan is written once in its own coordinates and
+turned and scaled onto the map; a seed only adds noise to the walls, the
+meanders and the shore, and a mirror. Water points were first written in the
+sketch's map coordinates and converted back, so that `VALLEY.scale` stays one
+number. The lines' half widths are in tiles and do not scale, since a bridge
+is priced in them.
+
+**A stream laid as discs is 2 tiles across where it runs off the grid's
+axes.** The first bridge is priced at the narrowest crossing, so the stream is
+laid as 3×3 squares, one at each point of its course. A point moves at most a
+tile from the last, the squares overlap, and the crossing is 3 wherever the
+stream runs straight and never less. A second leak was at the waterfall on the
+wall: the wall's ragged edge left ground a two-tile step apart either side of
+the stream, so the rock closes in a collar round the stream where it runs in
+the rock.
+
+**The falls are built, not placed.** The waterfall art only falls towards the
+viewer, and the lake's noisy shore moved where the plan's course met it: on one
+seed the stream ran down beside the lake instead of into it. The generator now
+follows the course until the lake is straight below it, 6 to 14 tiles down,
+and runs the stream straight south from there. It also flattens the shore under
+the three columns, or one column falls a tile further than the others.
+
+**The cliff needs a smooth edge to draw.** The river laid as discs, with a
+noisy shore, has an edge ragged tile by tile, and the cliff's pieces need a
+tile or two of straight edge: a playtest found a spike of bank into the river,
+a crumb of ground in it and odd steps. The river's outline is smoothed by two
+passes of a 3×3 majority, and then any tile with water on three or four sides,
+or on two opposite ones, becomes water, until none is left. That runs again
+after the shore under the falls is flattened. The falls are only taken where no
+lake lies beside the straight drop, and the stream's plan falls into the lake
+well west of where the river comes in, since the two had meandered into each
+other. A row now checks that no cliff tile has water on three sides or on two
+opposite ones; with the smoothing taken out it fails on 16 tiles a seed.
+
+A second playtest found the same fault a size up: a bank that bends back on
+itself, two tiles of ground with water above and below, leaves room for only
+the bottom slice of a face, which is three tiles tall. So a gap is filled
+wherever the ground between two reaches of water is up to a face's height
+tall, or up to two tiles wide, and the row checks for both. The falls are that
+shape on purpose, the stream above and the lake below, and the row knows them
+by the stream's walkable bank, as the renderer does. The lake's north shore is
+also straightened for four tiles either side of the falls, filled or cut back,
+so the water line runs on level from under them instead of jumping a tile or
+turning at once. The first version of that ran off the lake's end on some
+seeds and filled a column all the way down the valley; the rows missed it,
+since the channel joined the lake, and a test now asks for one run of river on
+each row below the lake.
+
+**The river has to be one body of water.** The shore's noise left puddles of
+the lake apart from it, walled in by their own cliff, and once left a gap
+between the river and the lake. A gap is ground, and ground between the pieces
+of a river is a way across. The river mask keeps its largest piece, and the row
+asks for exactly one walled body.
+
+**A thirst row counts only ground someone walks to.** The first version counted
+tiles shut in by trees, and tiles only a bridge over a pond reached, as too far
+from water. In the ring it counts ground reached on foot.
+
+**A cliff tile's mask says where the water is.** Every other tile autotiles by
+which neighbours are the same surface. A cliff is the edge of the floor above
+the river, so its look depends on the water: a bit per neighbour that is
+ground, two for water two and three tiles south, since a face is three tiles
+tall and each tile is one row of it, and three for the falls and which of
+their columns a tile is. The falls are told from the river by the bank: along
+the row of water above, the first tile past it is walkable on one side or the
+other. Water treats cliff as its own surface, so it runs to the cliff's foot
+with no bank drawn against it.
+
+**The cliff is the pack's one-level earth plateau.** It is the plus-shaped
+piece at (268, 64) on the tileset, drawn on a 16-pixel lattice: a black
+outline and brown lip where it ends to the north, a strip of its side where
+it ends east or west, and a face where it ends to the south. Only a cliff
+facing south shows a face, so the river looks deepest where it runs east to
+west. The pieces are cut per tile, not per lattice cell, because a tile that
+shows cliff has to be a cliff tile: on the lattice, the face would sit on
+ground the player walks. The two-level plateau at about (360, 56) has a face
+about as deep as the waterfall's drop, and is the other way to a deeper face
+if the repeated rows ever look wrong. The waterfall is three layers of four
+frames in `Tileset/River/Waterfall/`; its ground layer ends in a pool with
+grass banks, which is left out, since the falls land in the lake. Where each
+piece is cut from is `CLIFF` and `WATERFALL` in `minifantasy.sheets.ts`.
+
+**The face is deepened by repeating its middle rows.** The one-level plateau's
+face is 12 pixels and the waterfall drops 20. Repeating the face's body gives a
+face the waterfall fits, and a cliff tile never shows grass it cannot be
+walked on, except the lip of the rim and the grass above a face.
+
+**The whole map cannot fit a valley this tall, so it shows where the player
+is.** `wholeArtPx` never draws below one art pixel a tile, and 465 tiles at
+four logical pixels each is 1,860 against a view of 1,080. Centred, it hung
+over the top and bottom and hid the gorge, camp's end of the valley.
+`wholePlacement` now centres the map on an axis where it fits, and on an axis
+where it does not, puts the player's tile in the middle as far as the map's
+edges allow. The list and the pack are hidden while the map is up, and a debug
+button draws every tile without marking any as seen.
+
+**A dev server can miss an edit.** Once, Vite served a module from before its
+import was added, and the page failed with a name "not defined" that the
+typecheck said was imported. Restarting the dev server fixed it; a reload did
+not.
 
 ## Drawing the new terrain
 

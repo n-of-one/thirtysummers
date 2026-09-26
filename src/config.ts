@@ -364,6 +364,8 @@ export const MAP_COLORS = {
   /** A fruit tree, as a 2 by 2 block from its trunk, picked or not. */
   fruitTree: 0xd9503c,
   rock: 0x5a5a5c,
+  /** The ravine's edge: earth brown, so the river reads as cut into the valley. */
+  cliff: 0x6e4a2a,
   thicket: 0x4d3b2c,
   bridge: 0xa07a48,
   camp: 0xf2d06e,
@@ -578,30 +580,158 @@ export const FRUIT_NODES = 45;
 export const ORE_NODES = 140;
 
 // ------------------------------------------------- the five-summer layout ----
-// The pass that stamps the table of the first five summers onto a noise map:
-// the half circle of stream round camp, the near ring inside it, and the
-// pockets beyond. Everything here is [GUESS] unless it says otherwise, and
-// what each summer has to open is [DOC], from docs/current/five-summers.md.
+// The pass that lays the table of the first five summers onto a noise map:
+// the valley, its river and the first stream, the near ring, and the pockets
+// beyond. Everything here is [GUESS] unless it says otherwise, and what each
+// summer has to open is [DOC], from docs/current/five-summers.md.
+
+/** A point of a plan line: x, y, and half the width there. */
+export type PlanPoint = readonly [x: number, y: number, halfWidth: number];
+/** A water line of the plan, and how far and how often it meanders. */
+export interface PlanLine {
+  points: readonly PlanPoint[];
+  /** Furthest the meanders push the line sideways, in plan units. */
+  meander: number;
+  /** How long one meander is, in plan units. */
+  wave: number;
+}
+/** Still water: centre, the two radii, and how far it is turned, in degrees. */
+export interface PlanPool {
+  x: number;
+  y: number;
+  rx: number;
+  ry: number;
+  turn: number;
+}
 
 /**
- * The laid-out map, which is larger than the plain noise one: the near ring
- * alone is about six times the area it was, so that the first summer has
- * somewhere to explore rather than a clearing to sweep.
+ * [DOC] The valley, as docs/design/map-arc.md describes it: a plan written once in
+ * its own coordinates, 256 across with the mouth at the bottom left, then
+ * turned and scaled onto the map. Everything a seed changes is noise on top:
+ * the walls, the meanders, the outline of the still water.
+ *
+ * The floor is every tile within the half width of the spine or of a side
+ * valley, as the walls' noise pushes it; the rest is rock. Half widths and the
+ * meanders are in plan units and grow with `scale`. The water's own half
+ * widths are in tiles and do not, since a bridge's price is counted in them.
  */
-export const LAYOUT_W = 200;
-export const LAYOUT_H = 180;
-/**
- * The rock border on a laid-out map. Thin, because the camera is allowed to
- * stop at the edge of play here: these maps are walked, not generated around.
- */
-export const LAYOUT_BORDER = 2;
-/** Tiles between the camp and the bottom border. */
-export const CAMP_FROM_BOTTOM = 12;
+export const VALLEY = {
+  /** [GUESS] How big the valley is. The one number to change to grow it. */
+  scale: 1.3,
+  /** Turned so the river runs roughly north to south. Never by much more: the waterfall has to face the viewer. */
+  turnDeg: -24,
+  /**
+   * Rock round the floor, in tiles. The camera stops at the map's edge, so
+   * this is only how much mountain there is to look at.
+   */
+  margin: 24,
+  spine: [
+    [56, 262, 10], [66, 226, 40], [70, 190, 58], [62, 150, 50], [84, 112, 46],
+    [130, 96, 48], [178, 82, 46], [206, 50, 36], [216, 20, 16], [220, 4, 8],
+  ],
+  sideValleys: [
+    // Off the open bank's west wall.
+    [[70, 120, 18], [40, 90, 15], [28, 60, 8]],
+    // Off the far bank, hooking back south.
+    [[120, 110, 18], [150, 150, 16], [160, 180, 8]],
+  ],
+  /** [GUESS] How far the walls' noise pushes the edge of the floor, in tiles, at two scales. */
+  wall: { coarse: 9, coarseScale: 28, fine: 2.5, fineScale: 7 },
+  /** The river from the head of the valley into the lake, and from the lake to the gorge. */
+  riverIn: {
+    points: [
+      [230, -25.6, 3], [231, 13.6, 3], [229.8, 46.7, 3.5], [223.2, 69.1, 3.5], [199.7, 83.9, 3.5],
+      // The last point is well inside the lake, so the shore's noise never
+      // leaves ground between the two.
+      [170.4, 98.6, 3.5], [148.9, 109.2, 4], [127.5, 123.3, 4], [111.5, 144, 4], [94.5, 163.3, 4], [85.7, 167.9, 4],
+    ],
+    meander: 7.7,
+    wave: 23,
+  },
+  riverOut: {
+    points: [[80.6, 175.7, 4], [78.5, 191.6, 4], [77.7, 212.3, 4], [54.4, 238.1, 3.5], [45.2, 270.2, 3.5], [39.3, 298.7, 3]],
+    meander: 6.2,
+    wave: 20,
+  },
+  /** The lake at the fork, down at the river's level. */
+  lake: { x: 81.6, y: 167.7, rx: 15.4, ry: 9.2, turn: 14 },
+  /**
+   * The first stream, from its waterfall on the west wall to the lake. Its
+   * last stretch comes straight down, north to south once turned, because the
+   * waterfall it ends in only falls towards the viewer. It is always 3 tiles
+   * across, laid as squares (see `valley.ts`), so its points' half widths
+   * are not read.
+   */
+  stream: {
+    points: [
+      // It falls into the lake well west of where the river comes in, so the
+      // two never meander into each other.
+      [-7.5, 131.4, 1.5], [15.5, 136.6, 1.5], [41.1, 139.6, 1.5], [61.1, 140, 1.5],
+      [73.6, 142.2, 1.5], [80, 148.5, 1.5], [79, 156.5, 1.5], [75.9, 163.5, 1.5],
+    ],
+    meander: 4.6,
+    wave: 10.8,
+  },
+  /**
+   * Camp's part has two, since the first stream only waters its north: one
+   * on the west side, and one on the river side, which the river's cliff
+   * leaves dry.
+   */
+  ponds: [
+    { x: 22.7, y: 190.3, rx: 5.4, ry: 3.8, turn: 44 },
+    { x: 46.9, y: 223, rx: 4.6, ry: 3.4, turn: 10 },
+  ],
+  /** [GUESS] How far the noise pushes still water's shore, as a share of its radius. */
+  shoreNoise: 0.3,
+  /** A point in camp's part, which the near ring is filled from before there is a camp. */
+  ringAnchor: [38.9, 197.5],
+  /** [DOC] Camp stands this far down camp's part, in the middle of its width there. */
+  campDown: 0.75,
+  /** [DOC] The least walkable tiles camp's part holds: the half circle's ring was about this. */
+  ringMin: 6700,
+  /**
+   * [DOC] No walkable tile of the near ring is further than this, walking, from
+   * a spring: about how far the player goes and comes back through underbrush
+   * before the fog.
+   */
+  ringWaterReach: 80,
+} as const satisfies {
+  scale: number;
+  turnDeg: number;
+  margin: number;
+  spine: readonly PlanPoint[];
+  sideValleys: readonly (readonly PlanPoint[])[];
+  wall: { coarse: number; coarseScale: number; fine: number; fineScale: number };
+  riverIn: PlanLine;
+  riverOut: PlanLine;
+  lake: PlanPool;
+  stream: PlanLine;
+  ponds: readonly PlanPool[];
+  shoreNoise: number;
+  ringAnchor: readonly [number, number];
+  campDown: number;
+  ringMin: number;
+  ringWaterReach: number;
+};
 
 /**
- * [DOC] The first stream: a half circle round camp, with springs along both
- * sides, run down to the border so the ring it makes is closed. This is its
- * radius, and everything inside it is the near ring.
+ * [GUESS] The ravine's edge: tiles of cliff between the river and the valley
+ * floor. The cliff is drawn over its own tiles, and a cliff facing south
+ * shows its whole face while any other shows only a rim, so the band is
+ * deeper where the water lies to the south.
+ */
+export const CLIFF_FACE_TILES = 3;
+export const CLIFF_RIM_TILES = 1;
+
+/**
+ * [DOC] The first stream's narrowest crossing, in bridge tiles: what the first
+ * bridge is priced at, three of the bramble bay's four sticks.
+ */
+export const FIRST_CROSSING_TILES = 3;
+
+/**
+ * The half circle's radius, which the bramble bay still measures its place
+ * by. M10.6b gives it the near ring's own edge instead, and this goes.
  */
 export const NEAR_RING_RADIUS = 58;
 /** Half the stream's width, in tiles, before the generator's own thickening. */

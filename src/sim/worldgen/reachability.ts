@@ -63,11 +63,12 @@ export function reachableFrom(
  * hand-edited file keeps the rule that inside the first stream everything is
  * back every year. Thicket, saplings and trees count as inside, since they are
  * walls within the ring rather than its edge; a bridge counts as water, so a
- * ring measured after the stream was crossed is still the same ring.
+ * ring measured after the stream was crossed is still the same ring. Cliff is
+ * its edge like rock: it is what walls the river off.
  */
 export function nearRing(map: TileMap, camp: Vec2, z = 0): Uint8Array {
   return reachableFrom(map, camp, z, (x, y) => {
     const kind = map.get(x, y, z);
-    return kind !== "stream" && kind !== "bridge" && kind !== "rock";
+    return kind !== "stream" && kind !== "bridge" && kind !== "rock" && kind !== "cliff";
   });
 }
