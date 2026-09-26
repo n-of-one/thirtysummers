@@ -121,6 +121,16 @@ the next playtest: is the bramble bay found without being looked for? Does cutti
 in feel like a choice of side? In summer 2, is the narrowed way in noticed,
 and does it teach that thicket grows back? Is the ring now open enough?
 
+**M10.6 became the valley** (26 Sep). Making the stream less artificial
+turned into a new map: a winding valley walled by rock, with the river down
+its length in a ravine that cannot be reached, a lake at the fork, and the
+stream off the west wall as the one crossable water. A river on the valley
+floor would have put almost the whole valley within reach of water, so the
+river is walled off by cliff, and ponds are the drinking water away from
+the stream. It is split in two: M10.6a builds the valley with only the near
+ring's food in it, and M10.6b puts the fields back once the valley has been
+walked. The field tests are off in between.
+
 | Milestone | What it adds | Status |
 |---|---|---|
 | Chores | a clean tree to build on | done |
@@ -134,7 +144,8 @@ and does it teach that thicket grows back? Is the ring now open enough?
 | M10.3: the map | the map in the corner and the whole map on M, showing only ground that has been seen; what thirst does to both; the pointer to water | done |
 | M10.4: mud | more mud, most of it where the water is, the vines' patch taken from it | done |
 | M10.5: the bramble bay | the sticks in a clearing of a wood, closed by brambles; no saplings in the ring; the ring's own ground | done |
-| [M10.6: the stream](m10-6-stream.md) | a stream that is not a half circle, the island | not designed |
+| [M10.6a: the valley](m10-6a-valley.md) | a winding valley walled by rock, the river in a ravine, the lake at the fork, the stream off the west wall, ponds, camp in its part | designed |
+| [M10.6b: the fields](m10-6b-fields.md) | the bramble bay, the vines, the feather field, the copse and the shells, placed in the valley; the field tests back on | not designed |
 | [M10.7: camp that moves](m10-7-camp.md) | a camp pitched on ground the family has walked, granted by a family level | not started |
 | [M10.8: upkeep by level](m10-8-upkeep.md) | a winter asked in fruit when poor and in rent when not | not started |
 | [M11: the cart](m11-cart.md) | summer 4: the logistics experiment, and its road | being rethought |
@@ -154,7 +165,8 @@ one needs from the one before.
 - Mud comes first of the three, because it is the smallest change. It is
   written against water in general, so the stream can change shape after
   it. The stream is last because it moves the most: the ring's edge, the
-  banks and the bridge.
+  banks and the bridge. It moved the whole map, so it is two steps: the
+  valley first, then the fields in it.
 - Camp that moves comes after the map, where its sites are picked, and after
   the ring's ground, which is where it would be pitched.
 - Upkeep by level is last, because its numbers are chosen against a summer

@@ -44,8 +44,9 @@ logic.
 
 ## The story
 
-**Summer 1, the tutorial year.** The character wakes at camp, inside the
-half circle of the stream, with a short list in the corner: 8 fruit at camp,
+**Summer 1, the tutorial year.** The character wakes at camp, at the bottom
+of the valley between the stream and the river, with a short list in the
+corner: 8 fruit at camp,
 6 gold rent, 10 gold for the family. The ring's food grows under five trees,
 so collecting it is a handful of stops and not a sweep, and the ring's 10
 feathers are worth more than the rent. Everything the family's level needs
@@ -119,10 +120,18 @@ walking speed instead of 40%. Easy ground is walked as fast as ever.
 
 ## The map, summers 1 to 3
 
-- **The first stream** is a half circle around camp, 58 tiles out, with
-  springs along both banks. Inside it is the near ring.
-- **The near ring** is large, so the first summer is explored rather than
-  swept. Its food is five fruit trees with two to four fruit each, and its
+- **The valley** winds from a gorge at the bottom, where the town is, to the
+  head of the valley at the top, walled by rock. The river runs its whole
+  length in a ravine, and cliff keeps everyone off it. It runs through a
+  lake at the fork. The far bank, across the river, is closed in these five
+  summers. [m10-6a-valley.md](m10-6a-valley.md) has the plan.
+- **The stream** comes off a waterfall on the west wall, crosses the valley
+  floor and falls into the lake. It is the first barrier, with springs along
+  both banks. Camp's side of it is the near ring. Across it is the open bank.
+- **Ponds** on the valley floor are the drinking water away from the stream,
+  with springs round their edge. The near ring has at least one.
+- **The near ring** is large, at least 6,700 tiles, so the first summer is
+  explored rather than swept. Its food is five fruit trees with two to four fruit each, and its
   feathers are spread across it. It is more open than the valley round it,
   with less mud and less dense underbrush. Mud lies mostly where the water is, along
   parts of the bank and in the low ground behind them, and in damp hollows
@@ -135,10 +144,7 @@ walking speed instead of 40%. Easy ground is walked as fast as ever.
   from every side, so the knife can cut in from whichever side the player
   comes. The ring has no saplings.
 - **The ring has features that are only themselves**: a pond, a rock
-  outcrop, a stand of grown trees, a bend with a waterfall. One of them is
-  the thing to want in year 1: an island in the stream with something on it,
-  reached by a second bridge tile, so the first summer ends with a question
-  as well as a list.
+  outcrop, a stand of grown trees.
 - **Across the stream** is the feather field, dense enough that its 30
   feathers are gathered rather than swept.
 - **The copse**, a ring of saplings the axe fells, hides the shell field.
@@ -321,8 +327,8 @@ log.
 
 - How many crossings wear an underbrush tile away, and whether the wear is
   felt before the tile gives way.
-- Whether the near ring, 58 tiles in radius, is still too large once the
-  food is on trees and the trails are worn.
+- Whether the near ring, at about 6,700 tiles or more, is still too large
+  once the food is on trees and the trails are worn.
 - Whether the map in the corner is enough to make the valley memorable, or
   whether the landmarks need to be more than scenery.
 - Whether one move of camp per family level is too many or too few, and

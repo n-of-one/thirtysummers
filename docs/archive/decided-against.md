@@ -108,6 +108,19 @@ chosen instead.
 - **Cutting underbrush with the knife.** Underbrush is worn down by walking
   over it, the one improvement that needs no action. The knife keeps the
   thicket.
+- **An island in the stream, and a waterfall where it bends.** Neither
+  matters next to the stream's own course, and the island's two bridge tiles
+  did not fit the bramble bay's 4 sticks.
+- **The first stream as a half circle round camp**, even with natural
+  variations. It looked stamped on, and it ran from one edge of the map back
+  to the same edge, which no stream does. The valley's stream off the west
+  wall replaced it.
+- **Camp in a corner, with a stream across the diagonal.** It made the near
+  ring a triangle cut from a square.
+- **The river on the valley floor.** Almost the whole valley was then within
+  reach of water, and hydration stopped mattering.
+- **Beaches with stairs down into the ravine** as the places to drink. They
+  need a second level to stand on. Ponds on the valley floor do the job.
 
 ## Winter and the economy
 

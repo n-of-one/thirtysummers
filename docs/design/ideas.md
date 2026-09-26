@@ -51,12 +51,12 @@ one up means refining it into a design document first. Rejected ideas are in
   one: sticks that drop from thicket as it is cut, so the barrier is the
   field of sticks and grows back with it.
 - **Logs floating downstream.** A log dropped in a stream drifts with the
-  current and washes up on a bank further down. The half circle round camp
+  current and washes up on a bank further down. A stream that passes camp
   would carry felled logs home without a cart: logistics made of the map
   itself, and a reason to fell upstream.
 - **The stream as a conveyor.** The same idea for everything, not only logs:
   anything put in running water drifts down and collects in a net at camp, so
-  the half circle is a delivery line and a field that touches water is worth
+  the stream is a delivery line and a field that touches water is worth
   more than one that does not. Offered as an answer to the hauling in years 2
   and 3, and not taken: trails and a camp that moves were taken instead.
 - **The cart, two summers earlier.** Bought with gold alone in winter 2, since

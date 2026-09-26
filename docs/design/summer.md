@@ -48,14 +48,16 @@ drains at a steady rate whatever the character does. It is refilled only at
 springs: drinking spots on the stream bank, marked by reeds. The character
 drinks standing beside one, with a short action, and every spring refills at
 the same speed. Springs sit along the streams, many of them on both banks,
-and never in mud or where mud is the only way to them.
+and round the edge of ponds, and never in mud or where mud is the only way
+to them. The river has none: it runs in a ravine, and the cliff keeps
+everyone off it.
 At a spring the action key drinks while the character is thirsty, and lays a
 bridge tile when they are not. Water is never carried. When the character is
 dehydrated, the view narrows into fog.
 
-Near camp, inside the half circle of the first stream, hydration is no
-concern. Further out, distance from water is a barrier of its own. So a map
-has few streams further out, and a stream in a far part of the map is a
+Near camp, on camp's side of the first stream, hydration is no concern.
+Further out, distance from water is a barrier of its own. So a map has few
+streams and ponds further out, and one in a far part of the map is a
 relief.
 
 **A tired summer** follows a winter whose upkeep was not paid. Every action

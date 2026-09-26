@@ -76,6 +76,13 @@ In-game words, not game-design words.
 - The **family** takes the gold left over after upkeep and has **levels**,
   which open the shop. The **list** is what the player means to bring home,
   ticked in winter and carried through the summer.
+- The **valley** is the map. The **river** runs its length in a
+  **ravine**, walled by **cliff**, and cannot be reached. A **stream** is
+  water on the valley floor, which can be drunk from and bridged; the
+  **first stream** is the one that bounds the near ring. A **pond** is still
+  water on the floor. The **lake** is where the river widens at the fork.
+  The river splits the valley into the **open bank**, the large side the
+  first bridge leads to, and the narrow **far bank**.
 - The **near ring** is everything camp reaches without crossing water. The
   **bramble bay** is the clearing in it where the sticks lie, at the edge of
   a wood and behind brambles; always the whole name, since "bay" alone says

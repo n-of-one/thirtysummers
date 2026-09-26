@@ -457,6 +457,44 @@ end a life.
 **Nothing announces the damage.** The player finds what wore and what grew
 back on the map, which is where it matters.
 
+## The valley
+
+**A valley, not a square.** A square map bordered by rock, with a stream
+stamped on it, looked as artificial as the mud disc had. A winding valley
+walled by rock has a shape of its own: its far end cannot be seen from camp,
+so it unfolds as the player goes up it.
+
+**A river down the middle makes three parts.** The river and one stream off
+the wall split the valley into camp's part, a large open bank the first
+bridge reaches, and a narrow far bank. Of the valleys sketched, the winding
+one was chosen: one side valley in each large part, not the many of a
+valley with fingers; an open bank that curves and invites; and a far bank
+narrow enough to be hard to get about. A valley with more side valleys
+gives a fourth part, a pocket cut off by a brook, which is kept for when
+that stage of the game is known.
+
+**The river is in a ravine because hydration needs distance.** With the
+river on the valley floor, 97% of the valley was within 80 tiles' walk of
+water, and not being allowed to drink from a river beside you would be
+strange. With the river behind cliff, the drinking water is the stream and
+the ponds, and hydration matters again in the side valleys and up the
+valley.
+
+**Cliff is a wall, not a height.** The ravine is drawn with the pack's
+elevation tiles, but nothing stands at the river's level: the cliff is
+ground no one walks, like rock. Z-levels stay parked.
+
+**Ponds, not ways down.** Beaches with stairs down to the river were
+sketched as the drinking places, and ponds on the valley floor were
+preferred: they are water the family can see from the ground it walks,
+and they need no second level.
+
+**The stream falls into the lake from the north,** because the pack's
+waterfall only falls towards the viewer. A stream reaching the river from
+the east or west would need a waterfall falling sideways, and there is no
+art for that. The lake at the fork gives the fork a centre, and lets the
+river stay in its ravine the whole length of the valley.
+
 ## The map arc
 
 **What makes summer 17 worth playing** is reaping what was built and working

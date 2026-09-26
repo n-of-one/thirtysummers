@@ -13,6 +13,13 @@ as many lives as it takes. It ends when the family has finished every
 domain in the valley and built the road to the next valley, with a town
 strong enough to send an outpost ahead.
 
+A valley is walled by rock and winds. A river runs its length in a ravine,
+which cliff keeps everyone out of, so the river is a barrier and never a
+place to drink. The water the family drinks is streams on the valley floor
+and ponds, and they thin out further from camp. The river splits the
+valley into banks, and the streams split each bank again, so a valley is a
+few large parts, opened one crossing at a time.
+
 Nothing rushes this. There is no limit on the number of generations. A new
 player learns the game at their own pace on the first map.
 
